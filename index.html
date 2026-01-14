@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tet Gifts</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans:wght@300;400;500;600;700;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#d90429",
+              "primary-glow": "#ef233c",
+              "accent": "#ffb703",
+              "background-dark": "#050505",
+              "surface-dark": "#0f0f11",
+              "surface-darker": "#0a0a0c",
+              "card-dark": "#16161a",
+              "background-light": "#FFFCF5",
+              "surface-light": "#ffffff",
+              "text-primary": "#ffffff",
+              "text-secondary": "#94a3b8",
+              "text-light-main": "#290808",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans", "sans-serif"],
+              "body": ["Noto Sans", "sans-serif"],
+              "serif": ["Playfair Display", "serif"],
+            },
+            boxShadow: {
+              'glow': '0 0 20px rgba(217, 4, 41, 0.3)',
+              'glow-accent': '0 0 15px rgba(255, 183, 3, 0.2)',
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; }
+      body {
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .dark body {
+        background-image: radial-gradient(circle at 10% 20%, rgba(217, 4, 41, 0.08) 0%, transparent 20%),
+                          radial-gradient(circle at 90% 80%, rgba(255, 183, 3, 0.05) 0%, transparent 20%);
+      }
+      .glass-panel {
+        background: rgba(22, 22, 26, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .light .glass-panel {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+      }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-background-light dark:bg-background-dark text-text-light-main dark:text-text-primary font-body antialiased selection:bg-primary selection:text-white overflow-x-hidden min-h-screen flex flex-col">
+    <div id="root" class="flex-1 flex flex-col"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
