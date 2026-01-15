@@ -21,4 +21,4 @@ export interface BlogPost {
   tag: string;
 }
 
-export type Screen = 'home' | 'shop' | 'product-detail' | 'cart' | 'checkout' | 'login' | 'register' | 'blog' | 'blog-detail';
+export type Screen = 'home' | 'shop' | 'product-detail' | 'cart' | 'checkout' | 'login' | 'register' | 'blog' | 'blog-detail' | 'about';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PRODUCTS } from '../constants';
 import { Screen } from '../types';
 
@@ -8,6 +8,7 @@ interface ShopProps {
 }
 
 const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-12">
       <nav className="flex mb-8 text-sm text-gray-500 dark:text-gray-400">
@@ -35,13 +36,94 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
             </div>
             <div className="mb-8">
               <h4 className="text-sm font-bold text-accent uppercase tracking-wider mb-4">Khoảng giá</h4>
-              <div className="space-y-3">
-                {['Tất cả', 'Dưới 500K', '500K - 1 Triệu', 'Trên 1 Triệu'].map((item, idx) => (
-                  <label key={idx} className="flex items-center gap-3 cursor-pointer group">
-                    <input type="radio" name="price" defaultChecked={idx === 0} className="border-gray-300 dark:border-white/20 bg-transparent text-primary focus:ring-primary h-4 w-4" />
-                    <span className="text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors text-sm">{item}</span>
-                  </label>
-                ))}
+              <div className="space-y-4">
+                {/* Manual Input Fields */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">Giá tối thiểu</label>
+                    <input
+                      type="number"
+                      value={priceRange[0]}
+                      onChange={(e) => {
+                        const value = Math.max(0, Math.min(Number(e.target.value), priceRange[1]));
+                        setPriceRange([value, priceRange[1]]);
+                      }}
+                      className="w-full bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">Giá tối đa</label>
+                    <input
+                      type="number"
+                      value={priceRange[1]}
+                      onChange={(e) => {
+                        const value = Math.max(priceRange[0], Math.min(Number(e.target.value), 10000000));
+                        setPriceRange([priceRange[0], value]);
+                      }}
+                      className="w-full bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      placeholder="10000000"
+                    />
+                  </div>
+                </div>
+
+                {/* Price Display */}
+                <div className="flex items-center justify-between text-xs bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">
+                    {priceRange[0].toLocaleString()}₫
+                  </span>
+                  <span className="text-gray-400 dark:text-gray-500">→</span>
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">
+                    {priceRange[1].toLocaleString()}₫
+                  </span>
+                </div>
+
+                {/* Dual Range Slider */}
+                <div className="relative pt-2 pb-6">
+                  {/* Track Background */}
+                  <div className="absolute top-1/2 -translate-y-1/2 w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full"></div>
+                  
+                  {/* Active Track */}
+                  <div 
+                    className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-gradient-to-r from-primary to-accent rounded-full"
+                    style={{
+                      left: `${(priceRange[0] / 10000000) * 100}%`,
+                      right: `${100 - (priceRange[1] / 10000000) * 100}%`
+                    }}
+                  ></div>
+
+                  {/* Min Range Input */}
+                  <input
+                    type="range"
+                    min="0"
+                    max="10000000"
+                    step="100000"
+                    value={priceRange[0]}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (value < priceRange[1]) {
+                        setPriceRange([value, priceRange[1]]);
+                      }
+                    }}
+                    className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-primary [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:transition-transform"
+                  />
+
+                  {/* Max Range Input */}
+                  <input
+                    type="range"
+                    min="0"
+                    max="10000000"
+                    step="100000"
+                    value={priceRange[1]}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (value > priceRange[0]) {
+                        setPriceRange([priceRange[0], value]);
+                      }
+                    }}
+                    className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-primary [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:transition-transform"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -49,7 +131,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
         
         <div className="flex-1">
           <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-6">Bộ Sưu Tập <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-red-400 to-accent italic">Quà Tết 2024</span></h1>
+            <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-6">Bộ Sưu Tập <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-red-400 to-accent italic">Quà Tết 2026</span></h1>
             <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-xl border border-gray-200 dark:border-white/5 shadow-sm">
               <div className="relative w-full md:w-96 group">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors">search</span>

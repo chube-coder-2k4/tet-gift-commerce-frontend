@@ -8,6 +8,7 @@ import Checkout from './pages/Checkout';
 import Auth from './pages/Auth';
 import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
+import About from './pages/About';
 import { Screen } from './types';
 
 const App: React.FC = () => {
@@ -44,6 +45,8 @@ const App: React.FC = () => {
         return <Blog onNavigate={handleNavigate} />;
       case 'blog-detail':
         return <BlogDetail onNavigate={handleNavigate} />;
+      case 'about':
+        return <About onNavigate={handleNavigate} />;
       default:
         return <Home onNavigate={handleNavigate} onProductClick={handleProductClick} />;
     }

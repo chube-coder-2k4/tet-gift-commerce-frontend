@@ -17,7 +17,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
           <div className="flex flex-col gap-6 z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 w-fit">
               <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-              <span className="text-accent text-xs font-semibold uppercase tracking-widest">Chào Xuân Giáp Thìn 2024</span>
+              <span className="text-accent text-xs font-semibold uppercase tracking-widest">Chào Xuân Giáp Thìn 2026</span>
             </div>
             <h1 className="text-5xl lg:text-7xl font-serif font-medium leading-[1.1] text-gray-900 dark:text-white tracking-tight">
               Trao Gửi <br />
@@ -29,7 +29,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
             </p>
             <div className="flex flex-wrap gap-4 mt-2">
               <button 
-                onClick={() => onNavigate('shop')}
+                onClick={() => onNavigate('about')}
                 className="px-8 py-3.5 rounded-full bg-primary text-white font-semibold hover:bg-red-600 transition-all shadow-glow hover:shadow-[0_0_30px_rgba(217,4,41,0.5)]"
               >
                 Khám Phá Ngay
@@ -88,7 +88,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
               <span className="text-primary font-bold text-xs uppercase tracking-[0.2em] mb-3 block">New Collection</span>
-              <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">Xuân Giáp Thìn <span className="italic font-light text-gray-500">2024</span></h2>
+              <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">Xuân Giáp Thìn <span className="italic font-light text-gray-500">2026</span></h2>
             </div>
             <div className="flex gap-3">
               <button className="size-10 rounded-full border border-gray-300 dark:border-white/10 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/5 text-gray-900 dark:text-white transition-colors">
@@ -143,7 +143,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
             </h3>
             <p className="text-gray-300 text-lg font-light mt-2">
               Giảm thêm <span className="text-white font-bold">15%</span> cho đơn hàng đặt trước ngày 20/01. <br className="hidden md:block" />
-              Sử dụng mã: <span className="font-mono text-accent border border-accent/30 bg-accent/10 px-2 py-0.5 rounded ml-1">TET2024</span>
+              Sử dụng mã: <span className="font-mono text-accent border border-accent/30 bg-accent/10 px-2 py-0.5 rounded ml-1">TET2026</span>
             </p>
           </div>
           <div className="z-10 relative">

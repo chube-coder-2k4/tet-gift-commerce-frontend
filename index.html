@@ -67,6 +67,40 @@
           -ms-overflow-style: none;  /* IE and Edge */
           scrollbar-width: none;  /* Firefox */
       }
+      
+      /* Tet festive animations */
+      @keyframes swing {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+      }
+      .animate-swing {
+        animation: swing 3s ease-in-out infinite;
+      }
+      
+      @keyframes gradient {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      .animate-gradient {
+        background-size: 200% auto;
+        animation: gradient 3s linear infinite;
+      }
+      
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+      }
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+      
+      @keyframes sparkle {
+        0%, 100% { opacity: 0; transform: scale(0); }
+        50% { opacity: 1; transform: scale(1); }
+      }
+      .animate-sparkle {
+        animation: sparkle 2s ease-in-out infinite;
+      }
     </style>
   <script type="importmap">
 {
