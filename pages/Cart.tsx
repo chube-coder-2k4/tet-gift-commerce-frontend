@@ -13,6 +13,15 @@ const Cart: React.FC<CartProps> = ({ onNavigate }) => {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-12">
+      {/* Back Button */}
+      <button 
+        onClick={() => onNavigate('shop')}
+        className="inline-flex items-center gap-2 px-4 py-2 mb-4 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors group"
+      >
+        <span className="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
+        <span className="font-medium">Tiếp tục mua hàng</span>
+      </button>
+      
       <nav className="flex mb-8 text-sm text-gray-500 dark:text-gray-400">
         <a onClick={() => onNavigate('home')} className="hover:text-primary transition-colors cursor-pointer">Trang chủ</a>
         <span className="mx-2">/</span>

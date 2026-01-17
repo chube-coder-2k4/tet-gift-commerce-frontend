@@ -8,6 +8,15 @@ interface CheckoutProps {
 const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
   return (
     <div className="w-full max-w-[1440px] mx-auto px-4 lg:px-10 py-8">
+      {/* Back Button */}
+      <button 
+        onClick={() => onNavigate('cart')}
+        className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors group"
+      >
+        <span className="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
+        <span className="font-medium">Quay lại giỏ hàng</span>
+      </button>
+      
       <nav className="flex mb-8 overflow-x-auto pb-2">
         <ol className="flex items-center whitespace-nowrap min-w-0 gap-2">
           <li className="text-sm">

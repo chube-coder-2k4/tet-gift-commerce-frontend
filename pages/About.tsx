@@ -8,14 +8,25 @@ interface AboutProps {
 const About: React.FC<AboutProps> = ({ onNavigate }) => {
   return (
     <div className="flex-1 flex flex-col items-center w-full">
+      {/* Back Button */}
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-8">
+        <button 
+          onClick={() => onNavigate('home')}
+          className="inline-flex items-center gap-2 px-4 py-1 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors group"
+        >
+          <span className="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
+          <span className="font-medium">Quay lại</span>
+        </button>
+      </div>
+      
       {/* Hero Section */}
-      <div className="w-full relative overflow-hidden bg-gradient-to-br from-primary/5 via-transparent to-accent/5">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-20 lg:py-28 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 mb-6">
+      <div className="w-full relative overflow-hidden bg-gradient-to-br from-peach/50 via-blush/30 to-peach/50 dark:from-[#8b2332]/8 dark:via-[#1a1715] dark:to-[#b8860b]/5">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-2 pb-10 lg:pt-3 lg:pb-12 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm border border-primary/20 dark:border-[#b8860b]/20 mb-4 shadow-sm dark:shadow-lg">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             <span className="text-primary text-xs font-semibold uppercase tracking-widest">Về Chúng Tôi</span>
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-medium leading-tight text-gray-900 dark:text-white mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-medium leading-tight text-gray-900 dark:text-white mb-5">
             Truyền Tải <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-primary via-red-400 to-accent">Tinh Hoa</span><br />
             Văn Hóa Việt
           </h1>
@@ -31,7 +42,7 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
           {/* Tầm Nhìn */}
           <div className="relative group">
             <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div className="relative bg-white dark:bg-card-dark border border-gray-200 dark:border-white/5 rounded-2xl p-8 lg:p-10 h-full shadow-sm hover:shadow-lg transition-all">
+            <div className="relative bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark border border-primary/10 dark:border-[#3a3330]/60 rounded-2xl p-8 lg:p-10 h-full shadow-sm hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 hover:border-primary/30 dark:hover:border-[#b8860b]/40 transition-all">
               <div className="size-14 rounded-xl bg-gradient-to-br from-primary to-red-700 flex items-center justify-center mb-6 shadow-glow">
                 <span className="material-symbols-outlined text-white text-2xl">visibility</span>
               </div>
@@ -48,7 +59,7 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
           {/* Sứ Mệnh */}
           <div className="relative group">
             <div className="absolute -inset-4 bg-gradient-to-br from-accent/10 to-primary/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div className="relative bg-white dark:bg-card-dark border border-gray-200 dark:border-white/5 rounded-2xl p-8 lg:p-10 h-full shadow-sm hover:shadow-lg transition-all">
+            <div className="relative bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark border border-primary/10 dark:border-[#3a3330]/60 rounded-2xl p-8 lg:p-10 h-full shadow-sm hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 hover:border-primary/30 dark:hover:border-[#b8860b]/40 transition-all">
               <div className="size-14 rounded-xl bg-gradient-to-br from-accent to-yellow-600 flex items-center justify-center mb-6">
                 <span className="material-symbols-outlined text-black text-2xl">rocket_launch</span>
               </div>
@@ -65,7 +76,7 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
       </div>
 
       {/* Giá Trị Cốt Lõi */}
-      <div className="w-full bg-gray-50 dark:bg-[#0a0a0c] border-y border-gray-200 dark:border-white/5">
+      <div className="w-full bg-peach/30 dark:bg-gradient-to-br dark:from-[#1f1b19] dark:via-[#1a1715] dark:to-[#1f1b19] border-y border-primary/10 dark:border-[#3a3330]/50">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-20">
           <div className="text-center mb-14">
             <span className="text-primary font-bold text-xs uppercase tracking-[0.2em] mb-3 block">Core Values</span>
@@ -105,8 +116,8 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
               }
             ].map((value, idx) => (
               <div key={idx} className="group text-center">
-                <div className={`size-16 rounded-2xl ${value.color === 'primary' ? 'bg-primary/10 dark:bg-primary/20' : 'bg-accent/10 dark:bg-accent/20'} flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300`}>
-                  <span className={`material-symbols-outlined ${value.color === 'primary' ? 'text-primary' : 'text-accent'} text-3xl`}>{value.icon}</span>
+                <div className={`size-16 rounded-2xl ${value.color === 'primary' ? 'bg-primary/10 dark:bg-[#8b2332]/25 dark:shadow-[#8b2332]/20' : 'bg-accent/10 dark:bg-[#b8860b]/25 dark:shadow-[#b8860b]/20'} flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300 dark:shadow-lg`}>
+                  <span className={`material-symbols-outlined text-3xl ${value.color === 'primary' ? 'text-primary' : 'text-accent'}`}>{value.icon}</span>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{value.title}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{value.desc}</p>
@@ -187,7 +198,7 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
       </div>
 
       {/* Khách Hàng & Đối Tác */}
-      <div className="w-full bg-white dark:bg-card-dark border-y border-gray-200 dark:border-white/5">
+      <div className="w-full bg-white/80 dark:bg-card-dark border-y border-primary/10 dark:border-white/5">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-20">
           <div className="text-center mb-14">
             <span className="text-primary font-bold text-xs uppercase tracking-[0.2em] mb-3 block">Partners & Clients</span>
@@ -207,7 +218,7 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
               { number: '15', label: 'Chi Nhánh', icon: 'location_on' },
               { number: '99%', label: 'Hài Lòng', icon: 'sentiment_satisfied' }
             ].map((stat, idx) => (
-              <div key={idx} className="text-center p-6 rounded-xl bg-gray-50 dark:bg-surface-dark border border-gray-200 dark:border-white/5">
+              <div key={idx} className="text-center p-6 rounded-xl bg-blush/50 dark:bg-surface-dark/80 dark:backdrop-blur-sm border border-primary/20 dark:border-[#3a3330]/60 hover:border-primary/40 dark:hover:border-[#b8860b]/40 hover:shadow-lg dark:hover:shadow-xl dark:hover:shadow-[#8b2332]/10 transition-all">
                 <span className="material-symbols-outlined text-primary text-3xl mb-3 block">{stat.icon}</span>
                 <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stat.number}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
@@ -235,7 +246,7 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
                 logo: '/assets/logo-techcombank-dongphucsongphu.webp'
               }
             ].map((partner, idx) => (
-              <div key={idx} className="aspect-[4/3] rounded-2xl bg-white dark:bg-surface-dark border-2 border-gray-200 dark:border-white/5 flex items-center justify-center p-8 hover:border-primary hover:shadow-xl transition-all duration-300 group cursor-pointer">
+              <div key={idx} className="aspect-[4/3] rounded-2xl bg-white dark:bg-gradient-to-br dark:from-surface-dark dark:to-card-dark border-2 border-primary/10 dark:border-[#3a3330]/60 flex items-center justify-center p-8 hover:border-primary dark:hover:border-[#b8860b]/40 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 transition-all duration-300 group cursor-pointer">
                 <img 
                   src={partner.logo} 
                   alt={partner.name}
@@ -315,9 +326,9 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
               icon: 'campaign'
             }
           ].map((article, idx) => (
-            <div key={idx} className="group bg-white dark:bg-card-dark border border-gray-200 dark:border-white/5 rounded-xl p-6 hover:shadow-lg hover:border-primary/30 transition-all cursor-pointer">
+            <div key={idx} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark border border-primary/10 dark:border-[#3a3330]/60 rounded-xl p-6 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 hover:border-primary/50 dark:hover:border-[#b8860b]/40 transition-all cursor-pointer">
               <div className="flex items-start gap-4 mb-4">
-                <div className="size-12 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <div className="size-12 rounded-lg bg-primary/10 dark:bg-[#8b2332]/25 dark:shadow-lg dark:shadow-[#8b2332]/20 flex items-center justify-center flex-shrink-0">
                   <span className="material-symbols-outlined text-primary text-xl">{article.icon}</span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -343,7 +354,7 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
       </div>
 
       {/* CTA Section */}
-      <div className="w-full bg-gradient-to-br from-primary/10 via-transparent to-accent/10 border-t border-gray-200 dark:border-white/10">
+      <div className="w-full bg-gradient-to-br from-peach/40 via-blush/30 to-accent/20 dark:from-primary/10 dark:via-transparent dark:to-accent/10 border-t border-primary/20 dark:border-white/10">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-20 text-center">
           <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-6">
             Hãy Để Chúng Tôi Đồng Hành <br className="hidden md:block" />

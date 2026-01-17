@@ -10,6 +10,15 @@ const BlogDetail: React.FC<BlogDetailProps> = ({ onNavigate }) => {
     <div className="flex-1 w-full bg-background-light dark:bg-background-dark relative">
       <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none"></div>
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 relative z-10">
+        {/* Back Button */}
+        <button 
+          onClick={() => onNavigate('blog')}
+          className="inline-flex items-center gap-2 px-4 py-2 mb-4 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors group"
+        >
+          <span className="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
+          <span className="font-medium">Quay lại blog</span>
+        </button>
+        
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-8 font-medium">
           <a onClick={() => onNavigate('home')} className="hover:text-primary transition-colors cursor-pointer">Trang chủ</a>
           <span className="material-symbols-outlined text-xs">chevron_right</span>

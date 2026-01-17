@@ -11,14 +11,23 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-12">
-      <nav className="flex mb-8 text-sm text-gray-500 dark:text-gray-400">
+      {/* Back Button */}
+      <button 
+        onClick={() => onNavigate('home')}
+        className="inline-flex items-center gap-2 px-4 py-2 mb-4 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors group"
+      >
+        <span className="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
+        <span className="font-medium">Quay lại</span>
+      </button>
+      
+      <nav className="flex mb-8 text-sm text-text-light-secondary dark:text-gray-400">
         <a onClick={() => onNavigate('home')} className="hover:text-primary transition-colors cursor-pointer">Trang chủ</a>
         <span className="mx-2">/</span>
         <span className="text-gray-900 dark:text-white">Tất cả sản phẩm</span>
       </nav>
       <div className="flex flex-col lg:flex-row gap-10">
         <aside className="w-full lg:w-64 flex-shrink-0 space-y-8">
-          <div className="pb-6 border-b border-gray-200 dark:border-white/10 lg:block">
+          <div className="pb-6 border-b border-primary/10 dark:border-white/10 lg:block">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-serif text-xl text-gray-900 dark:text-white">Bộ lọc</h3>
               <button className="text-xs text-primary font-medium hover:underline">Xóa tất cả</button>
@@ -48,7 +57,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
                         const value = Math.max(0, Math.min(Number(e.target.value), priceRange[1]));
                         setPriceRange([value, priceRange[1]]);
                       }}
-                      className="w-full bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      className="w-full bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm border border-primary/20 dark:border-[#3a3330]/60 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-1 focus:ring-primary dark:focus:ring-[#b8860b]/40 transition-all"
                       placeholder="0"
                     />
                   </div>
@@ -61,14 +70,14 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
                         const value = Math.max(priceRange[0], Math.min(Number(e.target.value), 10000000));
                         setPriceRange([priceRange[0], value]);
                       }}
-                      className="w-full bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      className="w-full bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm border border-primary/20 dark:border-[#3a3330]/60 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-1 focus:ring-primary dark:focus:ring-[#b8860b]/40 transition-all"
                       placeholder="10000000"
                     />
                   </div>
                 </div>
 
                 {/* Price Display */}
-                <div className="flex items-center justify-between text-xs bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
+                <div className="flex items-center justify-between text-xs bg-blush/50 dark:bg-surface-dark/60 dark:backdrop-blur-sm rounded-lg px-3 py-2 dark:border dark:border-[#3a3330]/40">
                   <span className="text-gray-600 dark:text-gray-300 font-medium">
                     {priceRange[0].toLocaleString()}₫
                   </span>
@@ -132,15 +141,15 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
         <div className="flex-1">
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-6">Bộ Sưu Tập <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-red-400 to-accent italic">Quà Tết 2026</span></h1>
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-xl border border-gray-200 dark:border-white/5 shadow-sm">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-gradient-to-r dark:from-surface-dark dark:to-card-dark p-4 rounded-xl border border-gray-200 dark:border-[#3a3330]/60 shadow-sm dark:shadow-lg">
               <div className="relative w-full md:w-96 group">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors">search</span>
-                <input type="text" className="w-full bg-gray-50 dark:bg-background-dark border border-gray-300 dark:border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Tìm kiếm hộp quà, rượu tết..." />
+                <input type="text" className="w-full bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-1 focus:ring-primary dark:focus:ring-[#b8860b]/40 transition-all" placeholder="Tìm kiếm hộp quà, rượu tết..." />
               </div>
               <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">Sắp xếp:</span>
-                  <select className="bg-gray-50 dark:bg-background-dark border border-gray-300 dark:border-white/10 rounded-lg py-2 pl-3 pr-8 text-sm text-gray-900 dark:text-white focus:border-primary focus:ring-0 cursor-pointer">
+                  <select className="bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2 pl-3 pr-8 text-sm text-gray-900 dark:text-gray-200 focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-0 cursor-pointer dark:shadow-inner">
                     <option>Nổi bật nhất</option>
                     <option>Mới nhất</option>
                     <option>Giá: Thấp đến Cao</option>
@@ -153,7 +162,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {PRODUCTS.map((product) => (
-              <div key={product.id} className="group bg-white dark:bg-card-dark rounded-xl p-4 border border-gray-200 dark:border-white/5 hover:border-primary/30 transition-all duration-300 hover:shadow-lg dark:hover:shadow-primary/5 flex flex-col h-full cursor-pointer" onClick={() => onProductClick(product.id)}>
+              <div key={product.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-gray-200 dark:border-[#3a3330]/60 hover:border-primary/30 dark:hover:border-[#b8860b]/40 transition-all duration-300 hover:shadow-lg dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 flex flex-col h-full cursor-pointer" onClick={() => onProductClick(product.id)}>
                 <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
                   <img alt={product.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={product.image} />
                   {product.discount && <div className="absolute top-3 left-3 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">-{product.discount}%</div>}

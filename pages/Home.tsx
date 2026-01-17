@@ -10,14 +10,14 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
   return (
     <div className="flex-1 flex flex-col items-center w-full">
-      {/* Hero Section */}
+ {/* Hero Section */}
       <div className="w-full relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-to-b from-primary/10 via-transparent to-transparent opacity-50 pointer-events-none"></div>
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 lg:py-24 grid lg:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-8 grid lg:grid-cols-2 gap-12 items-center">
           <div className="flex flex-col gap-6 z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 w-fit">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm border border-primary/20 dark:border-[#b8860b]/20 w-fit shadow-sm dark:shadow-lg">
               <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-              <span className="text-accent text-xs font-semibold uppercase tracking-widest">Chào Xuân Giáp Thìn 2026</span>
+              <span className="text-accent dark:text-[#daa520] text-xs font-semibold uppercase tracking-widest">Chào Xuân Giáp Thìn 2026</span>
             </div>
             <h1 className="text-5xl lg:text-7xl font-serif font-medium leading-[1.1] text-gray-900 dark:text-white tracking-tight">
               Trao Gửi <br />
@@ -43,17 +43,15 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
           <div className="relative z-10 lg:h-[600px] flex items-center justify-center">
             <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-white/10 group">
               <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent z-10 opacity-60"></div>
-              <img alt="Tet Hero" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwzG3a-jHOHWrvj5WTR2kaCdOHE8DjnNQ0e1iXJNVTa-eiE3EEuR64UQWqdsxJx21I-5n5FiYbKi-47cnGy1MkYdvF9XDWIBEw0CRZ8YCi3Jbw6lg2p3LkrNvAY2UWYKpHMH2cAzHSRgHouxnNlmaaGrqfBjFt3nBDb_ELG8xJFZbrjVUJXgjlOVXPjUiELEUDXGvBCRbrLezmshMuwqZwGqMxMi1EnwveutVN5qyJf4aY7eo2Hq9zv2QO3QKH8fbTD0ttbZ7nsiA" />
+              <img alt="Tet Hero" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90" src="https://plus.unsplash.com/premium_photo-1683140803764-35a5a7e78c02?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
               <div className="absolute bottom-8 left-8 z-20 glass-panel p-4 rounded-xl max-w-xs border-l-4 border-l-accent">
-                <p class="text-accent text-xs font-bold uppercase mb-1">Featured Collection</p>
-                <p class="text-white font-serif text-lg">Tinh Hoa Tết Việt</p>
+                <p class="text-black font-serif text-lg">Tinh Hoa Tết Việt</p>
               </div>
             </div>
             <div className="absolute -inset-4 bg-gradient-to-tr from-primary/20 to-accent/10 rounded-[2rem] blur-2xl -z-10"></div>
           </div>
         </div>
       </div>
-
       {/* Featured Categories */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16">
         <div className="flex items-center justify-between mb-10">
@@ -69,7 +67,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
             { name: 'Túi Quà Tết', icon: 'shopping_bag', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAwXFIRC3Jdlb52WZWHa2iQlPxhPfgb5LV25uR4vpaEzHK97Cc4oQipA06HlylO2Jb-Mc-d3xrwLwLE6Ua0mWq16p94H7oeMRKINb2h2BsNMMKxq0tRUUF-Yw0jgLgVHKyaXGdwskGIu1HUdVyXoHdIs7uu3Rs_G_2w-1f9NMq6UaFhlu-brsa3YNB709kFbyv9P5VqbQ_4WdzCVwouMl6Oi48fxPLvH8i0sYIs7M1ivkxf3hEXzuYYtukLOqB2ijrCMEoPR8YEE6Y' },
             { name: 'Rượu Vang', icon: 'wine_bar', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCO_cDL_WwfWU4aDmCak4W6RCuR7_7ACX95kW-X-chS5LNk9cU62tql31HffUW6UC0aM9IBWfOTDyPOqVy3EPWsEmecStO9v3BZjT-Z1Z_rekXghfUqBdKs3iJcRSKNm8CTccfQeKqF70t9sXRlcEP603hgodwOZ38ynHcuuD3yrHRNRlqXB-RXGb5X1iYiqR3DnuW3j2amGLrHqgnCsnL4Rqd-bUCt4Zo9KDM26w_t6iNcHy82brxugaMu5pIRsou89wsseeTNUvA' },
           ].map((cat, idx) => (
-            <a key={idx} onClick={() => onNavigate('shop')} className="group relative block overflow-hidden rounded-2xl aspect-[3/4] border border-gray-200 dark:border-white/5 cursor-pointer">
+            <a key={idx} onClick={() => onNavigate('shop')} className="group relative block overflow-hidden rounded-2xl aspect-[3/4] border border-primary/20 dark:border-white/5 hover:border-primary hover:shadow-xl transition-all cursor-pointer">
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/90 z-10"></div>
               <img alt={cat.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" src={cat.img} />
               <div className="absolute bottom-0 p-6 z-20 w-full transform transition-transform duration-300">
@@ -83,7 +81,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
       </div>
 
       {/* New Collection */}
-      <div className="w-full bg-gray-50 dark:bg-[#0a0a0c] border-y border-gray-200 dark:border-white/5">
+      <div className="w-full bg-peach/30 dark:bg-gradient-to-br dark:from-[#1f1b19] dark:via-[#1a1715] dark:to-[#1f1b19] border-y border-primary/10 dark:border-[#3a3330]/50">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-20">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
@@ -91,17 +89,17 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
               <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">Xuân Giáp Thìn <span className="italic font-light text-gray-500">2026</span></h2>
             </div>
             <div className="flex gap-3">
-              <button className="size-10 rounded-full border border-gray-300 dark:border-white/10 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/5 text-gray-900 dark:text-white transition-colors">
+              <button className="size-10 rounded-full border border-primary/30 dark:border-white/10 flex items-center justify-center hover:bg-primary/10 dark:hover:bg-white/5 text-gray-900 dark:text-white transition-colors">
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
-              <button className="size-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-red-700 transition-colors">
+              <button className="size-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-red-700 transition-colors shadow-md">
                 <span className="material-symbols-outlined">chevron_right</span>
               </button>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {PRODUCTS.slice(0, 4).map((product) => (
-              <div key={product.id} className="group bg-white dark:bg-card-dark rounded-xl p-4 border border-gray-200 dark:border-white/5 hover:border-primary/30 transition-all duration-300 hover:shadow-lg dark:hover:shadow-primary/5 cursor-pointer" onClick={() => onProductClick(product.id)}>
+              <div key={product.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-primary/20 dark:border-[#3a3330]/60 hover:border-primary dark:hover:border-[#b8860b]/40 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 transition-all duration-300 cursor-pointer" onClick={() => onProductClick(product.id)}>
                 <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
                   <img alt={product.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={product.image} />
                   {product.discount && <div className="absolute top-3 left-3 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">-{product.discount}%</div>}

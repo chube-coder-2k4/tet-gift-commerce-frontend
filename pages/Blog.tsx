@@ -9,14 +9,25 @@ interface BlogProps {
 const Blog: React.FC<BlogProps> = ({ onNavigate }) => {
   return (
     <div className="flex-1 w-full bg-background-light dark:bg-background-dark">
+      {/* Back Button */}
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pt-6">
+        <button 
+          onClick={() => onNavigate('home')}
+          className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors group"
+        >
+          <span className="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
+          <span className="font-medium">Quay lại</span>
+        </button>
+      </div>
+      
       {/* Featured Post Header */}
-      <section className="relative w-full py-16 lg:py-24 border-b border-gray-200 dark:border-white/5 overflow-hidden">
+      <section className="relative w-full py-16 lg:py-24 bg-gradient-to-br from-peach/30 via-blush/20 to-peach/30 dark:bg-transparent border-b border-primary/10 dark:border-white/5 overflow-hidden">
         <div className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-l from-primary/10 to-transparent pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div className="order-2 lg:order-1 flex flex-col gap-6 z-10 animate-fade-in-up">
               <div className="flex items-center gap-3">
-                <span className="px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-full bg-accent/20 border border-accent/40 text-primary dark:text-accent text-xs font-bold uppercase tracking-wider shadow-sm">
                   Featured Post
                 </span>
                 <span className="text-gray-500 text-sm flex items-center gap-1">
@@ -42,8 +53,8 @@ const Blog: React.FC<BlogProps> = ({ onNavigate }) => {
             </div>
             <div className="order-1 lg:order-2 relative group cursor-pointer" onClick={() => onNavigate('blog-detail')}>
               <div className="absolute -inset-2 bg-gradient-to-r from-primary to-accent opacity-20 blur-2xl rounded-[2rem] -z-10 transition-opacity duration-500 group-hover:opacity-30"></div>
-              <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 shadow-2xl">
-                <img alt="Featured Post" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwzG3a-jHOHWrvj5WTR2kaCdOHE8DjnNQ0e1iXJNVTa-eiE3EEuR64UQWqdsxJx21I-5n5FiYbKi-47cnGy1MkYdvF9XDWIBEw0CRZ8YCi3Jbw6lg2p3LkrNvAY2UWYKpHMH2cAzHSRgHouxnNlmaaGrqfBjFt3nBDb_ELG8xJFZbrjVUJXgjlOVXPjUiELEUDXGvBCRbrLezmshMuwqZwGqMxMi1EnwveutVN5qyJf4aY7eo2Hq9zv2QO3QKH8fbTD0ttbZ7nsiA" />
+              <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border-2 border-primary/20 dark:border-white/10 shadow-2xl">
+                <img alt="Featured Post" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://images.unsplash.com/photo-1549556172-b850cbe27974?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
                 <div className="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent opacity-60"></div>
               </div>
             </div>
@@ -53,7 +64,7 @@ const Blog: React.FC<BlogProps> = ({ onNavigate }) => {
 
       {/* Post Grid */}
       <section className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6 border-b border-gray-200 dark:border-white/10 pb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6 border-b border-primary/10 dark:border-white/10 pb-6">
           <div>
             <h2 className="text-3xl font-serif text-gray-900 dark:text-white mb-2">Bài Viết <span className="italic text-gray-500 dark:text-gray-400">Mới Nhất</span></h2>
             <p className="text-gray-600 dark:text-gray-400 text-sm font-light">Cập nhật tin tức, xu hướng và mẹo chọn quà Tết.</p>

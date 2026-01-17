@@ -1,14 +1,60 @@
-import React from 'react';
-import { Screen } from '../types';
+import React, { useState } from 'react';
+import { Screen, User } from '../types';
 
 interface AuthProps {
   onNavigate: (screen: Screen) => void;
   type: 'login' | 'register';
+  onLogin: (user: User) => void;
 }
 
-const Auth: React.FC<AuthProps> = ({ onNavigate, type }) => {
+const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Mock login/register - tạo user giả
+    const mockUser: User = {
+      id: 1,
+      name: type === 'register' ? name : 'Nguyễn Văn A',
+      email: email || 'user@example.com',
+      phone: '0901234567',
+      avatar: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(type === 'register' ? name : 'Nguyen Van A') + '&background=d90429&color=fff&size=200',
+      addresses: [
+        {
+          id: 1,
+          name: type === 'register' ? name : 'Nguyễn Văn A',
+          phone: '0901234567',
+          address: '123 Nguyễn Huệ',
+          city: 'Hồ Chí Minh',
+          district: 'Quận 1',
+          isDefault: true
+        }
+      ]
+    };
+
+    // Lưu vào localStorage
+    localStorage.setItem('user', JSON.stringify(mockUser));
+    
+    // Gọi callback để update state trong App
+    onLogin(mockUser);
+    
+    // Navigate về home
+    onNavigate('home');
+  };
   return (
     <div className="flex-1 flex flex-col lg:flex-row relative">
+      {/* Back Button */}
+      <button 
+        onClick={() => onNavigate('home')}
+        className="absolute top-6 left-6 inline-flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors group z-20"
+      >
+        <span className="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
+        <span className="font-medium">Quay lại</span>
+      </button>
+      
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 py-12 lg:p-12 z-10 bg-background-light dark:bg-background-dark">
         <div className="w-full max-w-[440px] flex flex-col">
           <div className="mb-10">
@@ -39,12 +85,18 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type }) => {
             </button>
           </div>
 
-          <form className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {type === 'register' && (
                <label className="flex flex-col w-full group">
                <span className="text-gray-900 dark:text-white text-sm font-medium leading-normal pb-2">Họ và tên</span>
                <div className="relative">
-                 <input type="text" className="bg-white dark:bg-[#200606] border border-gray-300 dark:border-[#4a1212] text-gray-900 dark:text-white placeholder-gray-500/50 dark:placeholder-gray-400/50 focus:border-accent focus:ring-1 focus:ring-accent flex w-full rounded-xl h-12 px-4 pl-11 text-base transition-all outline-none" placeholder="Nguyễn Văn A" />
+                 <input 
+                   type="text" 
+                   value={name}
+                   onChange={(e) => setName(e.target.value)}
+                   className="bg-white dark:bg-[#200606] border border-gray-300 dark:border-[#4a1212] text-gray-900 dark:text-white placeholder-gray-500/50 dark:placeholder-gray-400/50 focus:border-accent focus:ring-1 focus:ring-accent flex w-full rounded-xl h-12 px-4 pl-11 text-base transition-all outline-none" 
+                   placeholder="Nguyễn Văn A" 
+                 />
                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-[#a86b6b] group-focus-within:text-accent transition-colors pointer-events-none">
                    <span className="material-symbols-outlined text-[20px]">badge</span>
                  </div>
@@ -55,7 +107,13 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type }) => {
             <label className="flex flex-col w-full group">
               <span className="text-gray-900 dark:text-white text-sm font-medium leading-normal pb-2">Email hoặc Tên đăng nhập</span>
               <div className="relative">
-                <input type="text" className="bg-white dark:bg-[#200606] border border-gray-300 dark:border-[#4a1212] text-gray-900 dark:text-white placeholder-gray-500/50 dark:placeholder-gray-400/50 focus:border-accent focus:ring-1 focus:ring-accent flex w-full rounded-xl h-12 px-4 pl-11 text-base transition-all outline-none" placeholder="example@email.com" />
+                <input 
+                  type="text" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-white dark:bg-[#200606] border border-gray-300 dark:border-[#4a1212] text-gray-900 dark:text-white placeholder-gray-500/50 dark:placeholder-gray-400/50 focus:border-accent focus:ring-1 focus:ring-accent flex w-full rounded-xl h-12 px-4 pl-11 text-base transition-all outline-none" 
+                  placeholder="example@email.com" 
+                />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-[#a86b6b] group-focus-within:text-accent transition-colors pointer-events-none">
                   <span className="material-symbols-outlined text-[20px]">mail</span>
                 </div>
@@ -65,7 +123,13 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type }) => {
             <label className="flex flex-col w-full group">
               <span className="text-gray-900 dark:text-white text-sm font-medium leading-normal pb-2">Mật khẩu</span>
               <div className="relative">
-                <input type="password" className="bg-white dark:bg-[#200606] border border-gray-300 dark:border-[#4a1212] text-gray-900 dark:text-white placeholder-gray-500/50 dark:placeholder-gray-400/50 focus:border-accent focus:ring-1 focus:ring-accent flex w-full rounded-xl h-12 px-4 pl-11 text-base transition-all outline-none" placeholder="Nhập mật khẩu" />
+                <input 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-white dark:bg-[#200606] border border-gray-300 dark:border-[#4a1212] text-gray-900 dark:text-white placeholder-gray-500/50 dark:placeholder-gray-400/50 focus:border-accent focus:ring-1 focus:ring-accent flex w-full rounded-xl h-12 px-4 pl-11 text-base transition-all outline-none" 
+                  placeholder="Nhập mật khẩu" 
+                />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-[#a86b6b] group-focus-within:text-accent transition-colors pointer-events-none">
                   <span className="material-symbols-outlined text-[20px]">lock</span>
                 </div>
@@ -81,7 +145,7 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type }) => {
               </div>
             )}
 
-            <button type="button" onClick={() => onNavigate('home')} className="flex w-full cursor-pointer items-center justify-center rounded-xl h-12 px-4 bg-primary hover:bg-red-700 text-white text-base font-bold tracking-wide shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-[0.98] mt-2">
+            <button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl h-12 px-4 bg-primary hover:bg-red-700 text-white text-base font-bold tracking-wide shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-[0.98] mt-2">
               {type === 'login' ? 'Đăng nhập' : 'Đăng ký ngay'}
             </button>
           </form>
