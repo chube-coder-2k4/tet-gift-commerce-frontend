@@ -208,7 +208,7 @@ export const Footer: React.FC = () => {
               <h2 className="text-gray-900 dark:text-white text-xl font-display font-bold">Tet<span className="text-primary">Gifts</span></h2>
             </div>
             <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed font-light">
-              Chuyên cung cấp quà tết cao cấp, giỏ quà tết, hộp quà tết ý nghĩa cho doanh nghiệp và gia đình. Sản phẩm chất lượng, thiết kế sang trọng, giao hàng toàn quốc.
+              Chuyên cung cấp quà tết cao cấp, giỏ quà tết, hộp quà tết ý nghĩa cho doanh nghiệp và gia đình. Sản phẩm chất lượng, giao hàng toàn quốc.
             </p>
             
             <div className="flex flex-col gap-3">
@@ -225,19 +225,6 @@ export const Footer: React.FC = () => {
                 <a href="mailto:info@tetgifts.vn" className="text-gray-600 dark:text-gray-400 hover:text-primary transition-colors">info@tetgifts.vn</a>
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              {[
-                { icon: 'facebook', url: '#' },
-                { icon: 'instagram', url: '#' },
-                { icon: 'youtube', url: '#' },
-                { icon: 'tiktok', url: '#' }
-              ].map((social, idx) => (
-                <a key={idx} href={social.url} className="size-9 rounded-full bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-primary hover:text-white hover:border-primary transition-all">
-                  <span className="material-symbols-outlined text-[18px]">{social.icon === 'facebook' ? 'public' : social.icon === 'instagram' ? 'photo_camera' : social.icon === 'youtube' ? 'play_circle' : 'music_note'}</span>
-                </a>
-              ))}
-            </div>
           </div>
           
           <div className="flex flex-col gap-4">
@@ -245,9 +232,7 @@ export const Footer: React.FC = () => {
             {[
               'Câu chuyện thương hiệu', 
               'Tin tức & Sự kiện', 
-              'Tuyển dụng', 
               'Liên hệ hợp tác',
-              'Đối tác chiến lược',
               'Điều khoản sử dụng',
               'Chính sách bảo mật'
             ].map(item => (
@@ -261,8 +246,6 @@ export const Footer: React.FC = () => {
               'Hướng dẫn mua hàng', 
               'Chính sách giao hàng', 
               'Chính sách đổi trả', 
-              'Bảo mật thông tin',
-              'Phương thức thanh toán',
               'Câu hỏi thường gặp',
               'Tra cứu đơn hàng'
             ].map(item => (
@@ -276,41 +259,15 @@ export const Footer: React.FC = () => {
               'Hộp quà Tết cao cấp',
               'Giỏ quà Tết doanh nghiệp',
               'Túi quà Tết gia đình',
-              'Rượu vang nhập khẩu',
               'Set quà Tết truyền thống',
               'Quà Tết sức khỏe',
-              'Combo quà Tết tiết kiệm'
             ].map(item => (
               <a key={item} href="#" className="text-gray-600 dark:text-gray-400 hover:text-primary text-sm transition-colors w-fit">{item}</a>
             ))}
           </div>
         </div>
 
-        {/* Payment & Certification */}
-        <div className="border-t border-b border-gray-200 dark:border-white/10 py-8 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Phương Thức Thanh Toán</h4>
-              <div className="flex flex-wrap items-center gap-3">
-                {['COD', 'VISA', 'MasterCard', 'Momo', 'ZaloPay', 'VNPay'].map(method => (
-                  <div key={method} className="px-3 py-2 bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded text-xs font-medium text-gray-700 dark:text-gray-300">
-                    {method}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Chứng Nhận & Đối Tác</h4>
-              <div className="flex flex-wrap items-center gap-3">
-                {['DMCA', 'Bộ Công Thương', 'Verified', 'Safe Shopping'].map(cert => (
-                  <div key={cert} className="px-3 py-2 bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded text-xs font-medium text-gray-700 dark:text-gray-300">
-                    {cert}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+      
 
         {/* Store Location Map */}
         <div className="border-t border-gray-200 dark:border-white/10 pt-12 pb-8">
