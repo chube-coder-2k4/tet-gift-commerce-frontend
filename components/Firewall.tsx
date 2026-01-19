@@ -11,7 +11,7 @@ export const Firewall: React.FC = () => {
       if (!fireworksRef.current) return;
 
       try {
-        const { Fireworks } = await import('https://cdn.jsdelivr.net/npm/fireworks-js@2.x/dist/index.es.js');
+        const { Fireworks } = await import('fireworks-js');
 
         // Quan trọng: Kiểm tra nếu component đã unmount trong lúc đang tải thư viện
         if (!isMounted) return;
