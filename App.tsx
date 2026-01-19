@@ -12,6 +12,7 @@ import BlogDetail from './pages/BlogDetail';
 import About from './pages/About';
 import Profile from './pages/Profile';
 import { Screen, User } from './types';
+import MusicPlayer from './components/MusicPlayer';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
@@ -81,6 +82,7 @@ const App: React.FC = () => {
 
   return (
     <>
+      <MusicPlayer />
       {currentScreen !== 'login' && currentScreen !== 'register' && (
         <Header onNavigate={handleNavigate} currentScreen={currentScreen} user={user} onLogout={handleLogout} />
       )}
