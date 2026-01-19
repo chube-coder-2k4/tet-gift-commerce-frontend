@@ -1,6 +1,7 @@
 import React from 'react';
 import { PRODUCTS } from '../constants';
 import { Screen } from '../types';
+import { Firewall } from '@/components/Firewall';
 
 interface HomeProps {
   onNavigate: (screen: Screen) => void;
@@ -10,6 +11,7 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
   return (
     <div className="flex-1 flex flex-col items-center w-full">
+      <Firewall />
  {/* Hero Section */}
       <div className="w-full relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-to-b from-primary/10 via-transparent to-transparent opacity-50 pointer-events-none"></div>
