@@ -6,6 +6,7 @@ import { Navigation } from './Navigation';
 import { ThemeToggle } from './ThemeToggle';
 import { HeaderActions } from './HeaderActions';
 import { MobileMenu } from './MobileMenu';
+import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 
 interface HeaderProps {
   onNavigate: (screen: Screen) => void;
@@ -43,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentScreen, user,
         <Navigation onNavigate={onNavigate} currentScreen={currentScreen} />
 
         <div className="flex items-center gap-4">
-          <ThemeToggle isDark={isDark} onToggle={() => setIsDark(!isDark)} />
+          <AnimatedThemeToggler />
           <HeaderActions onNavigate={onNavigate} user={user} onLogout={onLogout} />
           <MobileMenu 
             isOpen={isMenuOpen} 

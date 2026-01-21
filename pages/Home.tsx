@@ -46,8 +46,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
             <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-white/10 group">
               <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent z-10 opacity-60"></div>
               <img alt="Tet Hero" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90" src="https://plus.unsplash.com/premium_photo-1683140803764-35a5a7e78c02?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
-              <div className="absolute bottom-8 left-8 z-20 glass-panel p-4 rounded-xl max-w-xs border-l-4 border-l-accent">
-                <p class="text-black font-serif text-lg">Tinh Hoa Tết Việt</p>
+              <div className="absolute bottom-8 left-8 z-20 glass-panel p-4 rounded-xl max-w-xs border-l-4 border-l-gold">
+                <p className="text-red-700 dark:text-white font-serif text-lg">Tinh Hoa Tết Việt</p>
               </div>
             </div>
             <div className="absolute -inset-4 bg-gradient-to-tr from-primary/20 to-accent/10 rounded-[2rem] blur-2xl -z-10"></div>
