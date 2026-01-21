@@ -6,21 +6,26 @@ import { cn } from "@/lib/utils"
 
 interface AnimatedThemeTogglerProps extends React.ComponentPropsWithoutRef<"button"> {
   duration?: number
+  className?: string 
 }
 
 export const AnimatedThemeToggler = ({
   duration = 400,
+  className,
   ...props
 }: AnimatedThemeTogglerProps) => {
   const [isDark, setIsDark] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    setIsDark(isDarkMode);
+  }, [])
+
+  useEffect(() => {
     const updateTheme = () => {
       setIsDark(document.documentElement.classList.contains("dark"))
     }
-
-    updateTheme()
 
     const observer = new MutationObserver(updateTheme)
     observer.observe(document.documentElement, {
@@ -33,6 +38,14 @@ export const AnimatedThemeToggler = ({
 
   const toggleTheme = useCallback(async () => {
     if (!buttonRef.current) return
+
+    if (!document.startViewTransition) {
+        const newTheme = !isDark
+        setIsDark(newTheme)
+        document.documentElement.classList.toggle("dark")
+        localStorage.setItem("theme", newTheme ? "dark" : "light")
+        return
+    }
 
     await document.startViewTransition(() => {
       flushSync(() => {
@@ -71,9 +84,10 @@ export const AnimatedThemeToggler = ({
     <button
       ref={buttonRef}
       onClick={toggleTheme}
+      className={cn("relative flex items-center justify-center", className)}
       {...props}
     >
-      {isDark ? <Sun /> : <Moon />}
+      {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
       <span className="sr-only">Toggle theme</span>
     </button>
   )

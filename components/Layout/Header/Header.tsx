@@ -21,11 +21,11 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentScreen, user,
 
   useEffect(() => {
     if (isDark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.remove('dark');
       document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
     }
   }, [isDark]);
 
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentScreen, user,
         <Navigation onNavigate={onNavigate} currentScreen={currentScreen} />
 
         <div className="flex items-center gap-4">
-          <AnimatedThemeToggler />
+          <AnimatedThemeToggler className="text-white/80 hover:text-white hover:bg-white/10 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/5" />
           <HeaderActions onNavigate={onNavigate} user={user} onLogout={onLogout} />
           <MobileMenu 
             isOpen={isMenuOpen} 
