@@ -99,7 +99,7 @@ export const StoreMap: React.FC = () => {
 
           <button className="mt-2 w-full px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 dark:bg-white/10 text-white font-semibold hover:from-red-600 hover:to-red-700 dark:hover:bg-white/20 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group">
             <span className="material-symbols-outlined text-lg">directions</span>
-            Chỉ Đường Đến Cửa Hàng
+              <a href="https://maps.app.goo.gl/NhxSmn9yQT88iyDq8" target="_blank" rel="noopener noreferrer">Chỉ Đường Đến Cửa Hàng</a>
             <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </button>
         </div>

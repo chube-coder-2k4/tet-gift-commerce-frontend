@@ -158,11 +158,11 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <button className="flex items-center justify-center gap-2 h-11 rounded-xl border border-gray-300 dark:border-[#4a1212] bg-white dark:bg-card-dark hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-400 dark:hover:border-white/20 transition-all group">
-              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAW31eKsFvfUkHYwwnktymeAk941arcVd2QOjJRqfCPqvtsx6K0uwOl0cHdVZCipyT_XTZkC1FXnsKNqogYtuKz-F0qNVGYQclBkzGFEaXzEMO1FugWyvm4E-1_5X5wOuij8RqTGauL6aP58fkkgeGslaqukWL8LIovQqQTV3_ccM-aHO016fVjS0vfZ9L97hG551riCZKQBT7gQrAdGzQa4-OjIHyltpo1ycxKrQq1Iu5RxrSsV8jYlqHcWSORS8TuSvzIRF5p8pE" alt="Google" className="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" />
+              <img src="https://res.cloudinary.com/dxkvlbzzu/image/upload/v1770014527/gg_logo_ihl2uq.png" alt="Google" className="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" />
               <span className="text-gray-700 dark:text-white/90 text-sm font-medium group-hover:text-black dark:group-hover:text-white">Google</span>
             </button>
             <button className="flex items-center justify-center gap-2 h-11 rounded-xl border border-gray-300 dark:border-[#4a1212] bg-white dark:bg-card-dark hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-400 dark:hover:border-white/20 transition-all group">
-              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4n19aYKfrWTHRS8nwGK_8Lsq90CGZNvg1OHmgM0iXjUxCDt-FJDsW-eelaiVOYzBOZ-CO34V8-hTMclV8dDRTszyn2XW-o3CdxYVtvYAstc9fjupjS3T_z37cK3kthlYXlDF3TGCVR10NQnFhK4XtnlwZrXTxh3MwxVBBwyrLh-elfC-hmBWknQ3N3R3yeIG6hSWkiPF5QavV8RIK9fyd_RA0aG-85HpDQ4PhV7DlcPwYSF-mrv0hfhQZX9vgNxww4s2yhfS9Yj8" alt="Facebook" className="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" />
+              <img src="https://res.cloudinary.com/dxkvlbzzu/image/upload/v1770014652/fb_logo_tyzu0t.webp" alt="Facebook" className="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" />
               <span className="text-gray-700 dark:text-white/90 text-sm font-medium group-hover:text-black dark:group-hover:text-white">Facebook</span>
             </button>
           </div>
