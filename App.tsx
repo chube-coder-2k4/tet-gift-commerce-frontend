@@ -19,11 +19,20 @@ const App: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState<number>(1);
   const [user, setUser] = useState<User | null>(null);
 
-  // Load user from localStorage on mount
+  // Load user from localStorage on mount + Handle OAuth redirect
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+    }
+
+    // Check if this is an OAuth callback (Backend redirects to /oauth2/redirect)
+    const path = window.location.pathname;
+    const hasOAuthParams = window.location.search.includes('token=');
+    
+    if (path === '/oauth2/redirect' || hasOAuthParams) {
+      // Redirect to login page to handle OAuth callback
+      setCurrentScreen('login');
     }
   }, []);
 
