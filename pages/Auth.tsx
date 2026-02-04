@@ -84,10 +84,10 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
 
         const user: User = {
           id: userData.id,
-          name: `${userData.firstName} ${userData.lastName}`.trim(),
+          name: `${userData.fullName}`.trim(),
           email: userData.email,
           phone: userData.phone,
-          avatar: userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.firstName)}&background=d90429&color=fff&size=200`,
+          avatar: userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.fullName)}&background=d90429&color=fff&size=200`,
           addresses: [],
         };
 
@@ -96,13 +96,8 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
         onNavigate('home');
       } else {
         // Register API call
-        const nameParts = name.trim().split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-
         const registerResponse = await userApi.register({
-          firstName,
-          lastName,
+          fullName: name,
           email,
           password,
           phone: phone || undefined,
@@ -121,10 +116,10 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
 
           const user: User = {
             id: userData.id,
-            name: `${userData.firstName} ${userData.lastName}`.trim(),
+            name: `${userData.fullName}`.trim(),
             email: userData.email,
             phone: userData.phone,
-            avatar: userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.firstName)}&background=d90429&color=fff&size=200`,
+            avatar: userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.fullName)}&background=d90429&color=fff&size=200`,
             addresses: [],
           };
 
