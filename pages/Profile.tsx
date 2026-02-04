@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Screen, User, Address } from '../types';
+import { userService } from '../services/userService';
 
 interface ProfileProps {
   onNavigate: (screen: Screen) => void;
@@ -13,7 +14,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  
+
   const [addresses, setAddresses] = useState<Address[]>(user?.addresses || []);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
@@ -35,9 +36,9 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
     }
   }, [user]);
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!user) return;
-    
+
     const updatedUser: User = {
       ...user,
       name,
@@ -45,13 +46,26 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
       phone,
       addresses
     };
-    
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    onUpdateUser(updatedUser);
-    setEditMode(false);
+
+    try {
+      await userService.updateUser(user.id, {
+        name,
+        email,
+        phone,
+        addresses
+      });
+
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      onUpdateUser(updatedUser);
+      setEditMode(false);
+      alert('Info updated successfully!');
+    } catch (error) {
+      console.error('Update failed', error);
+      alert('Update failed');
+    }
   };
 
-  const handleAddAddress = () => {
+  const handleAddAddress = async () => {
     if (!newAddress.name || !newAddress.phone || !newAddress.address || !newAddress.city || !newAddress.district) {
       alert('Vui lòng điền đầy đủ thông tin địa chỉ');
       return;
@@ -68,20 +82,29 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
     };
 
     let updatedAddresses = [...addresses, address];
-    
+
     // Nếu địa chỉ mới là default, bỏ default của các địa chỉ khác
     if (address.isDefault) {
-      updatedAddresses = updatedAddresses.map(addr => 
+      updatedAddresses = updatedAddresses.map(addr =>
         addr.id === address.id ? addr : { ...addr, isDefault: false }
       );
     }
 
     setAddresses(updatedAddresses);
-    
+
     if (user) {
       const updatedUser = { ...user, addresses: updatedAddresses };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      onUpdateUser(updatedUser);
+      try {
+        await userService.updateUser(user.id, {
+          addresses: updatedAddresses
+        });
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        onUpdateUser(updatedUser);
+      } catch (error) {
+        console.error('Address update failed', error);
+        alert('Failed to save address');
+        // Revert state if needed, but for now just alert
+      }
     }
 
     setIsAddingAddress(false);
@@ -98,11 +121,19 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
   const handleDeleteAddress = (id: number) => {
     const updatedAddresses = addresses.filter(addr => addr.id !== id);
     setAddresses(updatedAddresses);
-    
+
     if (user) {
       const updatedUser = { ...user, addresses: updatedAddresses };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      onUpdateUser(updatedUser);
+
+      userService.updateUser(user.id, { addresses: updatedAddresses })
+        .then(() => {
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          onUpdateUser(updatedUser);
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Failed to delete address");
+        });
     }
   };
 
@@ -111,13 +142,21 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
       ...addr,
       isDefault: addr.id === id
     }));
-    
+
     setAddresses(updatedAddresses);
-    
+
     if (user) {
       const updatedUser = { ...user, addresses: updatedAddresses };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      onUpdateUser(updatedUser);
+
+      userService.updateUser(user.id, { addresses: updatedAddresses })
+        .then(() => {
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          onUpdateUser(updatedUser);
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Failed to set default address");
+        });
     }
   };
 
@@ -141,7 +180,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
     <div className="flex-1 bg-background-light dark:bg-background-dark min-h-screen py-8">
       {/* Back Button */}
       <div className="max-w-5xl mx-auto px-4 md:px-8 mb-6">
-        <button 
+        <button
           onClick={() => onNavigate('home')}
           className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors group"
         >
@@ -154,7 +193,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
         {/* Header */}
         <div className="bg-white dark:bg-card-dark rounded-2xl p-8 mb-6 shadow-lg dark:shadow-2xl border border-gray-100 dark:border-white/5">
           <div className="flex items-center gap-6">
-            <div className="size-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
+            <div className="size-24 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
               {user.avatar ? (
                 <img src={user.avatar} alt={user.name} className="size-full object-cover" />
               ) : (
@@ -173,21 +212,19 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
         <div className="flex gap-4 mb-6">
           <button
             onClick={() => setActiveTab('info')}
-            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
-              activeTab === 'info'
-                ? 'bg-primary text-white shadow-lg'
-                : 'bg-white dark:bg-card-dark text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
-            }`}
+            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${activeTab === 'info'
+              ? 'bg-primary text-white shadow-lg'
+              : 'bg-white dark:bg-card-dark text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
+              }`}
           >
             Thông tin cá nhân
           </button>
           <button
             onClick={() => setActiveTab('address')}
-            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
-              activeTab === 'address'
-                ? 'bg-primary text-white shadow-lg'
-                : 'bg-white dark:bg-card-dark text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
-            }`}
+            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${activeTab === 'address'
+              ? 'bg-primary text-white shadow-lg'
+              : 'bg-white dark:bg-card-dark text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
+              }`}
           >
             Địa chỉ nhận hàng
           </button>
@@ -360,11 +397,10 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
                 addresses.map((addr) => (
                   <div
                     key={addr.id}
-                    className={`p-5 rounded-xl border transition-all ${
-                      addr.isDefault
-                        ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-surface-dark'
-                    }`}
+                    className={`p-5 rounded-xl border transition-all ${addr.isDefault
+                      ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                      : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-surface-dark'
+                      }`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">

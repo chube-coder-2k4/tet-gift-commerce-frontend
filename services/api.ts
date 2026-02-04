@@ -21,11 +21,11 @@ export interface LoginResponse {
 }
 
 export interface RegisterRequest {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   password: string;
   phone?: string;
+  username: string;
 }
 
 export interface UserResponse {
@@ -35,6 +35,7 @@ export interface UserResponse {
   email: string;
   phone?: string;
   avatar?: string;
+  username: string;
   active: boolean;
 }
 
@@ -66,7 +67,7 @@ export const tokenStorage = {
 // API Error class
 export class ApiError extends Error {
   status: number;
-  
+
   constructor(message: string, status: number) {
     super(message);
     this.status = status;
@@ -80,7 +81,7 @@ async function fetchWithAuth<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const accessToken = tokenStorage.getAccessToken();
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -112,7 +113,7 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(request),
     });
-    
+
     // Store tokens on successful login
     if (response.data) {
       tokenStorage.setTokens(
@@ -121,14 +122,14 @@ export const authApi = {
         response.data.userId
       );
     }
-    
+
     return response;
   },
 
   // Refresh access token
   refreshToken: async (): Promise<ApiResponse<LoginResponse>> => {
     const refreshToken = tokenStorage.getRefreshToken();
-    
+
     const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: 'POST',
       headers: {
@@ -180,7 +181,7 @@ export const authApi = {
 export const userApi = {
   // Register new user
   register: async (request: RegisterRequest): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>('/users/register', {
+    return fetchWithAuth<UserResponse>('/user/register', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -188,14 +189,14 @@ export const userApi = {
 
   // Get current user profile
   getProfile: async (userId: number): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>(`/users/${userId}`, {
+    return fetchWithAuth<UserResponse>(`/user/${userId}`, {
       method: 'GET',
     });
   },
 
   // Update user profile
   updateProfile: async (userId: number, data: Partial<UserResponse>): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>(`/users/${userId}`, {
+    return fetchWithAuth<UserResponse>(`/user/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });

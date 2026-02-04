@@ -1,0 +1,37 @@
+import axios from 'axios';
+
+const api = axios.create({
+    baseURL: 'http://localhost:8085/api/v1',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// Add a request interceptor
+api.interceptors.request.use(
+    (config) => {
+        // You can add auth token here if available
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// Add a response interceptor
+api.interceptors.response.use(
+    (response) => {
+        return response;
+    },
+    (error) => {
+        // Handle global errors here
+        console.error('API Error:', error.response || error.message);
+        return Promise.reject(error);
+    }
+);
+
+export default api;
