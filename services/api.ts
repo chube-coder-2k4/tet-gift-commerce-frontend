@@ -1,13 +1,13 @@
 // API Configuration & Base Service
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8085/api/v1';
-const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'http://localhost:8085';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.shophuypro.store/api/v1';
+const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'https://api.shophuypro.store';
 
 // Types
 export interface ApiResponse<T> {
   status: number;
   message: string;
   data: T;
-} 
+}
 
 export interface LoginRequest {
   usernameOrEmail: string;
@@ -21,7 +21,8 @@ export interface LoginResponse {
 }
 
 export interface RegisterRequest {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   phone?: string;
@@ -29,7 +30,8 @@ export interface RegisterRequest {
 
 export interface UserResponse {
   id: number;
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone?: string;
   avatar?: string;
@@ -178,7 +180,7 @@ export const authApi = {
 export const userApi = {
   // Register new user
   register: async (request: RegisterRequest): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>('/user/register', {
+    return fetchWithAuth<UserResponse>('/users/register', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -186,14 +188,14 @@ export const userApi = {
 
   // Get current user profile
   getProfile: async (userId: number): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>(`/user/${userId}`, {
+    return fetchWithAuth<UserResponse>(`/users/${userId}`, {
       method: 'GET',
     });
   },
 
   // Update user profile
   updateProfile: async (userId: number, data: Partial<UserResponse>): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>(`/user/${userId}`, {
+    return fetchWithAuth<UserResponse>(`/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
