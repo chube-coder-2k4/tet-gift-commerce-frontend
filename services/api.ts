@@ -180,7 +180,7 @@ export const authApi = {
 export const userApi = {
   // Register new user
   register: async (request: RegisterRequest): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>('/users/register', {
+    return fetchWithAuth<UserResponse>('/user/register', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -188,14 +188,14 @@ export const userApi = {
 
   // Get current user profile
   getProfile: async (userId: number): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>(`/users/${userId}`, {
+    return fetchWithAuth<UserResponse>(`/user/${userId}`, {
       method: 'GET',
     });
   },
 
   // Update user profile
   updateProfile: async (userId: number, data: Partial<UserResponse>): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>(`/users/${userId}`, {
+    return fetchWithAuth<UserResponse>(`/user/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
