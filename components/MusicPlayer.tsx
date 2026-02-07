@@ -7,7 +7,7 @@ const MusicPlayer: React.FC = () => {
 
   useEffect(() => {
     // Khởi tạo Audio một lần duy nhất tại đây
-    const audio = new Audio('/assets/sound/tetSound.mp3');
+    const audio = new Audio('https://res.cloudinary.com/dxkvlbzzu/video/upload/v1770445890/tetSound_e3uwo6.webm');
     audio.loop = true;
     audio.volume = 0.5;
     audioRef.current = audio;
@@ -57,7 +57,6 @@ const MusicPlayer: React.FC = () => {
 
           {/* Tooltip hướng dẫn */}
           <div className="absolute left-full ml-4 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-lg text-xs font-bold text-white uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none hidden md:block">
-            {isPlaying ? 'Tắt nhạc' : 'Bật nhạc Tết'}
           </div>
         </button>
 
