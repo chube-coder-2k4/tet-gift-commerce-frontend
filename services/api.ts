@@ -1,6 +1,6 @@
 // API Configuration & Base Service
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.shophuypro.store/api/v1';
-const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'https://api.shophuypro.store';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8085/api/v1';
+const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'http://localhost:8085';
 
 // Types
 export interface ApiResponse<T> {
