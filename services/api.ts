@@ -1,6 +1,6 @@
 // API Configuration & Base Service
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8085/api/v1';
-const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'http://localhost:8085';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'http://localhost:8080';
 
 // Types
 export interface ApiResponse<T> {
@@ -32,10 +32,12 @@ export interface UserResponse {
   id: number;
   firstName: string;
   lastName: string;
+  fullName?: string;
   email: string;
   phone?: string;
   avatar?: string;
   active: boolean;
+  roles?: { id: number; name: string }[];
 }
 
 // Token Management
@@ -180,7 +182,7 @@ export const authApi = {
 export const userApi = {
   // Register new user
   register: async (request: RegisterRequest): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>('/users/register', {
+    return fetchWithAuth<UserResponse>('/user/register', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -188,14 +190,14 @@ export const userApi = {
 
   // Get current user profile
   getProfile: async (userId: number): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>(`/users/${userId}`, {
+    return fetchWithAuth<UserResponse>(`/user/${userId}`, {
       method: 'GET',
     });
   },
 
   // Update user profile
   updateProfile: async (userId: number, data: Partial<UserResponse>): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>(`/users/${userId}`, {
+    return fetchWithAuth<UserResponse>(`/user/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });

@@ -64,6 +64,16 @@ export const HeaderActions: React.FC<HeaderActionsProps> = ({ onNavigate, user, 
                 </button>
                 <button
                   onClick={() => {
+                    onNavigate('admin');
+                    setShowDropdown(false);
+                  }}
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-3 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white transition-colors"
+                >
+                  <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
+                  <span className="font-medium">Quản trị Admin</span>
+                </button>
+                <button
+                  onClick={() => {
                     onNavigate('cart');
                     setShowDropdown(false);
                   }}
