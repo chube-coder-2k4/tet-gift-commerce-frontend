@@ -1,15 +1,131 @@
-import React from 'react';
-import { PRODUCTS } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { cartApi, CartResponse } from '../services/cartApi';
+import { discountApi, DiscountResponse } from '../services/discountApi';
+import { authApi } from '../services/api';
 import { Screen } from '../types';
 
 interface CartProps {
   onNavigate: (screen: Screen) => void;
+  onCartUpdate?: () => void;
 }
 
-const Cart: React.FC<CartProps> = ({ onNavigate }) => {
-  // Mock cart items using existing products
-  const cartItems = [PRODUCTS[0], PRODUCTS[2]];
-  const total = cartItems.reduce((acc, item) => acc + item.price, 0);
+const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate }) => {
+  const [cart, setCart] = useState<CartResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [updatingItem, setUpdatingItem] = useState<number | null>(null);
+  const [removingItem, setRemovingItem] = useState<number | null>(null);
+  const [clearingCart, setClearingCart] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discount, setDiscount] = useState<DiscountResponse | null>(null);
+  const [discountError, setDiscountError] = useState('');
+  const [validatingDiscount, setValidatingDiscount] = useState(false);
+
+  const fetchCart = async () => {
+    if (!authApi.isAuthenticated()) {
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const res = await cartApi.getCart();
+      setCart(res.data);
+    } catch (err) {
+      console.error('Failed to fetch cart:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  const handleUpdateQuantity = async (itemId: number, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    setUpdatingItem(itemId);
+    try {
+      await cartApi.updateQuantity(itemId, newQuantity);
+      await fetchCart();
+      onCartUpdate?.();
+    } catch (err) {
+      console.error('Failed to update quantity:', err);
+    } finally {
+      setUpdatingItem(null);
+    }
+  };
+
+  const handleRemoveItem = async (itemId: number) => {
+    setRemovingItem(itemId);
+    try {
+      await cartApi.removeItem(itemId);
+      await fetchCart();
+      onCartUpdate?.();
+    } catch (err) {
+      console.error('Failed to remove item:', err);
+    } finally {
+      setRemovingItem(null);
+    }
+  };
+
+  const handleClearCart = async () => {
+    setClearingCart(true);
+    try {
+      await cartApi.clearCart();
+      setCart(null);
+      onCartUpdate?.();
+    } catch (err) {
+      console.error('Failed to clear cart:', err);
+    } finally {
+      setClearingCart(false);
+    }
+  };
+
+  const handleValidateDiscount = async () => {
+    if (!discountCode.trim()) return;
+    setValidatingDiscount(true);
+    setDiscountError('');
+    try {
+      const res = await discountApi.validate(discountCode.trim());
+      if (res.data) {
+        setDiscount(res.data);
+        setDiscountError('');
+      } else {
+        setDiscountError('Mã giảm giá không hợp lệ');
+        setDiscount(null);
+      }
+    } catch (err: any) {
+      setDiscountError(err?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn');
+      setDiscount(null);
+    } finally {
+      setValidatingDiscount(false);
+    }
+  };
+
+  // Not logged in
+  if (!authApi.isAuthenticated()) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16 text-center">
+        <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">shopping_cart</span>
+        <h2 className="text-2xl font-serif text-gray-900 dark:text-white mb-2">Vui lòng đăng nhập</h2>
+        <p className="text-gray-500 mb-6">Bạn cần đăng nhập để xem giỏ hàng</p>
+        <button onClick={() => onNavigate('login')} className="px-8 py-3 rounded-full bg-primary text-white font-semibold hover:bg-red-600 transition-all">
+          Đăng nhập
+        </button>
+      </div>
+    );
+  }
+
+  // Loading
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16 flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  const cartItems = cart?.items || [];
+  const totalPrice = cart?.totalPrice || 0;
+  const totalItems = cart?.totalItems || 0;
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-12">
@@ -27,8 +143,18 @@ const Cart: React.FC<CartProps> = ({ onNavigate }) => {
         <span className="mx-2">/</span>
         <span className="text-gray-900 dark:text-white">Giỏ hàng</span>
       </nav>
-      <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8">Giỏ hàng <span className="text-gray-500 font-sans text-lg font-normal ml-2">({cartItems.length} sản phẩm)</span></h1>
+      <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8">Giỏ hàng <span className="text-gray-500 font-sans text-lg font-normal ml-2">({totalItems} sản phẩm)</span></h1>
       
+      {cartItems.length === 0 ? (
+        <div className="text-center py-16">
+          <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">shopping_cart</span>
+          <h2 className="text-2xl font-serif text-gray-900 dark:text-white mb-2">Giỏ hàng trống</h2>
+          <p className="text-gray-500 mb-6">Hãy thêm sản phẩm vào giỏ hàng để tiếp tục mua sắm</p>
+          <button onClick={() => onNavigate('shop')} className="px-8 py-3 rounded-full bg-primary text-white font-semibold hover:bg-red-600 transition-all">
+            Khám phá sản phẩm
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
         <div className="lg:col-span-8 flex flex-col gap-6">
           <div className="bg-white dark:bg-card-dark border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm">
@@ -39,51 +165,65 @@ const Cart: React.FC<CartProps> = ({ onNavigate }) => {
               <div className="col-span-2 text-right">Thành tiền</div>
             </div>
             
-            {cartItems.map((item, index) => (
-              <div key={index} className="p-6 border-b border-gray-200 dark:border-white/5 flex flex-col md:grid md:grid-cols-12 gap-6 items-center group relative hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+            {cartItems.map((item) => (
+              <div key={item.id} className={`p-6 border-b border-gray-200 dark:border-white/5 flex flex-col md:grid md:grid-cols-12 gap-6 items-center group relative hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors ${removingItem === item.id ? 'opacity-50' : ''}`}>
                 <div className="col-span-6 flex items-start gap-4 w-full">
-                  <div className="relative size-24 md:size-28 shrink-0 rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-surface-darker">
-                    <img alt={item.name} className="w-full h-full object-cover" src={item.image} />
+                  <div className="relative size-24 md:size-28 shrink-0 rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-surface-darker flex items-center justify-center">
+                    <span className="material-symbols-outlined text-3xl text-gray-400">{item.itemType === 'BUNDLE' ? 'inventory_2' : 'shopping_bag'}</span>
                   </div>
                   <div className="flex flex-col h-full justify-between py-1">
                     <div>
-                      <h3 className="font-bold text-gray-900 dark:text-white text-lg font-serif mb-1">{item.name}</h3>
-                      <p className="text-xs text-gray-500 mb-2">Phân loại: Tiêu chuẩn</p>
+                      <h3 className="font-bold text-gray-900 dark:text-white text-lg font-serif mb-1">{item.itemName}</h3>
+                      <p className="text-xs text-gray-500 mb-2">Loại: {item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm'}</p>
                       <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-500/10 px-2 py-0.5 rounded w-fit border border-green-200 dark:border-green-500/20">
                         <span className="material-symbols-outlined text-[14px]">check</span>
                         Còn hàng
                       </div>
                     </div>
-                    <button className="text-xs text-gray-500 hover:text-red-500 transition-colors flex items-center gap-1 mt-3 w-fit">
-                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                    <button 
+                      onClick={() => handleRemoveItem(item.id)}
+                      disabled={removingItem === item.id}
+                      className="text-xs text-gray-500 hover:text-red-500 transition-colors flex items-center gap-1 mt-3 w-fit disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">{removingItem === item.id ? 'hourglass_empty' : 'delete'}</span>
                       Xóa sản phẩm
                     </button>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between w-full md:hidden border-t border-gray-100 dark:border-white/5 pt-4 mt-2">
-                  <span className="text-sm text-gray-500">Đơn giá: <span className="text-gray-900 dark:text-white">{item.price.toLocaleString()}₫</span></span>
-                  <span className="text-primary dark:text-accent font-bold">{item.price.toLocaleString()}₫</span>
+                  <span className="text-sm text-gray-500">Đơn giá: <span className="text-gray-900 dark:text-white">{item.itemPrice.toLocaleString()}₫</span></span>
+                  <span className="text-primary dark:text-accent font-bold">{item.subtotal.toLocaleString()}₫</span>
                 </div>
 
                 <div className="hidden md:block col-span-2 text-center text-gray-900 dark:text-gray-300 font-medium">
-                  {item.price.toLocaleString()}₫
+                  {item.itemPrice.toLocaleString()}₫
                 </div>
                 
                 <div className="col-span-2 flex justify-center w-full md:w-auto">
                   <div className="flex items-center border border-gray-300 dark:border-white/15 rounded-lg bg-white dark:bg-surface-dark h-10">
-                    <button className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-primary transition-colors">
+                    <button 
+                      onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                      disabled={updatingItem === item.id || item.quantity <= 1}
+                      className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-primary transition-colors disabled:opacity-30"
+                    >
                       <span className="material-symbols-outlined text-sm">remove</span>
                     </button>
-                    <input className="w-10 bg-transparent text-center text-gray-900 dark:text-white text-sm font-medium border-none focus:ring-0 p-0" type="text" defaultValue="1" />
-                    <button className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-primary transition-colors">
+                    <span className="w-10 text-center text-gray-900 dark:text-white text-sm font-medium">
+                      {updatingItem === item.id ? '...' : item.quantity}
+                    </span>
+                    <button 
+                      onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                      disabled={updatingItem === item.id}
+                      className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-primary transition-colors disabled:opacity-30"
+                    >
                       <span className="material-symbols-outlined text-sm">add</span>
                     </button>
                   </div>
                 </div>
                 
                 <div className="hidden md:block col-span-2 text-right font-bold text-primary dark:text-accent text-lg">
-                  {item.price.toLocaleString()}₫
+                  {item.subtotal.toLocaleString()}₫
                 </div>
               </div>
             ))}
@@ -94,6 +234,14 @@ const Cart: React.FC<CartProps> = ({ onNavigate }) => {
               <span className="material-symbols-outlined text-lg">arrow_back</span>
               Tiếp tục mua sắm
             </a>
+            <button 
+              onClick={handleClearCart}
+              disabled={clearingCart}
+              className="text-sm text-gray-500 hover:text-red-500 flex items-center gap-1 transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-lg">{clearingCart ? 'hourglass_empty' : 'delete_sweep'}</span>
+              Xóa tất cả
+            </button>
           </div>
         </div>
         
@@ -102,8 +250,8 @@ const Cart: React.FC<CartProps> = ({ onNavigate }) => {
             <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-white/10 pb-4">Cộng giỏ hàng</h3>
             <div className="space-y-4 mb-6">
               <div className="flex justify-between items-center text-gray-600 dark:text-gray-400 text-sm">
-                <span>Tạm tính</span>
-                <span className="text-gray-900 dark:text-white font-medium">{total.toLocaleString()}₫</span>
+                <span>Tạm tính ({totalItems} sản phẩm)</span>
+                <span className="text-gray-900 dark:text-white font-medium">{totalPrice.toLocaleString()}₫</span>
               </div>
               <div className="flex justify-between items-center text-gray-600 dark:text-gray-400 text-sm">
                 <span>Phí vận chuyển</span>
@@ -111,22 +259,44 @@ const Cart: React.FC<CartProps> = ({ onNavigate }) => {
               </div>
               <div className="flex justify-between items-center text-gray-600 dark:text-gray-400 text-sm">
                 <span>Giảm giá</span>
-                <span className="text-primary font-medium">-0₫</span>
+                <span className="text-primary font-medium">-{(discount?.discountValue || 0).toLocaleString()}₫</span>
               </div>
             </div>
             
-            <div className="relative mb-8">
-              <input className="w-full bg-gray-50 dark:bg-surface-dark border border-gray-300 dark:border-white/10 rounded-lg py-3 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent placeholder-gray-500 transition-all" type="text" placeholder="Nhập mã giảm giá" />
-              <button className="absolute right-1 top-1 bottom-1 px-4 bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 text-gray-900 dark:text-accent text-xs font-bold rounded-md transition-colors uppercase">
-                Áp dụng
-              </button>
+            <div className="relative mb-4">
+              <div className="flex gap-2">
+                <input 
+                  className="flex-1 bg-gray-50 dark:bg-surface-dark border border-gray-300 dark:border-white/10 rounded-lg py-3 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent placeholder-gray-500 transition-all" 
+                  type="text" 
+                  placeholder="Nhập mã giảm giá"
+                  value={discountCode}
+                  onChange={e => { setDiscountCode(e.target.value); setDiscountError(''); }}
+                />
+                <button 
+                  onClick={handleValidateDiscount}
+                  disabled={validatingDiscount || !discountCode.trim()}
+                  className="px-4 bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 text-gray-900 dark:text-accent text-xs font-bold rounded-lg transition-colors uppercase disabled:opacity-50"
+                >
+                  {validatingDiscount ? '...' : 'Áp dụng'}
+                </button>
+              </div>
+              {discountError && <p className="text-red-500 text-xs mt-2">{discountError}</p>}
+              {discount && (
+                <div className="mt-2 flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-900/30">
+                  <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-sm">confirmation_number</span>
+                  <span className="text-xs font-medium text-gray-900 dark:text-gray-300">Mã {discount.code}! <span className="text-green-600 dark:text-green-400 font-bold">-{discount.discountValue.toLocaleString()}₫</span></span>
+                  <button onClick={() => { setDiscount(null); setDiscountCode(''); }} className="ml-auto text-gray-400 hover:text-red-500">
+                    <span className="material-symbols-outlined text-sm">close</span>
+                  </button>
+                </div>
+              )}
             </div>
             
             <div className="border-t border-gray-200 dark:border-white/10 pt-6 mb-8">
               <div className="flex justify-between items-end">
                 <span className="text-gray-900 dark:text-white font-bold text-lg">Tổng cộng</span>
                 <div className="text-right">
-                  <span className="text-3xl font-serif font-bold text-primary dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-accent dark:to-yellow-200">{total.toLocaleString()}₫</span>
+                  <span className="text-3xl font-serif font-bold text-primary dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-accent dark:to-yellow-200">{Math.max(0, totalPrice - (discount?.discountValue || 0)).toLocaleString()}₫</span>
                   <p className="text-xs text-gray-500 mt-1">(Đã bao gồm VAT)</p>
                 </div>
               </div>
@@ -153,6 +323,7 @@ const Cart: React.FC<CartProps> = ({ onNavigate }) => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

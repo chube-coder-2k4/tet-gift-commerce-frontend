@@ -1,14 +1,126 @@
-import React, { useState } from 'react';
-import { PRODUCTS } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { productApi, ProductResponse } from '../services/productApi';
+import { categoryApi, CategoryResponse } from '../services/categoryApi';
+import { cartApi } from '../services/cartApi';
 import { Screen } from '../types';
+import { authApi } from '../services/api';
 
 interface ShopProps {
   onNavigate: (screen: Screen) => void;
   onProductClick: (id: number) => void;
+  onCartUpdate?: () => void;
 }
 
-const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
+// Helper: lấy ảnh chính hoặc ảnh đầu tiên
+const getPrimaryImage = (product: ProductResponse): string => {
+  if (!product.images || product.images.length === 0) return '';
+  const primary = product.images.find(img => img.isPrimary);
+  return primary ? primary.imageUrl : product.images[0].imageUrl;
+};
+
+const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate }) => {
+  const [products, setProducts] = useState<ProductResponse[]>([]);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await categoryApi.getAll();
+        setCategories(response.data || []);
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Fetch products when filters change
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        const response = await productApi.getAll({
+          page,
+          size: 12,
+          sortBy,
+          sortDir,
+        });
+        if (response.data) {
+          setProducts(response.data.data || []);
+          setTotalPages(response.data.totalPages);
+          setTotalItems(response.data.totalItems);
+        }
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [page, sortBy, sortDir]);
+
+  // Client-side filter (search + category + price range)
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = !searchQuery || 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategories.length === 0 || 
+      selectedCategories.includes(product.categoryId);
+    const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
+    return matchesSearch && matchesCategory && matchesPrice;
+  });
+
+  const handleCategoryToggle = (categoryId: number) => {
+    setSelectedCategories(prev => 
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
+  const handleSortChange = (value: string) => {
+    switch (value) {
+      case 'newest': setSortBy('createdAt'); setSortDir('desc'); break;
+      case 'price-asc': setSortBy('price'); setSortDir('asc'); break;
+      case 'price-desc': setSortBy('price'); setSortDir('desc'); break;
+      default: setSortBy('createdAt'); setSortDir('desc');
+    }
+    setPage(0);
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent, productId: number) => {
+    e.stopPropagation();
+    if (!authApi.isAuthenticated()) {
+      onNavigate('login');
+      return;
+    }
+    setAddingToCart(productId);
+    try {
+      await cartApi.addItem({ itemType: 'PRODUCT', productId, quantity: 1 });
+      onCartUpdate?.();
+    } catch (err) {
+      console.error('Failed to add to cart:', err);
+    } finally {
+      setAddingToCart(null);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategories([]);
+    setPriceRange([0, 10000000]);
+  };
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-12">
       {/* Back Button */}
@@ -30,15 +142,29 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
           <div className="pb-6 border-b border-primary/10 dark:border-white/10 lg:block">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-serif text-xl text-gray-900 dark:text-white">Bộ lọc</h3>
-              <button className="text-xs text-primary font-medium hover:underline">Xóa tất cả</button>
+              <button onClick={handleClearFilters} className="text-xs text-primary font-medium hover:underline">Xóa tất cả</button>
             </div>
             <div className="mb-8">
               <h4 className="text-sm font-bold text-accent uppercase tracking-wider mb-4">Loại sản phẩm</h4>
               <div className="space-y-3">
-                {['Tất cả', 'Hộp quà Tết', 'Giỏ quà Tết', 'Túi quà Tết', 'Rượu Tết'].map((item, idx) => (
-                  <label key={idx} className="flex items-center gap-3 cursor-pointer group">
-                    <input type="checkbox" defaultChecked={idx === 0} className="rounded border-gray-300 dark:border-white/20 bg-transparent text-primary focus:ring-primary h-4 w-4" />
-                    <span className="text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors text-sm">{item}</span>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedCategories.length === 0}
+                    onChange={() => setSelectedCategories([])}
+                    className="rounded border-gray-300 dark:border-white/20 bg-transparent text-primary focus:ring-primary h-4 w-4" 
+                  />
+                  <span className="text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors text-sm">Tất cả</span>
+                </label>
+                {categories.map((cat) => (
+                  <label key={cat.id} className="flex items-center gap-3 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedCategories.includes(cat.id)}
+                      onChange={() => handleCategoryToggle(cat.id)}
+                      className="rounded border-gray-300 dark:border-white/20 bg-transparent text-primary focus:ring-primary h-4 w-4" 
+                    />
+                    <span className="text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors text-sm">{cat.name}</span>
                   </label>
                 ))}
               </div>
@@ -144,57 +270,130 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick }) => {
             <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-gradient-to-r dark:from-surface-dark dark:to-card-dark p-4 rounded-xl border border-gray-200 dark:border-[#3a3330]/60 shadow-sm dark:shadow-lg">
               <div className="relative w-full md:w-96 group">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors">search</span>
-                <input type="text" className="w-full bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-1 focus:ring-primary dark:focus:ring-[#b8860b]/40 transition-all" placeholder="Tìm kiếm hộp quà, rượu tết..." />
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-1 focus:ring-primary dark:focus:ring-[#b8860b]/40 transition-all" 
+                  placeholder="Tìm kiếm sản phẩm..." 
+                />
               </div>
               <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                <span className="text-sm text-gray-500 dark:text-gray-400">{totalItems} sản phẩm</span>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">Sắp xếp:</span>
-                  <select className="bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2 pl-3 pr-8 text-sm text-gray-900 dark:text-gray-200 focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-0 cursor-pointer dark:shadow-inner">
-                    <option>Nổi bật nhất</option>
-                    <option>Mới nhất</option>
-                    <option>Giá: Thấp đến Cao</option>
-                    <option>Giá: Cao đến Thấp</option>
+                  <select 
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    className="bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2 pl-3 pr-8 text-sm text-gray-900 dark:text-gray-200 focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-0 cursor-pointer dark:shadow-inner"
+                  >
+                    <option value="newest">Mới nhất</option>
+                    <option value="price-asc">Giá: Thấp đến Cao</option>
+                    <option value="price-desc">Giá: Cao đến Thấp</option>
                   </select>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {PRODUCTS.map((product) => (
-              <div key={product.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-gray-200 dark:border-[#3a3330]/60 hover:border-primary/30 dark:hover:border-[#b8860b]/40 transition-all duration-300 hover:shadow-lg dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 flex flex-col h-full cursor-pointer" onClick={() => onProductClick(product.id)}>
-                <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
-                  <img alt={product.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={product.image} />
-                  {product.discount && <div className="absolute top-3 left-3 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">-{product.discount}%</div>}
-                  {product.isHot && <div className="absolute top-3 left-3 bg-accent text-black text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">HOT</div>}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button className="size-10 bg-white text-background-dark rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-glow">
-                      <span className="material-symbols-outlined text-[20px]">add_shopping_cart</span>
-                    </button>
-                    <button className="size-10 bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-white/40 transition-colors">
-                      <span className="material-symbols-outlined text-[20px]">visibility</span>
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-auto">
-                  <p className="text-xs text-accent font-medium uppercase tracking-wide mb-1">{product.category}</p>
-                  <h3 className="text-gray-900 dark:text-white font-medium text-lg mb-1 group-hover:text-primary transition-colors truncate">{product.name}</h3>
-                  <div className="flex items-center gap-1 mb-3">
-                    <div className="flex text-accent text-xs">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`material-symbols-outlined text-[14px] fill-current ${i < Math.floor(product.rating) ? '' : 'text-gray-300 dark:text-gray-600'}`}>star</span>
-                      ))}
-                    </div>
-                    <span className="text-gray-500 text-xs ml-1">({product.reviews})</span>
-                  </div>
-                  <div className="flex items-baseline gap-3 border-t border-gray-100 dark:border-white/5 pt-3">
-                    <span className="text-primary font-bold text-lg">{product.price.toLocaleString()}₫</span>
-                    {product.originalPrice && <span className="text-gray-400 dark:text-gray-600 text-sm line-through">{product.originalPrice.toLocaleString()}₫</span>}
-                  </div>
-                </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <span className="material-symbols-outlined text-5xl text-primary animate-spin block mb-4">progress_activity</span>
+                <p className="text-gray-500 dark:text-gray-400">Đang tải sản phẩm...</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 block mb-4">inventory_2</span>
+                <p className="text-gray-500 dark:text-gray-400 text-lg mb-2">Không tìm thấy sản phẩm</p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProducts.map((product) => (
+                  <div key={product.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-gray-200 dark:border-[#3a3330]/60 hover:border-primary/30 dark:hover:border-[#b8860b]/40 transition-all duration-300 hover:shadow-lg dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 flex flex-col h-full cursor-pointer" onClick={() => onProductClick(product.id)}>
+                    <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
+                      {getPrimaryImage(product) ? (
+                        <img alt={product.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={getPrimaryImage(product)} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <span className="material-symbols-outlined text-6xl">image</span>
+                        </div>
+                      )}
+                      {product.stock <= 0 && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <span className="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full">Hết hàng</span>
+                        </div>
+                      )}
+                      {product.stock > 0 && (
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <button 
+                            onClick={(e) => handleAddToCart(e, product.id)}
+                            disabled={addingToCart === product.id}
+                            className="size-10 bg-white text-background-dark rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-glow disabled:opacity-50"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">
+                              {addingToCart === product.id ? 'progress_activity' : 'add_shopping_cart'}
+                            </span>
+                          </button>
+                          <button className="size-10 bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-white/40 transition-colors">
+                            <span className="material-symbols-outlined text-[20px]">visibility</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-auto">
+                      <p className="text-xs text-accent font-medium uppercase tracking-wide mb-1">{product.categoryName}</p>
+                      <h3 className="text-gray-900 dark:text-white font-medium text-lg mb-1 group-hover:text-primary transition-colors truncate">{product.name}</h3>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs mb-3 line-clamp-2">{product.description}</p>
+                      <div className="flex items-baseline gap-3 border-t border-gray-100 dark:border-white/5 pt-3">
+                        <span className="text-primary font-bold text-lg">{product.price.toLocaleString()}₫</span>
+                        {product.stock > 0 && product.stock <= 10 && (
+                          <span className="text-xs text-orange-500 font-medium">Còn {product.stock}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-10">
+                  <button
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    className="size-10 rounded-lg border border-gray-300 dark:border-white/10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg">chevron_left</span>
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setPage(i)}
+                      className={`size-10 rounded-lg font-medium text-sm transition-colors ${
+                        page === i 
+                          ? 'bg-primary text-white shadow-md' 
+                          : 'border border-gray-300 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                    disabled={page === totalPages - 1}
+                    className="size-10 rounded-lg border border-gray-300 dark:border-white/10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg">chevron_right</span>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
