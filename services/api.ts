@@ -32,10 +32,12 @@ export interface UserResponse {
   id: number;
   firstName: string;
   lastName: string;
+  fullName?: string;
   email: string;
   phone?: string;
   avatar?: string;
   active: boolean;
+  roles?: { id: number; name: string }[];
 }
 
 // Token Management
