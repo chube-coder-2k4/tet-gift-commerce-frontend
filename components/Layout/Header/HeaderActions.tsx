@@ -5,9 +5,10 @@ interface HeaderActionsProps {
   onNavigate: (screen: Screen) => void;
   user: User | null;
   onLogout: () => void;
+  cartItemCount?: number;
 }
 
-export const HeaderActions: React.FC<HeaderActionsProps> = ({ onNavigate, user, onLogout }) => {
+export const HeaderActions: React.FC<HeaderActionsProps> = ({ onNavigate, user, onLogout, cartItemCount = 0 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
@@ -25,7 +26,11 @@ export const HeaderActions: React.FC<HeaderActionsProps> = ({ onNavigate, user, 
         aria-label="Shopping cart"
       >
         <span className="material-symbols-outlined text-[22px]">shopping_bag</span>
-        <span className="absolute top-1 right-0 size-2 bg-gold dark:bg-primary rounded-full ring-2 ring-white dark:ring-background-dark"></span>
+        {cartItemCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-gold dark:bg-primary rounded-full ring-2 ring-white dark:ring-background-dark flex items-center justify-center text-[10px] font-bold text-primary dark:text-white px-1">
+            {cartItemCount > 99 ? '99+' : cartItemCount}
+          </span>
+        )}
       </button>
       
       {user ? (
@@ -64,24 +69,26 @@ export const HeaderActions: React.FC<HeaderActionsProps> = ({ onNavigate, user, 
                 </button>
                 <button
                   onClick={() => {
-                    onNavigate('admin');
+                    onNavigate('orders');
                     setShowDropdown(false);
                   }}
                   className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-3 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white transition-colors"
                 >
-                  <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
-                  <span className="font-medium">Quản trị Admin</span>
-                </button>
-                <button
-                  onClick={() => {
-                    onNavigate('cart');
-                    setShowDropdown(false);
-                  }}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-3 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white transition-colors"
-                >
-                  <span className="material-symbols-outlined text-xl">shopping_bag</span>
+                  <span className="material-symbols-outlined text-xl">receipt_long</span>
                   <span className="font-medium">Đơn hàng của tôi</span>
                 </button>
+                {user.roleName === 'ADMIN' && (
+                  <button
+                    onClick={() => {
+                      onNavigate('admin');
+                      setShowDropdown(false);
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-3 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
+                    <span className="font-medium">Quản trị Admin</span>
+                  </button>
+                )}
                 <hr className="my-2 border-gray-200 dark:border-white/10" />
                 <button
                   onClick={() => {

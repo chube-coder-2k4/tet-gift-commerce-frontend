@@ -1,6 +1,20 @@
-import { Product, BlogPost } from './types';
+import { BlogPost } from './types';
 
-export const PRODUCTS: Product[] = [
+// Static product type for backward compatibility (used in pages not yet migrated)
+export interface StaticProduct {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  originalPrice?: number;
+  rating: number;
+  reviews: number;
+  image: string;
+  isHot?: boolean;
+  discount?: number;
+}
+
+export const PRODUCTS: StaticProduct[] = [
   {
     id: 1,
     name: "Hộp Quà Phú Quý",

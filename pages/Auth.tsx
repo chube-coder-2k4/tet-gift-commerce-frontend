@@ -16,6 +16,10 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [username, setUsername] = useState('');
+  const [showOtpForm, setShowOtpForm] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpEmail, setOtpEmail] = useState('');
 
   // Check for OAuth callback on mount
   useEffect(() => {
@@ -85,10 +89,11 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
         const displayName = userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email;
         const user: User = {
           id: userData.id,
-          name: displayName,
+          name: userData.fullName,
           email: userData.email,
           phone: userData.phone,
-          avatar: userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=d90429&color=fff&size=200`,
+          roleName: userData.roleName,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.fullName)}&background=d90429&color=fff&size=200`,
           addresses: [],
           roles: userData.roles,
         };
@@ -101,49 +106,18 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
         onNavigate(isAdmin ? 'admin' : 'home');
       } else {
         // Register API call
-        const nameParts = name.trim().split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        const registerResponse = await userApi.register({
-          firstName,
-          lastName,
+        await userApi.register({
+          fullName: name,
+          username,
           email,
           password,
           phone: phone || undefined,
         });
 
-        // Auto login after registration (if account is already activated)
-        // Or show message to verify email
-        const userData = registerResponse.data;
-        
-        if (userData.active) {
-          // Account is active, auto login
-          const loginResponse = await authApi.login({
-            usernameOrEmail: email,
-            password: password,
-          });
-
-          const user: User = {
-            id: userData.id,
-            name: `${userData.firstName} ${userData.lastName}`.trim(),
-            email: userData.email,
-            phone: userData.phone,
-            avatar: userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.firstName)}&background=d90429&color=fff&size=200`,
-            addresses: [],
-          };
-
-          localStorage.setItem('user', JSON.stringify(user));
-          onLogin(user);
-          onNavigate('home');
-        } else {
-          // Show message to verify email
-          setError('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
-          // Navigate to login after 3 seconds
-          setTimeout(() => {
-            onNavigate('login');
-          }, 3000);
-        }
+        // Show OTP verification form
+        setOtpEmail(email);
+        setShowOtpForm(true);
+        setError(null);
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -167,6 +141,117 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
     setIsLoading(true);
     window.location.href = authApi.getGithubLoginUrl();
   };
+
+  const handleVerifyOtp = async () => {
+    if (!otp.trim()) return;
+    setError(null);
+    setIsLoading(true);
+    try {
+      await authApi.verifyOtp({ email: otpEmail, otp });
+      setShowOtpForm(false);
+      setOtp('');
+      setError('Xác thực thành công! Vui lòng đăng nhập.');
+      setTimeout(() => {
+        onNavigate('login');
+        setError(null);
+      }, 2000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError('Xác thực OTP thất bại. Vui lòng thử lại.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsLoading(true);
+    try {
+      await authApi.resendOtp(otpEmail);
+      setError('Đã gửi lại mã OTP. Vui lòng kiểm tra email.');
+    } catch (err) {
+      setError('Gửi lại OTP thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // OTP Verification Screen
+  if (showOtpForm) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-screen bg-background-light dark:bg-background-dark p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white dark:bg-card-dark rounded-2xl p-8 shadow-2xl border border-gray-100 dark:border-white/10">
+            <div className="text-center mb-8">
+              <div className="size-16 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                <span className="material-symbols-outlined text-primary text-3xl">mail</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Xác thực tài khoản</h2>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Mã OTP đã được gửi đến <span className="font-semibold text-primary">{otpEmail}</span>
+              </p>
+            </div>
+
+            {error && (
+              <div className={`mb-6 p-4 rounded-xl border flex items-start gap-3 ${
+                error.includes('thành công') 
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400'
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-400'
+              }`}>
+                <span className="material-symbols-outlined text-xl mt-0.5">
+                  {error.includes('thành công') ? 'check_circle' : 'error'}
+                </span>
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <label className="flex flex-col w-full">
+                <span className="text-gray-900 dark:text-white text-sm font-medium pb-2">Mã OTP <span className="text-red-500">*</span></span>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  className="bg-white dark:bg-[#200606] border border-gray-300 dark:border-[#4a1212] text-gray-900 dark:text-white text-center text-2xl tracking-[0.5em] font-mono focus:border-accent focus:ring-1 focus:ring-accent flex w-full rounded-xl h-14 px-4 transition-all outline-none"
+                  placeholder="000000"
+                  autoFocus
+                />
+              </label>
+
+              <button
+                onClick={handleVerifyOtp}
+                disabled={isLoading || otp.length < 6}
+                className="flex w-full items-center justify-center rounded-xl h-12 px-4 bg-primary hover:bg-red-700 text-white text-base font-bold tracking-wide shadow-lg shadow-primary/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Đang xác thực...' : 'Xác nhận OTP'}
+              </button>
+
+              <div className="text-center">
+                <button
+                  onClick={handleResendOtp}
+                  disabled={isLoading}
+                  className="text-primary hover:text-red-700 dark:text-accent dark:hover:text-white text-sm font-medium hover:underline transition-colors disabled:opacity-50"
+                >
+                  Gửi lại mã OTP
+                </button>
+              </div>
+
+              <button
+                onClick={() => { setShowOtpForm(false); setOtp(''); setError(null); }}
+                className="flex w-full items-center justify-center rounded-xl h-10 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm font-medium transition-colors"
+              >
+                ← Quay lại đăng ký
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col lg:flex-row relative min-h-screen">
       {/* Back Button */}
@@ -248,6 +333,23 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
                     />
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-[#a86b6b] group-focus-within:text-accent transition-colors pointer-events-none">
                       <span className="material-symbols-outlined text-[20px]">badge</span>
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex flex-col w-full group">
+                  <span className="text-gray-900 dark:text-white text-sm font-medium leading-normal pb-2">Tên đăng nhập <span className="text-red-500">*</span></span>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      className="bg-white dark:bg-[#200606] border border-gray-300 dark:border-[#4a1212] text-gray-900 dark:text-white placeholder-gray-500/50 dark:placeholder-gray-400/50 focus:border-accent focus:ring-1 focus:ring-accent flex w-full rounded-xl h-12 px-4 pl-11 text-base transition-all outline-none" 
+                      placeholder="nguyenvana" 
+                    />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-[#a86b6b] group-focus-within:text-accent transition-colors pointer-events-none">
+                      <span className="material-symbols-outlined text-[20px]">person</span>
                     </div>
                   </div>
                 </label>

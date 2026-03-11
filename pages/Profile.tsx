@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Screen, User, Address } from '../types';
+import { userApi, authApi, ApiError } from '../services/api';
+import { addressApi } from '../services/addressApi';
 
 interface ProfileProps {
   onNavigate: (screen: Screen) => void;
@@ -8,116 +10,200 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => {
-  const [activeTab, setActiveTab] = useState<'info' | 'address'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'address' | 'password'>('info');
   const [editMode, setEditMode] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
   
-  const [addresses, setAddresses] = useState<Address[]>(user?.addresses || []);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [newAddress, setNewAddress] = useState<Partial<Address>>({
-    name: '',
+    receiverName: '',
     phone: '',
-    address: '',
-    city: '',
-    district: '',
+    addressDetail: '',
     isDefault: false
   });
+
+  // Change password state
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showOldPw, setShowOldPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   useEffect(() => {
     if (user) {
       setName(user.name);
       setEmail(user.email);
       setPhone(user.phone || '');
-      setAddresses(user.addresses);
     }
   }, [user]);
 
-  const handleSaveProfile = () => {
-    if (!user) return;
-    
-    const updatedUser: User = {
-      ...user,
-      name,
-      email,
-      phone,
-      addresses
+  // Fetch addresses from API
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      if (!user) return;
+      setIsLoadingAddresses(true);
+      try {
+        const response = await addressApi.getAll();
+        setAddresses(response.data || []);
+      } catch (err) {
+        console.error('Failed to fetch addresses:', err);
+      } finally {
+        setIsLoadingAddresses(false);
+      }
     };
+    fetchAddresses();
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setProfileError(null);
+    setProfileSuccess(null);
     
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    onUpdateUser(updatedUser);
-    setEditMode(false);
+    try {
+      await userApi.updateProfile(user.id, {
+        fullName: name,
+        phone: phone || undefined,
+      });
+
+      const updatedUser: User = {
+        ...user,
+        name,
+        phone,
+      };
+      
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      onUpdateUser(updatedUser);
+      setEditMode(false);
+      setProfileSuccess('Cập nhật thông tin thành công!');
+      setTimeout(() => setProfileSuccess(null), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setProfileError(err.message);
+      } else {
+        setProfileError('Cập nhật thất bại. Vui lòng thử lại.');
+      }
+      setTimeout(() => setProfileError(null), 5000);
+    }
   };
 
-  const handleAddAddress = () => {
-    if (!newAddress.name || !newAddress.phone || !newAddress.address || !newAddress.city || !newAddress.district) {
-      alert('Vui lòng điền đầy đủ thông tin địa chỉ');
+  const handleAddAddress = async () => {
+    if (!newAddress.receiverName || !newAddress.phone || !newAddress.addressDetail) {
+      setProfileError('Vui lòng điền đầy đủ thông tin địa chỉ');
+      setTimeout(() => setProfileError(null), 3000);
       return;
     }
 
-    const address: Address = {
-      id: Date.now(),
-      name: newAddress.name!,
-      phone: newAddress.phone!,
-      address: newAddress.address!,
-      city: newAddress.city!,
-      district: newAddress.district!,
-      isDefault: addresses.length === 0 || newAddress.isDefault || false
-    };
+    try {
+      await addressApi.create({
+        receiverName: newAddress.receiverName!,
+        phone: newAddress.phone!,
+        addressDetail: newAddress.addressDetail!,
+        isDefault: addresses.length === 0 || newAddress.isDefault || false,
+      });
 
-    let updatedAddresses = [...addresses, address];
-    
-    // Nếu địa chỉ mới là default, bỏ default của các địa chỉ khác
-    if (address.isDefault) {
-      updatedAddresses = updatedAddresses.map(addr => 
-        addr.id === address.id ? addr : { ...addr, isDefault: false }
-      );
-    }
+      // Refresh danh sách địa chỉ
+      const listResponse = await addressApi.getAll();
+      setAddresses(listResponse.data || []);
 
-    setAddresses(updatedAddresses);
-    
-    if (user) {
-      const updatedUser = { ...user, addresses: updatedAddresses };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      onUpdateUser(updatedUser);
-    }
-
-    setIsAddingAddress(false);
-    setNewAddress({
-      name: '',
-      phone: '',
-      address: '',
-      city: '',
-      district: '',
-      isDefault: false
-    });
-  };
-
-  const handleDeleteAddress = (id: number) => {
-    const updatedAddresses = addresses.filter(addr => addr.id !== id);
-    setAddresses(updatedAddresses);
-    
-    if (user) {
-      const updatedUser = { ...user, addresses: updatedAddresses };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      onUpdateUser(updatedUser);
+      setIsAddingAddress(false);
+      setNewAddress({ receiverName: '', phone: '', addressDetail: '', isDefault: false });
+      setProfileSuccess('Thêm địa chỉ thành công!');
+      setTimeout(() => setProfileSuccess(null), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setProfileError(err.message);
+      } else {
+        setProfileError('Thêm địa chỉ thất bại. Vui lòng thử lại.');
+      }
+      setTimeout(() => setProfileError(null), 3000);
     }
   };
 
-  const handleSetDefaultAddress = (id: number) => {
-    const updatedAddresses = addresses.map(addr => ({
-      ...addr,
-      isDefault: addr.id === id
-    }));
-    
-    setAddresses(updatedAddresses);
-    
-    if (user) {
-      const updatedUser = { ...user, addresses: updatedAddresses };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      onUpdateUser(updatedUser);
+  const handleDeleteAddress = async (id: number) => {
+    try {
+      await addressApi.delete(id);
+      setAddresses(addresses.filter(addr => addr.id !== id));
+      setProfileSuccess('Xóa địa chỉ thành công!');
+      setTimeout(() => setProfileSuccess(null), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setProfileError(err.message);
+      } else {
+        setProfileError('Xóa địa chỉ thất bại.');
+      }
+      setTimeout(() => setProfileError(null), 3000);
+    }
+  };
+
+  const handleSetDefaultAddress = async (id: number) => {
+    try {
+      await addressApi.setDefault(id);
+      setAddresses(addresses.map(addr => ({
+        ...addr,
+        isDefault: addr.id === id
+      })));
+      setProfileSuccess('Đã đặt địa chỉ mặc định!');
+      setTimeout(() => setProfileSuccess(null), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setProfileError(err.message);
+      } else {
+        setProfileError('Cập nhật thất bại.');
+      }
+      setTimeout(() => setProfileError(null), 3000);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setProfileError(null);
+    setProfileSuccess(null);
+
+    if (!newPassword || !oldPassword) {
+      setProfileError('Vui lòng nhập đầy đủ mật khẩu cũ và mới.');
+      setTimeout(() => setProfileError(null), 5000);
+      return;
+    }
+    if (newPassword.length < 6) {
+      setProfileError('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      setTimeout(() => setProfileError(null), 5000);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setProfileError('Mật khẩu xác nhận không khớp.');
+      setTimeout(() => setProfileError(null), 5000);
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await authApi.changePassword({
+        oldPassword,
+        newPassword,
+        confirmPassword,
+      });
+      setProfileSuccess('Đổi mật khẩu thành công!');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setProfileSuccess(null), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setProfileError(err.message);
+      } else {
+        setProfileError('Đổi mật khẩu thất bại. Vui lòng thử lại.');
+      }
+      setTimeout(() => setProfileError(null), 5000);
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -170,10 +256,10 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-3 mb-6 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveTab('info')}
-            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
+            className={`flex-1 py-3 px-5 rounded-xl font-semibold transition-all whitespace-nowrap ${
               activeTab === 'info'
                 ? 'bg-primary text-white shadow-lg'
                 : 'bg-white dark:bg-card-dark text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
@@ -183,7 +269,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
           </button>
           <button
             onClick={() => setActiveTab('address')}
-            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
+            className={`flex-1 py-3 px-5 rounded-xl font-semibold transition-all whitespace-nowrap ${
               activeTab === 'address'
                 ? 'bg-primary text-white shadow-lg'
                 : 'bg-white dark:bg-card-dark text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
@@ -191,7 +277,31 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
           >
             Địa chỉ nhận hàng
           </button>
+          <button
+            onClick={() => setActiveTab('password')}
+            className={`flex-1 py-3 px-5 rounded-xl font-semibold transition-all whitespace-nowrap ${
+              activeTab === 'password'
+                ? 'bg-primary text-white shadow-lg'
+                : 'bg-white dark:bg-card-dark text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
+            }`}
+          >
+            Đổi mật khẩu
+          </button>
         </div>
+
+        {/* Messages */}
+        {profileError && (
+          <div className="mb-4 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 flex items-center gap-3">
+            <span className="material-symbols-outlined">error</span>
+            <p className="text-sm font-medium">{profileError}</p>
+          </div>
+        )}
+        {profileSuccess && (
+          <div className="mb-4 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-400 flex items-center gap-3">
+            <span className="material-symbols-outlined">check_circle</span>
+            <p className="text-sm font-medium">{profileSuccess}</p>
+          </div>
+        )}
 
         {/* Content */}
         {activeTab === 'info' && (
@@ -286,9 +396,9 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="text"
-                    placeholder="Họ và tên"
-                    value={newAddress.name}
-                    onChange={(e) => setNewAddress({ ...newAddress, name: e.target.value })}
+                    placeholder="Tên người nhận"
+                    value={newAddress.receiverName}
+                    onChange={(e) => setNewAddress({ ...newAddress, receiverName: e.target.value })}
                     className="px-4 py-3 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                   />
                   <input
@@ -300,24 +410,10 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
                   />
                   <input
                     type="text"
-                    placeholder="Địa chỉ"
-                    value={newAddress.address}
-                    onChange={(e) => setNewAddress({ ...newAddress, address: e.target.value })}
+                    placeholder="Địa chỉ chi tiết (VD: 123 Đường ABC, Phường 1, Quận 1, TP.HCM)"
+                    value={newAddress.addressDetail}
+                    onChange={(e) => setNewAddress({ ...newAddress, addressDetail: e.target.value })}
                     className="md:col-span-2 px-4 py-3 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Quận/Huyện"
-                    value={newAddress.district}
-                    onChange={(e) => setNewAddress({ ...newAddress, district: e.target.value })}
-                    className="px-4 py-3 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Tỉnh/Thành phố"
-                    value={newAddress.city}
-                    onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                    className="px-4 py-3 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                   />
                   <label className="md:col-span-2 flex items-center gap-3 cursor-pointer">
                     <input
@@ -333,7 +429,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
                   <button
                     onClick={() => {
                       setIsAddingAddress(false);
-                      setNewAddress({ name: '', phone: '', address: '', city: '', district: '', isDefault: false });
+                      setNewAddress({ receiverName: '', phone: '', addressDetail: '', isDefault: false });
                     }}
                     className="px-4 py-2 bg-gray-200 dark:bg-surface-darker hover:bg-gray-300 dark:hover:bg-white/10 text-gray-700 dark:text-white rounded-xl font-semibold transition-colors"
                   >
@@ -351,7 +447,12 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
 
             {/* Address List */}
             <div className="space-y-4">
-              {addresses.length === 0 ? (
+              {isLoadingAddresses ? (
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  <span className="material-symbols-outlined text-4xl mb-4 animate-spin block">progress_activity</span>
+                  <p>Đang tải địa chỉ...</p>
+                </div>
+              ) : addresses.length === 0 ? (
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <span className="material-symbols-outlined text-6xl mb-4 opacity-30">location_off</span>
                   <p>Chưa có địa chỉ nào. Vui lòng thêm địa chỉ nhận hàng.</p>
@@ -368,7 +469,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
-                        <h3 className="font-semibold text-gray-900 dark:text-white">{addr.name}</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">{addr.receiverName}</h3>
                         {addr.isDefault && (
                           <span className="px-2 py-1 bg-primary text-white text-xs rounded-full font-medium">Mặc định</span>
                         )}
@@ -392,11 +493,105 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate, user, onUpdateUser }) => 
                     </div>
                     <p className="text-gray-600 dark:text-gray-400 mb-1">{addr.phone}</p>
                     <p className="text-gray-700 dark:text-gray-300">
-                      {addr.address}, {addr.district}, {addr.city}
+                      {addr.addressDetail}
                     </p>
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Password Tab */}
+        {activeTab === 'password' && (
+          <div className="bg-white dark:bg-card-dark rounded-2xl p-8 shadow-lg dark:shadow-2xl border border-gray-100 dark:border-white/5">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Đổi mật khẩu</h2>
+
+            <div className="max-w-md space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mật khẩu hiện tại</label>
+                <div className="relative">
+                  <input
+                    type={showOldPw ? 'text' : 'password'}
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    placeholder="Nhập mật khẩu hiện tại"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPw(!showOldPw)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-xl">{showOldPw ? 'visibility' : 'visibility_off'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mật khẩu mới</label>
+                <div className="relative">
+                  <input
+                    type={showNewPw ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPw(!showNewPw)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-xl">{showNewPw ? 'visibility' : 'visibility_off'}</span>
+                  </button>
+                </div>
+                {newPassword && newPassword.length < 6 && (
+                  <p className="text-xs text-amber-600 mt-1">Mật khẩu phải có ít nhất 6 ký tự</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Xác nhận mật khẩu mới</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPw ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    placeholder="Nhập lại mật khẩu mới"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPw(!showConfirmPw)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-xl">{showConfirmPw ? 'visibility' : 'visibility_off'}</span>
+                  </button>
+                </div>
+                {confirmPassword && confirmPassword !== newPassword && (
+                  <p className="text-xs text-red-600 mt-1">Mật khẩu xác nhận không khớp</p>
+                )}
+              </div>
+
+              <button
+                onClick={handleChangePassword}
+                disabled={isChangingPassword || !oldPassword || !newPassword || !confirmPassword}
+                className="w-full py-3 bg-primary hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isChangingPassword ? (
+                  <>
+                    <span className="material-symbols-outlined text-xl animate-spin">progress_activity</span>
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-xl">lock_reset</span>
+                    Đổi mật khẩu
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}
