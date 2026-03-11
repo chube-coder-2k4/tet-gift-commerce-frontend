@@ -84,6 +84,7 @@ export interface User {
   avatar?: string;
   roleName?: string;
   addresses: Address[];
+  roles?: AdminRole[];
 }
 
 export interface Address {

@@ -86,6 +86,7 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
         const userResponse = await userApi.getProfile(loginResponse.data.userId);
         const userData = userResponse.data;
 
+        const displayName = userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email;
         const user: User = {
           id: userData.id,
           name: userData.fullName,
@@ -94,11 +95,15 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, type, onLogin }) => {
           roleName: userData.roleName,
           avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.fullName)}&background=d90429&color=fff&size=200`,
           addresses: [],
+          roles: userData.roles,
         };
 
         localStorage.setItem('user', JSON.stringify(user));
         onLogin(user);
-        onNavigate('home');
+        
+        // Check if user has ADMIN role and redirect to admin dashboard
+        const isAdmin = userData.roles?.some(role => role.name === 'ADMIN');
+        onNavigate(isAdmin ? 'admin' : 'home');
       } else {
         // Register API call
         await userApi.register({

@@ -19,8 +19,53 @@ import { authApi } from './services/api';
 import { cartApi } from './services/cartApi';
 import MusicPlayer from './components/MusicPlayer';
 
+// Map URL paths to Screen types
+const pathToScreen: Record<string, Screen> = {
+  '/': 'home',
+  '/home': 'home',
+  '/shop': 'shop',
+  '/product': 'product-detail',
+  '/cart': 'cart',
+  '/checkout': 'checkout',
+  '/login': 'login',
+  '/register': 'register',
+  '/blog': 'blog',
+  '/blog-detail': 'blog-detail',
+  '/about': 'about',
+  '/profile': 'profile',
+  '/admin': 'admin',
+  '/dashboard': 'admin', // Admin dashboard
+};
+
+const screenToPath: Record<Screen, string> = {
+  'home': '/',
+  'shop': '/shop',
+  'product-detail': '/product',
+  'cart': '/cart',
+  'checkout': '/checkout',
+  'login': '/login',
+  'register': '/register',
+  'blog': '/blog',
+  'blog-detail': '/blog-detail',
+  'about': '/about',
+  'profile': '/profile',
+  'admin': '/admin',
+};
+
+const getScreenFromPath = (path: string): Screen => {
+  // Handle /admin/* paths
+  if (path.startsWith('/admin') || path === '/dashboard') {
+    return 'admin';
+  }
+  return pathToScreen[path] || 'home';
+};
+
 const App: React.FC = () => {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  // Initialize from URL path
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
+    const path = window.location.pathname;
+    return getScreenFromPath(path);
+  });
   const [selectedProductId, setSelectedProductId] = useState<number>(1);
   const [selectedBlogPostId, setSelectedBlogPostId] = useState<number>(0);
   const [user, setUser] = useState<User | null>(null);
@@ -68,6 +113,26 @@ const App: React.FC = () => {
       setCurrentScreen('login');
     }
   }, [handleCartUpdate]);
+
+  // Sync URL with screen changes
+  useEffect(() => {
+    const newPath = screenToPath[currentScreen];
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({}, '', newPath);
+    }
+  }, [currentScreen]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      const screen = getScreenFromPath(path);
+      setCurrentScreen(screen);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
