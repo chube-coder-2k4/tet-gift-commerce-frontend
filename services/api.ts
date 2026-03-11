@@ -35,6 +35,8 @@ export interface UserResponse {
   phone?: string;
   username?: string;
   roleName?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ForgotPasswordRequest {
@@ -94,10 +96,11 @@ export class ApiError extends Error {
   }
 }
 
-// Base fetch wrapper with auth headers
+// Base fetch wrapper with auth headers & auto token refresh
 export async function fetchWithAuth<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  _isRetry = false
 ): Promise<ApiResponse<T>> {
   const accessToken = tokenStorage.getAccessToken();
   
@@ -114,6 +117,17 @@ export async function fetchWithAuth<T>(
     ...options,
     headers,
   });
+
+  // Auto refresh token on 401 with X-Token-Expired header
+  if (response.status === 401 && response.headers.get('X-Token-Expired') === 'true' && !_isRetry) {
+    try {
+      await authApi.refreshToken();
+      return fetchWithAuth<T>(endpoint, options, true);
+    } catch {
+      tokenStorage.clearTokens();
+      throw new ApiError('Session expired. Please login again.', 401);
+    }
+  }
 
   const data = await response.json();
 

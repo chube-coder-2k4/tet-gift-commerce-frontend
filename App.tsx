@@ -210,7 +210,7 @@ const App: React.FC = () => {
       {currentScreen !== 'login' && currentScreen !== 'register' && currentScreen !== 'admin' && (
         <Footer />
       )}
-      <ChatWidget />
+      <ChatWidget onProductClick={handleProductClick} />
     </>
   );
 };
