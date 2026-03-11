@@ -1,6 +1,6 @@
 // API Configuration & Base Service
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.shophuypro.store/api/v1';
-const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'https://api.shophuypro.store';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'http://localhost:8080';
 
 // Types
 export interface ApiResponse<T> {
@@ -21,8 +21,8 @@ export interface LoginResponse {
 }
 
 export interface RegisterRequest {
-  firstName: string;
-  lastName: string;
+  fullName: string;
+  username: string;
   email: string;
   password: string;
   phone?: string;
@@ -30,12 +30,32 @@ export interface RegisterRequest {
 
 export interface UserResponse {
   id: number;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phone?: string;
-  avatar?: string;
-  active: boolean;
+  username?: string;
+  roleName?: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface VerifyOtpRequest {
+  email: string;
+  otp: string;
 }
 
 // Token Management
@@ -75,7 +95,7 @@ export class ApiError extends Error {
 }
 
 // Base fetch wrapper with auth headers
-async function fetchWithAuth<T>(
+export async function fetchWithAuth<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
@@ -156,9 +176,63 @@ export const authApi = {
     return data;
   },
 
-  // Logout
-  logout: () => {
-    tokenStorage.clearTokens();
+  // Logout (gọi API để invalidate refresh token ở server)
+  logout: async (): Promise<void> => {
+    try {
+      const refreshToken = tokenStorage.getRefreshToken();
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokenStorage.getAccessToken() || ''}`,
+          'x-refresh-token': refreshToken || '',
+        },
+      });
+    } catch (error) {
+      console.error('Logout API error:', error);
+    } finally {
+      tokenStorage.clearTokens();
+    }
+  },
+
+  // Forgot password - gửi email reset
+  forgotPassword: async (email: string): Promise<ApiResponse<string>> => {
+    return fetchWithAuth<string>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  // Reset password bằng token
+  resetPassword: async (request: ResetPasswordRequest): Promise<ApiResponse<string>> => {
+    return fetchWithAuth<string>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  // Change password (cần đăng nhập)
+  changePassword: async (request: ChangePasswordRequest): Promise<ApiResponse<string>> => {
+    return fetchWithAuth<string>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  // Verify OTP sau khi đăng ký
+  verifyOtp: async (request: VerifyOtpRequest): Promise<ApiResponse<void>> => {
+    return fetchWithAuth<void>('/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  // Resend OTP
+  resendOtp: async (email: string): Promise<ApiResponse<void>> => {
+    return fetchWithAuth<void>('/auth/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   },
 
   // OAuth2 URLs
@@ -178,9 +252,9 @@ export const authApi = {
 
 // User API
 export const userApi = {
-  // Register new user
-  register: async (request: RegisterRequest): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>('/user/register', {
+  // Register new user (returns user ID)
+  register: async (request: RegisterRequest): Promise<ApiResponse<number>> => {
+    return fetchWithAuth<number>('/user/register', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -194,8 +268,8 @@ export const userApi = {
   },
 
   // Update user profile
-  updateProfile: async (userId: number, data: Partial<UserResponse>): Promise<ApiResponse<UserResponse>> => {
-    return fetchWithAuth<UserResponse>(`/user/${userId}`, {
+  updateProfile: async (userId: number, data: { fullName?: string; phone?: string }): Promise<ApiResponse<number>> => {
+    return fetchWithAuth<number>(`/user/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });

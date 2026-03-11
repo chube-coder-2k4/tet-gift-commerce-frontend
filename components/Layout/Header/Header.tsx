@@ -13,9 +13,10 @@ interface HeaderProps {
   currentScreen: Screen;
   user: User | null;
   onLogout: () => void;
+  cartItemCount?: number;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onNavigate, currentScreen, user, onLogout }) => {
+export const Header: React.FC<HeaderProps> = ({ onNavigate, currentScreen, user, onLogout, cartItemCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
 
@@ -45,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentScreen, user,
 
         <div className="flex items-center gap-4">
           <AnimatedThemeToggler className="text-white/80 hover:text-white hover:bg-white/10 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/5" />
-          <HeaderActions onNavigate={onNavigate} user={user} onLogout={onLogout} />
+          <HeaderActions onNavigate={onNavigate} user={user} onLogout={onLogout} cartItemCount={cartItemCount} />
           <MobileMenu 
             isOpen={isMenuOpen} 
             onToggle={() => setIsMenuOpen(!isMenuOpen)} 

@@ -1,14 +1,65 @@
-import React from 'react';
-import { PRODUCTS } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { productApi, ProductResponse } from '../services/productApi';
+import { categoryApi, CategoryResponse } from '../services/categoryApi';
+import { cartApi } from '../services/cartApi';
 import { Screen } from '../types';
 import { Firewall } from '@/components/Firewall';
+import { authApi } from '../services/api';
 
 interface HomeProps {
   onNavigate: (screen: Screen) => void;
   onProductClick: (id: number) => void;
+  onCartUpdate?: () => void;
 }
 
-const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
+// Helper: lấy ảnh chính hoặc ảnh đầu tiên
+const getPrimaryImage = (product: ProductResponse): string => {
+  if (!product.images || product.images.length === 0) return '';
+  const primary = product.images.find(img => img.isPrimary);
+  return primary ? primary.imageUrl : product.images[0].imageUrl;
+};
+
+const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate }) => {
+  const [products, setProducts] = useState<ProductResponse[]>([]);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const [productsRes, categoriesRes] = await Promise.all([
+          productApi.getAll({ page: 0, size: 8, sortBy: 'createdAt', sortDir: 'desc' }),
+          categoryApi.getAll(),
+        ]);
+        setProducts(productsRes.data?.data || []);
+        setCategories(categoriesRes.data || []);
+      } catch (err) {
+        console.error('Failed to fetch home data:', err);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleAddToCart = async (e: React.MouseEvent, productId: number) => {
+    e.stopPropagation();
+    if (!authApi.isAuthenticated()) {
+      onNavigate('login');
+      return;
+    }
+    setAddingToCart(productId);
+    try {
+      await cartApi.addItem({ itemType: 'PRODUCT', productId, quantity: 1 });
+      onCartUpdate?.();
+    } catch (err) {
+      console.error('Failed to add to cart:', err);
+    } finally {
+      setAddingToCart(null);
+    }
+  };
   return (
     <div className="flex-1 flex flex-col items-center w-full">
       <Firewall />
@@ -63,22 +114,31 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
           </a>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {[
-            { name: 'Hộp Quà Tết', icon: 'inventory_2', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBlBWvaMHBQxGn_x6I2WkSTFXY3Dsh7Bt30e1EugVz_E1q-wBLHq0V8U1hpIFE769nzLvl3sX25kpU9_1oBfFHPCtSFAtx2XEYRW4p1ooNXk4mlVc5ixmeFHJbm9CBQrTl6ZPwHF7i0w-C-_7JC1QDpNuzg-MVt0SzHwLERBBNT6esHkI-Vmdvb4VlKiR1oyLL5H1InVohcGVmsKooyrvY6Nye3bKTj0xZBOeX0tj_wZL8PoQ3qRezWNLi6a8fG4rv1R3ZFUpkH8Bo' },
-            { name: 'Giỏ Quà Tết', icon: 'shopping_basket', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDhQutXkcjc51gtDH-rrlzGLxUjXELp79G8vCslV7FcDgkX8alX0YCt5KEg1L8_8ZRbLNUJ9WJwKc5-I0HHHmn61VLvMzvmAr0VNymAaOSx2FvM9qLkfV1LsG5Bw0bc4sasC1etKuV2_aofXx4SGY6rSBr8EwZIgCWc0aVPIaZpUcgUB33a5v62oduI5ZQvyVzK41VPdWktojPLaUqDKxkY9mGcyKa3e_J39PlUDNee4TRsppwMIYrrFVG48gjjV9mn6L66larLKMU' },
-            { name: 'Túi Quà Tết', icon: 'shopping_bag', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAwXFIRC3Jdlb52WZWHa2iQlPxhPfgb5LV25uR4vpaEzHK97Cc4oQipA06HlylO2Jb-Mc-d3xrwLwLE6Ua0mWq16p94H7oeMRKINb2h2BsNMMKxq0tRUUF-Yw0jgLgVHKyaXGdwskGIu1HUdVyXoHdIs7uu3Rs_G_2w-1f9NMq6UaFhlu-brsa3YNB709kFbyv9P5VqbQ_4WdzCVwouMl6Oi48fxPLvH8i0sYIs7M1ivkxf3hEXzuYYtukLOqB2ijrCMEoPR8YEE6Y' },
-            { name: 'Rượu Vang', icon: 'wine_bar', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCO_cDL_WwfWU4aDmCak4W6RCuR7_7ACX95kW-X-chS5LNk9cU62tql31HffUW6UC0aM9IBWfOTDyPOqVy3EPWsEmecStO9v3BZjT-Z1Z_rekXghfUqBdKs3iJcRSKNm8CTccfQeKqF70t9sXRlcEP603hgodwOZ38ynHcuuD3yrHRNRlqXB-RXGb5X1iYiqR3DnuW3j2amGLrHqgnCsnL4Rqd-bUCt4Zo9KDM26w_t6iNcHy82brxugaMu5pIRsou89wsseeTNUvA' },
-          ].map((cat, idx) => (
-            <a key={idx} onClick={() => onNavigate('shop')} className="group relative block overflow-hidden rounded-2xl aspect-[3/4] border border-primary/20 dark:border-white/5 hover:border-primary hover:shadow-xl transition-all cursor-pointer">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/90 z-10"></div>
-              <img alt={cat.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" src={cat.img} />
-              <div className="absolute bottom-0 p-6 z-20 w-full transform transition-transform duration-300">
-                <span className="material-symbols-outlined text-accent text-2xl mb-2 opacity-80">{cat.icon}</span>
-                <h3 className="text-xl font-display font-semibold text-white mb-1">{cat.name}</h3>
-                <p className="text-gray-400 text-xs font-light translate-y-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">Khám phá ngay</p>
-              </div>
-            </a>
-          ))}
+          {(categories.length > 0 ? categories.slice(0, 4) : [
+            { id: 1, name: 'Hộp Quà Tết', description: '', isActive: true },
+            { id: 2, name: 'Giỏ Quà Tết', description: '', isActive: true },
+            { id: 3, name: 'Túi Quà Tết', description: '', isActive: true },
+            { id: 4, name: 'Rượu Vang', description: '', isActive: true },
+          ]).map((cat, idx) => {
+            const icons = ['inventory_2', 'shopping_basket', 'shopping_bag', 'wine_bar'];
+            const defaultImages = [
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuBlBWvaMHBQxGn_x6I2WkSTFXY3Dsh7Bt30e1EugVz_E1q-wBLHq0V8U1hpIFE769nzLvl3sX25kpU9_1oBfFHPCtSFAtx2XEYRW4p1ooNXk4mlVc5ixmeFHJbm9CBQrTl6ZPwHF7i0w-C-_7JC1QDpNuzg-MVt0SzHwLERBBNT6esHkI-Vmdvb4VlKiR1oyLL5H1InVohcGVmsKooyrvY6Nye3bKTj0xZBOeX0tj_wZL8PoQ3qRezWNLi6a8fG4rv1R3ZFUpkH8Bo',
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuDhQutXkcjc51gtDH-rrlzGLxUjXELp79G8vCslV7FcDgkX8alX0YCt5KEg1L8_8ZRbLNUJ9WJwKc5-I0HHHmn61VLvMzvmAr0VNymAaOSx2FvM9qLkfV1LsG5Bw0bc4sasC1etKuV2_aofXx4SGY6rSBr8EwZIgCWc0aVPIaZpUcgUB33a5v62oduI5ZQvyVzK41VPdWktojPLaUqDKxkY9mGcyKa3e_J39PlUDNee4TRsppwMIYrrFVG48gjjV9mn6L66larLKMU',
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuAwXFIRC3Jdlb52WZWHa2iQlPxhPfgb5LV25uR4vpaEzHK97Cc4oQipA06HlylO2Jb-Mc-d3xrwLwLE6Ua0mWq16p94H7oeMRKINb2h2BsNMMKxq0tRUUF-Yw0jgLgVHKyaXGdwskGIu1HUdVyXoHdIs7uu3Rs_G_2w-1f9NMq6UaFhlu-brsa3YNB709kFbyv9P5VqbQ_4WdzCVwouMl6Oi48fxPLvH8i0sYIs7M1ivkxf3hEXzuYYtukLOqB2ijrCMEoPR8YEE6Y',
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuCO_cDL_WwfWU4aDmCak4W6RCuR7_7ACX95kW-X-chS5LNk9cU62tql31HffUW6UC0aM9IBWfOTDyPOqVy3EPWsEmecStO9v3BZjT-Z1Z_rekXghfUqBdKs3iJcRSKNm8CTccfQeKqF70t9sXRlcEP603hgodwOZ38ynHcuuD3yrHRNRlqXB-RXGb5X1iYiqR3DnuW3j2amGLrHqgnCsnL4Rqd-bUCt4Zo9KDM26w_t6iNcHy82brxugaMu5pIRsou89wsseeTNUvA',
+            ];
+            return (
+              <a key={cat.id} onClick={() => onNavigate('shop')} className="group relative block overflow-hidden rounded-2xl aspect-[3/4] border border-primary/20 dark:border-white/5 hover:border-primary hover:shadow-xl transition-all cursor-pointer">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/90 z-10"></div>
+                <img alt={cat.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" src={defaultImages[idx % defaultImages.length]} />
+                <div className="absolute bottom-0 p-6 z-20 w-full transform transition-transform duration-300">
+                  <span className="material-symbols-outlined text-accent text-2xl mb-2 opacity-80">{icons[idx % icons.length]}</span>
+                  <h3 className="text-xl font-display font-semibold text-white mb-1">{cat.name}</h3>
+                  <p className="text-gray-400 text-xs font-light translate-y-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">Khám phá ngay</p>
+                </div>
+              </a>
+            );
+          })}
         </div>
       </div>
 
@@ -100,33 +160,53 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick }) => {
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {PRODUCTS.slice(0, 4).map((product) => (
-              <div key={product.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-primary/20 dark:border-[#3a3330]/60 hover:border-primary dark:hover:border-[#b8860b]/40 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 transition-all duration-300 cursor-pointer" onClick={() => onProductClick(product.id)}>
-                <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
-                  <img alt={product.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={product.image} />
-                  {product.discount && <div className="absolute top-3 left-3 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">-{product.discount}%</div>}
-                  {product.isHot && <div className="absolute top-3 left-3 bg-accent text-black text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">HOT</div>}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button className="size-10 bg-white text-background-dark rounded-full flex items-center justify-center hover:scale-110 transition-transform">
-                      <span className="material-symbols-outlined text-[20px]">add_shopping_cart</span>
-                    </button>
-                  </div>
-                </div>
-                <h3 className="text-gray-900 dark:text-white font-medium text-lg mb-1 group-hover:text-primary transition-colors truncate">{product.name}</h3>
-                <div className="flex items-center gap-1 mb-2">
-                  <div className="flex text-accent text-xs">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className={`material-symbols-outlined text-[14px] fill-current ${i < Math.floor(product.rating) ? '' : 'text-gray-300 dark:text-gray-600'}`}>star</span>
-                    ))}
-                  </div>
-                  <span className="text-gray-500 text-xs ml-1">({product.reviews})</span>
-                </div>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-primary font-bold text-lg">{product.price.toLocaleString()}₫</span>
-                  {product.originalPrice && <span className="text-gray-400 dark:text-gray-600 text-sm line-through">{product.originalPrice.toLocaleString()}₫</span>}
-                </div>
+            {isLoadingProducts ? (
+              <div className="col-span-full flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ))}
+            ) : products.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-gray-500">Chưa có sản phẩm</div>
+            ) : (
+              products.slice(0, 4).map((product) => {
+                const imgUrl = getPrimaryImage(product);
+                return (
+                  <div key={product.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-primary/20 dark:border-[#3a3330]/60 hover:border-primary dark:hover:border-[#b8860b]/40 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 transition-all duration-300 cursor-pointer" onClick={() => onProductClick(product.id)}>
+                    <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
+                      {imgUrl ? (
+                        <img alt={product.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={imgUrl} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <span className="material-symbols-outlined text-5xl">image</span>
+                        </div>
+                      )}
+                      {product.stock <= 5 && product.stock > 0 && (
+                        <div className="absolute top-3 left-3 bg-accent text-black text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">Sắp hết</div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button
+                          onClick={(e) => handleAddToCart(e, product.id)}
+                          disabled={addingToCart === product.id || product.stock === 0}
+                          className="size-10 bg-white text-background-dark rounded-full flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">
+                            {addingToCart === product.id ? 'hourglass_empty' : 'add_shopping_cart'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-primary/70 dark:text-primary/50 font-medium">{product.categoryName}</span>
+                    </div>
+                    <h3 className="text-gray-900 dark:text-white font-medium text-lg mb-1 group-hover:text-primary transition-colors truncate">{product.name}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-1">{product.description}</p>
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-primary font-bold text-lg">{product.price.toLocaleString()}₫</span>
+                      {product.stock === 0 && <span className="text-red-400 text-xs font-medium">Hết hàng</span>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
