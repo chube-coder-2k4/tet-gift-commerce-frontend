@@ -3,6 +3,24 @@ import { adminDiscountApi, DiscountResponse, DiscountRequest } from '../../servi
 
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
+// Convert datetime-local value (yyyy-MM-ddTHH:mm) → backend format (yyyy-MM-dd'T'HH:mm:ss)
+const toLocalDateTime = (dt: string): string => {
+  if (!dt) return '';
+  return dt.length === 16 ? `${dt}:00` : dt;
+};
+
+// Convert backend format (yyyy-MM-dd'T'HH:mm:ss) → datetime-local input (yyyy-MM-ddTHH:mm)
+const toInputDateTime = (dt: string): string => {
+  if (!dt) return '';
+  return dt.slice(0, 16);
+};
+
+// Display datetime in Vietnamese locale
+const formatDateTime = (dt: string): string => {
+  if (!dt) return '—';
+  return new Date(dt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+};
+
 const DiscountManager: React.FC = () => {
   const [discounts, setDiscounts] = useState<DiscountResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +53,8 @@ const DiscountManager: React.FC = () => {
     setForm({
       code: d.code,
       discountValue: d.discountValue,
-      startDate: d.startDate?.slice(0, 10) || '',
-      endDate: d.endDate?.slice(0, 10) || '',
+      startDate: toInputDateTime(d.startDate),
+      endDate: toInputDateTime(d.endDate),
     });
     setShowForm(true);
   };
@@ -46,12 +64,17 @@ const DiscountManager: React.FC = () => {
     if (form.discountValue <= 0) { setMsg({ type: 'error', text: 'Giá trị giảm phải lớn hơn 0' }); setTimeout(() => setMsg(null), 3000); return; }
 
     setSaving(true);
+    const payload: DiscountRequest = {
+      ...form,
+      startDate: toLocalDateTime(form.startDate),
+      endDate: toLocalDateTime(form.endDate),
+    };
     try {
       if (editing) {
-        await adminDiscountApi.update(editing.id, form);
+        await adminDiscountApi.update(editing.id, payload);
         setMsg({ type: 'success', text: 'Cập nhật thành công!' });
       } else {
-        await adminDiscountApi.create(form);
+        await adminDiscountApi.create(payload);
         setMsg({ type: 'success', text: 'Tạo mã giảm giá thành công!' });
       }
       resetForm();
@@ -127,12 +150,12 @@ const DiscountManager: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ngày bắt đầu</label>
-                  <input type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ngày giờ bắt đầu</label>
+                  <input type="datetime-local" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ngày kết thúc</label>
-                  <input type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ngày giờ kết thúc</label>
+                  <input type="datetime-local" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
@@ -169,7 +192,8 @@ const DiscountManager: React.FC = () => {
                   <td className="px-5 py-3"><span className="font-mono font-bold text-sm px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg">{d.code}</span></td>
                   <td className="px-5 py-3 text-right text-sm font-bold text-primary">{formatCurrency(d.discountValue)}</td>
                   <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400">
-                    {d.startDate ? new Date(d.startDate).toLocaleDateString('vi-VN') : '—'} → {d.endDate ? new Date(d.endDate).toLocaleDateString('vi-VN') : '—'}
+                    <div>{formatDateTime(d.startDate)}</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">→ {formatDateTime(d.endDate)}</div>
                   </td>
                   <td className="px-5 py-3 text-center">{statusBadge(isActive(d))}</td>
                   <td className="px-5 py-3 text-right">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Screen } from '../../types';
+import { chatbotApi } from '../../services/chatbotApi';
 import UserManager from './UserManager';
 import RoleManager from './RoleManager';
 import CategoryManager from './CategoryManager';
@@ -127,6 +128,28 @@ interface DashboardOverviewProps {
 }
 
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) => {
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSyncEmbeddings = async () => {
+    setSyncLoading(true);
+    setSyncResult(null);
+    try {
+      const res = await chatbotApi.syncEmbeddings();
+      setSyncResult({
+        success: true,
+        message: `Đồng bộ thành công! ${res.data.productsEmbedded} sản phẩm, ${res.data.bundlesEmbedded} combo đã được embedded.`,
+      });
+    } catch {
+      setSyncResult({
+        success: false,
+        message: 'Đồng bộ embeddings thất bại. Vui lòng thử lại.',
+      });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   const cards: { key: AdminTab; title: string; icon: string; color: string; desc: string }[] = [
     { key: 'users', title: 'Người dùng', icon: 'group', color: 'from-blue-500 to-blue-600', desc: 'Quản lý tài khoản người dùng' },
     { key: 'roles', title: 'Vai trò', icon: 'admin_panel_settings', color: 'from-purple-500 to-purple-600', desc: 'Quản lý phân quyền' },
@@ -159,6 +182,43 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) =>
             <p className="text-sm text-gray-500 dark:text-gray-400">{card.desc}</p>
           </button>
         ))}
+      </div>
+
+      {/* AI Embeddings Sync */}
+      <div className="mt-8 p-5 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-lg">
+              <span className="material-symbols-outlined text-white text-2xl">smart_toy</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Đồng bộ AI Chatbot</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Cập nhật embeddings cho AI tìm kiếm sản phẩm chính xác hơn</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSyncEmbeddings}
+            disabled={syncLoading}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white rounded-xl font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          >
+            <span className={`material-symbols-outlined text-lg ${syncLoading ? 'animate-spin' : ''}`}>
+              {syncLoading ? 'progress_activity' : 'sync'}
+            </span>
+            {syncLoading ? 'Đang đồng bộ...' : 'Đồng bộ AI'}
+          </button>
+        </div>
+        {syncResult && (
+          <div className={`mt-3 p-3 rounded-xl text-sm font-medium ${
+            syncResult.success
+              ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/40'
+              : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/40'
+          }`}>
+            <span className="material-symbols-outlined text-base align-middle mr-1">
+              {syncResult.success ? 'check_circle' : 'error'}
+            </span>
+            {syncResult.message}
+          </div>
+        )}
       </div>
     </div>
   );
