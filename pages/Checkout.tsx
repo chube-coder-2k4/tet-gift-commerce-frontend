@@ -90,6 +90,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
       });
       const order = orderRes.data;
       setCreatedOrder(order);
+      localStorage.setItem('lastOrderId', order.id.toString());
 
       // 2. Create payment
       const paymentRes = await paymentApi.create({

@@ -14,51 +14,39 @@ const PaymentResult: React.FC<PaymentResultProps> = ({ onNavigate }) => {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
+    let isCancelled = false;
+
     const processPaymentResult = async () => {
       try {
         // Parse VNPay return URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const vnpResponseCode = urlParams.get('vnp_ResponseCode');
-        const vnpTxnRef = urlParams.get('vnp_TxnRef'); // This is the order ID
-        const vnpOrderInfo = urlParams.get('vnp_OrderInfo');
-
-        // Clean up URL params
-        window.history.replaceState({}, document.title, window.location.pathname);
-
-        // Extract order ID from vnp_TxnRef or vnp_OrderInfo
+        const hasQueryParams = Array.from(urlParams.keys()).length > 0;
         let orderId: number | null = null;
-        if (vnpTxnRef) {
-          orderId = parseInt(vnpTxnRef);
-        } else if (vnpOrderInfo) {
-          // Try to extract order ID from order info
-          const match = vnpOrderInfo.match(/(\d+)/);
-          if (match) orderId = parseInt(match[1]);
+        let verifiedPayment: PaymentResponse | null = null;
+
+        // 1) Callback flow: gửi toàn bộ params lên backend để xác thực chữ ký
+        if (hasQueryParams) {
+          const callbackParams = Object.fromEntries(urlParams.entries());
+          const callbackRes = await paymentApi.verifyVnpayCallback(callbackParams);
+          verifiedPayment = callbackRes.data;
+          orderId = verifiedPayment?.orderId ?? null;
+
+          if (!isCancelled) {
+            setPayment(verifiedPayment);
+            if (verifiedPayment?.status === 'SUCCESS') {
+              setStatus('success');
+            } else {
+              setStatus('failed');
+              setErrorMsg(callbackRes.message || 'Thanh toán thất bại hoặc lỗi xác thực.');
+            }
+          }
+
+          // Dọn URL sau khi đã verify xong
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        // Check VNPay response code
-        if (vnpResponseCode === '00') {
-          // Payment successful
-          setStatus('success');
-        } else if (vnpResponseCode) {
-          // Payment failed - decode error
-          const errorMessages: Record<string, string> = {
-            '07': 'Giao dịch bị nghi ngờ gian lận.',
-            '09': 'Thẻ/Tài khoản chưa đăng ký Internet Banking.',
-            '10': 'Xác thực thông tin thẻ/tài khoản không đúng quá 3 lần.',
-            '11': 'Đã hết hạn chờ thanh toán.',
-            '12': 'Thẻ/Tài khoản bị khóa.',
-            '13': 'Nhập sai mật khẩu xác thực (OTP).',
-            '24': 'Giao dịch đã bị hủy.',
-            '51': 'Tài khoản không đủ số dư.',
-            '65': 'Tài khoản đã vượt quá hạn mức giao dịch trong ngày.',
-            '75': 'Ngân hàng thanh toán đang bảo trì.',
-            '79': 'Nhập sai mật khẩu thanh toán quá số lần quy định.',
-            '99': 'Lỗi không xác định từ VNPay.',
-          };
-          setStatus('failed');
-          setErrorMsg(errorMessages[vnpResponseCode] || `Thanh toán thất bại (Mã lỗi: ${vnpResponseCode})`);
-        } else {
-          // No VNPay params, check for orderId in localStorage as fallback
+        // 2) Fallback flow: nếu không có callback params, dùng lastOrderId
+        if (!orderId) {
           const savedOrderId = localStorage.getItem('lastOrderId');
           if (savedOrderId) {
             orderId = parseInt(savedOrderId);
@@ -69,16 +57,28 @@ const PaymentResult: React.FC<PaymentResultProps> = ({ onNavigate }) => {
         // Fetch order and payment details if we have orderId
         if (orderId && !isNaN(orderId)) {
           try {
-            const [orderRes, paymentRes] = await Promise.all([
-              orderApi.getById(orderId),
-              paymentApi.getByOrderId(orderId),
-            ]);
-            setOrder(orderRes.data);
-            setPayment(paymentRes.data);
+            const orderRes = await orderApi.getById(orderId);
+            if (!isCancelled) {
+              setOrder(orderRes.data);
+            }
 
-            // If we didn't already determine status from VNPay params, check payment status
-            if (!vnpResponseCode) {
-              if (paymentRes.data.status === 'SUCCESS') {
+            if (!verifiedPayment) {
+              const paymentRes = await paymentApi.getByOrderId(orderId);
+              if (!isCancelled) {
+                setPayment(paymentRes.data);
+              }
+
+              // Chỉ tự xác định khi không đi callback verify
+              if (!hasQueryParams) {
+                if (paymentRes.data.status === 'SUCCESS') {
+                  setStatus('success');
+                } else {
+                  setStatus('failed');
+                  setErrorMsg('Thanh toán chưa hoàn tất.');
+                }
+              }
+            } else if (!hasQueryParams) {
+              if (verifiedPayment.status === 'SUCCESS') {
                 setStatus('success');
               } else {
                 setStatus('failed');
@@ -86,23 +86,28 @@ const PaymentResult: React.FC<PaymentResultProps> = ({ onNavigate }) => {
               }
             }
           } catch {
-            // Order/payment fetch failed but we may already have status from URL params
-            if (status === 'loading') {
+            // Order/payment fetch failed but callback verify may have succeeded already
+            if (!isCancelled && !hasQueryParams) {
               setStatus('failed');
               setErrorMsg('Không thể tải thông tin đơn hàng.');
             }
           }
-        } else if (status === 'loading') {
+        } else if (!hasQueryParams && !isCancelled) {
           setStatus('failed');
           setErrorMsg('Không tìm thấy thông tin thanh toán.');
         }
       } catch {
-        setStatus('failed');
-        setErrorMsg('Đã xảy ra lỗi khi xử lý kết quả thanh toán.');
+        if (!isCancelled) {
+          setStatus('failed');
+          setErrorMsg('Đã xảy ra lỗi khi xử lý kết quả thanh toán.');
+        }
       }
     };
 
     processPaymentResult();
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const formatDate = (dateStr: string) => {

@@ -30,6 +30,15 @@ export const paymentApi = {
     });
   },
 
+  // GET /payments/vnpay-callback — Xác thực callback VNPay (Frontend gửi toàn bộ query params)
+  verifyVnpayCallback: async (params: Record<string, string>): Promise<ApiResponse<PaymentResponse>> => {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query ? `/payments/vnpay-callback?${query}` : '/payments/vnpay-callback';
+    return fetchWithAuth<PaymentResponse>(endpoint, {
+      method: 'GET',
+    });
+  },
+
   // GET /payments/{orderId} — Lấy thông tin thanh toán theo order ID
   getByOrderId: async (orderId: number): Promise<ApiResponse<PaymentResponse>> => {
     return fetchWithAuth<PaymentResponse>(`/payments/${orderId}`);
