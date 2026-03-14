@@ -51,10 +51,10 @@ export interface Cart {
 export interface BlogPost {
   id: number;
   title: string;
-  content: string;
-  topicName: string;
-  topicId: number;
-  createdAt: string;
+  content?: string;
+  topicName?: string;
+  topicId?: number;
+  createdAt?: string;
   // Legacy fields for static data compatibility
   excerpt?: string;
   date?: string;
@@ -84,7 +84,7 @@ export interface User {
   avatar?: string;
   roleName?: string;
   addresses: Address[];
-  roles?: AdminRole[];
+  roles?: { id: number, name: string }[];
 }
 
 export interface Address {
