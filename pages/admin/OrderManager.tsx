@@ -4,15 +4,16 @@ import { adminOrderApi, adminPaymentApi, OrderResponse, OrderStatus, PaymentResp
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
 const STATUS_MAP: Record<OrderStatus, { label: string; color: string }> = {
-  PENDING: { label: 'Chờ xử lý', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' },
-  CONFIRMED: { label: 'Đã xác nhận', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+  CREATED: { label: 'Đã tạo', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+  WAITING_PAYMENT: { label: 'Chờ thanh toán', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' },
+  PAID: { label: 'Đã thanh toán', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' },
   PROCESSING: { label: 'Đang xử lý', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' },
   SHIPPED: { label: 'Đang giao', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' },
-  DELIVERED: { label: 'Đã giao', color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
+  COMPLETED: { label: 'Hoàn thành', color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
   CANCELLED: { label: 'Đã hủy', color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
 };
 
-const ALL_STATUSES: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+const ALL_STATUSES: OrderStatus[] = ['CREATED', 'WAITING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED'];
 
 const OrderManager: React.FC = () => {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -119,12 +120,11 @@ const OrderManager: React.FC = () => {
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${st.color}`}>{st.label}</span>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    User #{order.userId} • {order.items?.length || 0} sản phẩm • {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                    {order.items?.length || 0} sản phẩm • {(order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : 'N/A')}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-primary">{formatCurrency(order.totalAmount)}</p>
-                  {order.discountAmount > 0 && <p className="text-xs text-green-600 dark:text-green-400">-{formatCurrency(order.discountAmount)}</p>}
                 </div>
                 <span className={`material-symbols-outlined text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
               </div>
@@ -132,11 +132,11 @@ const OrderManager: React.FC = () => {
               {/* Expanded Detail */}
               {isExpanded && (
                 <div className="px-5 pb-5 border-t border-gray-100 dark:border-white/5 pt-4">
-                  {/* Address */}
-                  {order.shippingAddress && (
+                  {/* VAT Info */}
+                  {order.vatAddress && (
                     <div className="mb-4 p-3 bg-gray-50 dark:bg-surface-darker rounded-xl">
-                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Địa chỉ giao</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{order.shippingAddress}</p>
+                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Địa chỉ (VAT)</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{order.vatAddress}</p>
                     </div>
                   )}
 
@@ -145,12 +145,12 @@ const OrderManager: React.FC = () => {
                     <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Sản phẩm</p>
                     <div className="space-y-2">
                       {order.items?.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-surface-darker rounded-xl text-sm">
+                        <div key={item.id || i} className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-surface-darker rounded-xl text-sm">
                           <div>
-                            <span className="font-medium text-gray-900 dark:text-white">{item.productName || `SP #${item.productId}`}</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{item.itemName || 'Sản phẩm'}</span>
                             <span className="text-gray-400 ml-2">x{item.quantity}</span>
                           </div>
-                          <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(item.price * item.quantity)}</span>
+                          <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(item.subtotal)}</span>
                         </div>
                       ))}
                     </div>
@@ -161,8 +161,8 @@ const OrderManager: React.FC = () => {
                     <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl">
                       <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Thanh toán</p>
                       <div className="flex gap-4 text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Phương thức: <b className="text-gray-900 dark:text-white">{payment.paymentMethod}</b></span>
-                        <span className="text-gray-600 dark:text-gray-400">Trạng thái: <b className={payment.status === 'COMPLETED' ? 'text-green-600' : 'text-yellow-600'}>{payment.status}</b></span>
+                        <span className="text-gray-600 dark:text-gray-400">Phương thức: <b className="text-gray-900 dark:text-white">{payment.method}</b></span>
+                        <span className="text-gray-600 dark:text-gray-400">Trạng thái: <b className={payment.status === 'SUCCESS' ? 'text-green-600' : 'text-yellow-600'}>{payment.status}</b></span>
                       </div>
                     </div>
                   )}
@@ -174,13 +174,13 @@ const OrderManager: React.FC = () => {
                       <select
                         value={order.status}
                         onChange={e => handleStatusChange(order.id, e.target.value as OrderStatus)}
-                        disabled={updatingStatus === order.id || order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                        disabled={updatingStatus === order.id || order.status === 'CANCELLED' || order.status === 'COMPLETED'}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-sm text-gray-900 dark:text-white focus:border-primary outline-none disabled:opacity-50"
                       >
                         {ALL_STATUSES.map(s => <option key={s} value={s}>{STATUS_MAP[s].label}</option>)}
                       </select>
                     </div>
-                    {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
+                    {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
                       <button
                         onClick={() => handleCancel(order.id)}
                         disabled={updatingStatus === order.id}

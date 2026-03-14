@@ -1,0 +1,220 @@
+﻿App.tsx(40,7): error TS2739: Type '{ home: string; shop: string; 'product-detail': string; cart: string; checkout: string; login: string; register: string; blog: string; 'blog-detail': string; about: string; profile: string; admin: string; }' is missing the following properties from type 'Record<Screen, string>': "payment-result", orders
+constants.ts(98,3): error TS2739: Type '{ id: number; title: string; excerpt: string; date: string; readTime: string; tag: string; image: string; }' is missing the following properties from type 'BlogPost': content, topicName, topicId, createdAt
+constants.ts(107,3): error TS2739: Type '{ id: number; title: string; excerpt: string; date: string; readTime: string; tag: string; image: string; }' is missing the following properties from type 'BlogPost': content, topicName, topicId, createdAt
+constants.ts(116,3): error TS2739: Type '{ id: number; title: string; excerpt: string; date: string; readTime: string; tag: string; image: string; }' is missing the following properties from type 'BlogPost': content, topicName, topicId, createdAt
+pages/admin/AdminLayout.tsx(2,10): error TS2305: Module '"../../types"' has no exported member 'AdminScreen'.
+pages/admin/CategoryManagement.tsx(2,10): error TS2305: Module '"../../types"' has no exported member 'AdminCategory'.
+pages/admin/Dashboard.tsx(2,10): error TS2305: Module '"../../types"' has no exported member 'DashboardStats'.
+pages/admin/Dashboard.tsx(2,26): error TS2305: Module '"../../types"' has no exported member 'AdminOrder'.
+pages/admin/Dashboard.tsx(2,38): error TS2305: Module '"../../types"' has no exported member 'AdminProduct'.
+pages/admin/Dashboard.tsx(3,10): error TS2305: Module '"../../services/adminApi"' has no exported member 'adminDashboardApi'.
+pages/admin/OrderManagement.tsx(2,10): error TS2305: Module '"../../types"' has no exported member 'AdminOrder'.
+pages/admin/OrderManagement.tsx(25,57): error TS2554: Expected 0-1 arguments, but got 2.
+pages/admin/OrderManagement.tsx(26,32): error TS2339: Property 'content' does not exist on type 'PageResponse<OrderResponse>'.
+pages/admin/OrderManagement.tsx(35,38): error TS2339: Property 'totalElements' does not exist on type 'PageResponse<OrderResponse>'.
+pages/admin/OrderManagement.tsx(53,49): error TS2345: Argument of type '"PROCESSING" | "SHIPPED" | "CANCELLED" | "PENDING" | "DELIVERED" | "CONFIRMED"' is not assignable to parameter of type 'OrderStatus'.
+  Type '"PENDING"' is not assignable to type 'OrderStatus'.
+pages/admin/PaymentManagement.tsx(2,10): error TS2305: Module '"../../types"' has no exported member 'AdminPayment'.
+pages/admin/PaymentManagement.tsx(26,46): error TS2339: Property 'getAll' does not exist on type '{ getByOrderId: (orderId: number) => Promise<ApiResponse<PaymentResponse>>; }'.
+pages/admin/ProductManagement.tsx(2,10): error TS2305: Module '"../../types"' has no exported member 'AdminProduct'.
+pages/admin/ProductManagement.tsx(2,24): error TS2305: Module '"../../types"' has no exported member 'AdminCategory'.
+pages/admin/ProductManagement.tsx(53,59): error TS2554: Expected 0-1 arguments, but got 2.
+pages/admin/ProductManagement.tsx(55,33): error TS2339: Property 'content' does not exist on type 'PageResponse<ProductResponse>'.
+pages/admin/ProductManagement.tsx(57,38): error TS2339: Property 'totalElements' does not exist on type 'PageResponse<ProductResponse>'.
+pages/admin/ProductManagement.tsx(125,57): error TS2345: Argument of type '{ name: any; description: any; price: number; originalPrice: number; categoryIds: number[]; images: { imageUrl: any; isThumbnail: boolean; sortOrder: number; }[]; }' is not assignable to parameter of type 'ProductRequest'.
+  Type '{ name: any; description: any; price: number; originalPrice: number; categoryIds: number[]; images: { imageUrl: any; isThumbnail: boolean; sortOrder: number; }[]; }' is missing the following properties from type 'ProductRequest': stock, categoryId
+pages/admin/ProductManagement.tsx(127,38): error TS2345: Argument of type '{ name: any; description: any; price: number; originalPrice: number; categoryIds: number[]; images: { imageUrl: any; isThumbnail: boolean; sortOrder: number; }[]; }' is not assignable to parameter of type 'ProductRequest'.
+  Type '{ name: any; description: any; price: number; originalPrice: number; categoryIds: number[]; images: { imageUrl: any; isThumbnail: boolean; sortOrder: number; }[]; }' is missing the following properties from type 'ProductRequest': stock, categoryId
+pages/admin/UserManagement.tsx(2,10): error TS2305: Module '"../../types"' has no exported member 'AdminUser'.
+pages/admin/UserManagement.tsx(2,21): error TS2305: Module '"../../types"' has no exported member 'AdminRole'.
+pages/admin/UserManagement.tsx(122,56): error TS2554: Expected 0-1 arguments, but got 4.
+pages/admin/UserManagement.tsx(123,39): error TS2339: Property 'content' does not exist on type 'PageResponse<UserResponse>'.
+pages/admin/UserManagement.tsx(126,38): error TS2339: Property 'totalElements' does not exist on type 'PageResponse<UserResponse>'.
+pages/admin/UserManagement.tsx(189,11): error TS2353: Object literal may only specify known properties, and 'email' does not exist in type '{ fullName?: string; phone?: string; }'.
+pages/admin/UserManagement.tsx(196,28): error TS2339: Property 'create' does not exist on type '{ getAll: (params?: PaginationParams) => Promise<ApiResponse<PageResponse<UserResponse>>>; getById: (id: number) => Promise<...>; update: (id: number, data: { ...; }) => Promise<...>; delete: (id: number) => Promise<...>; }'.
+pages/AdminPage.tsx(9,10): error TS2305: Module '"../types"' has no exported member 'AdminScreen'.
+pages/Auth.tsx(89,62): error TS2339: Property 'firstName' does not exist on type 'UserResponse'.
+pages/Auth.tsx(89,90): error TS2339: Property 'lastName' does not exist on type 'UserResponse'.
+pages/Auth.tsx(98,27): error TS2339: Property 'roles' does not exist on type 'UserResponse'.
+pages/Auth.tsx(105,34): error TS2339: Property 'roles' does not exist on type 'UserResponse'.
+sos-fe/src/app/admin/analytics/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/analytics/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/analytics/page.tsx(17,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/analytics/page.tsx(19,31): error TS2307: Cannot find module '@/services/report.service' or its corresponding type declarations.
+sos-fe/src/app/admin/layout.tsx(2,32): error TS2307: Cannot find module '@/components/ProtectedRoute' or its corresponding type declarations.
+sos-fe/src/app/admin/logs/page.tsx(3,47): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/logs/page.tsx(4,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/logs/page.tsx(15,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/page.tsx(6,30): error TS2307: Cannot find module '@/components/magicui/number-ticker' or its corresponding type declarations.
+sos-fe/src/app/admin/page.tsx(27,31): error TS2307: Cannot find module '@/services/report.service' or its corresponding type declarations.
+sos-fe/src/app/admin/page.tsx(28,38): error TS2307: Cannot find module '@/services/rescueRequest.service' or its corresponding type declarations.
+sos-fe/src/app/admin/page.tsx(29,34): error TS2307: Cannot find module '@/components/common/LiveActivityFeed' or its corresponding type declarations.
+sos-fe/src/app/admin/page.tsx(30,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(22,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(23,38): error TS2307: Cannot find module '@/services/rescueRequest.service' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(24,29): error TS2307: Cannot find module '@/services/task.service' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(25,29): error TS2307: Cannot find module '@/services/team.service' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(26,32): error TS2307: Cannot find module '@/services/vehicle.service' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(27,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(31,30): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/app/admin/requests/page.tsx(32,25): error TS2307: Cannot find module '@/components/common/ChatBox' or its corresponding type declarations.
+sos-fe/src/app/admin/roles/page.tsx(3,47): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/roles/page.tsx(4,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/roles/page.tsx(16,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/roles/page.tsx(18,29): error TS2307: Cannot find module '@/services/user.service' or its corresponding type declarations.
+sos-fe/src/app/admin/settings/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/settings/page.tsx(5,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/settings/page.tsx(8,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/settings/page.tsx(10,37): error TS2307: Cannot find module '@/services/systemConfig.service' or its corresponding type declarations.
+sos-fe/src/app/admin/settings/page.tsx(135,64): error TS2345: Argument of type '{ configKey: string; configValue: string; description: string; }' is not assignable to parameter of type 'void'.
+sos-fe/src/app/admin/supplies/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/supplies/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/supplies/page.tsx(8,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/supplies/page.tsx(9,31): error TS2307: Cannot find module '@/services/supply.service' or its corresponding type declarations.
+sos-fe/src/app/admin/supplies/page.tsx(10,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/admin/teams/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/teams/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/teams/page.tsx(8,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/teams/page.tsx(9,29): error TS2307: Cannot find module '@/services/team.service' or its corresponding type declarations.
+sos-fe/src/app/admin/teams/page.tsx(10,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/admin/teams/page.tsx(11,37): error TS2307: Cannot find module '@/components/common/AddressAutocomplete' or its corresponding type declarations.
+sos-fe/src/app/admin/users/page.tsx(4,47): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/users/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/users/page.tsx(27,29): error TS2307: Cannot find module '@/services/user.service' or its corresponding type declarations.
+sos-fe/src/app/admin/users/page.tsx(30,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/admin/users/page.tsx(32,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/vehicles/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/admin/vehicles/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/admin/vehicles/page.tsx(8,31): error TS2307: Cannot find module '@/constants/adminNav' or its corresponding type declarations.
+sos-fe/src/app/admin/vehicles/page.tsx(9,32): error TS2307: Cannot find module '@/services/vehicle.service' or its corresponding type declarations.
+sos-fe/src/app/admin/vehicles/page.tsx(10,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/coordinator/layout.tsx(1,32): error TS2307: Cannot find module '@/components/ProtectedRoute' or its corresponding type declarations.
+sos-fe/src/app/coordinator/map/page.tsx(4,47): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/coordinator/map/page.tsx(14,26): error TS2307: Cannot find module '@/components/common/GoongMap' or its corresponding type declarations.
+sos-fe/src/app/coordinator/map/page.tsx(15,38): error TS2307: Cannot find module '@/services/rescueRequest.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/map/page.tsx(16,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/coordinator/page.tsx(9,47): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/coordinator/page.tsx(10,26): error TS2307: Cannot find module '@/components/common/GoongMap' or its corresponding type declarations.
+sos-fe/src/app/coordinator/page.tsx(11,53): error TS2307: Cannot find module '@/services/rescueRequest.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/page.tsx(12,31): error TS2307: Cannot find module '@/services/report.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/page.tsx(13,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/coordinator/page.tsx(14,30): error TS2307: Cannot find module '@/components/magicui/number-ticker' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(23,37): error TS2307: Cannot find module '@/constants/coordinatorNav' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(24,38): error TS2307: Cannot find module '@/services/rescueRequest.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(25,29): error TS2307: Cannot find module '@/services/task.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(26,29): error TS2307: Cannot find module '@/services/team.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(27,32): error TS2307: Cannot find module '@/services/vehicle.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(28,27): error TS2307: Cannot find module '@/services/ai.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(29,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(33,30): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/app/coordinator/requests/page.tsx(34,25): error TS2307: Cannot find module '@/components/common/ChatBox' or its corresponding type declarations.
+sos-fe/src/app/coordinator/settings/page.tsx(3,47): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/coordinator/settings/page.tsx(4,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/coordinator/settings/page.tsx(18,37): error TS2307: Cannot find module '@/constants/coordinatorNav' or its corresponding type declarations.
+sos-fe/src/app/coordinator/teams/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/coordinator/teams/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/coordinator/teams/page.tsx(8,37): error TS2307: Cannot find module '@/constants/coordinatorNav' or its corresponding type declarations.
+sos-fe/src/app/coordinator/teams/page.tsx(9,29): error TS2307: Cannot find module '@/services/team.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/teams/page.tsx(10,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/coordinator/teams/page.tsx(11,37): error TS2307: Cannot find module '@/components/common/AddressAutocomplete' or its corresponding type declarations.
+sos-fe/src/app/coordinator/vehicles/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/coordinator/vehicles/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/coordinator/vehicles/page.tsx(8,37): error TS2307: Cannot find module '@/constants/coordinatorNav' or its corresponding type declarations.
+sos-fe/src/app/coordinator/vehicles/page.tsx(9,32): error TS2307: Cannot find module '@/services/vehicle.service' or its corresponding type declarations.
+sos-fe/src/app/coordinator/vehicles/page.tsx(10,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/layout.tsx(4,23): error TS2307: Cannot find module '@/lib/providers' or its corresponding type declarations.
+sos-fe/src/app/layout.tsx(7,37): error TS2307: Cannot find module '@/components/common/NotificationOverlay' or its corresponding type declarations.
+sos-fe/src/app/login/page.tsx(9,27): error TS2307: Cannot find module '@/components/magicui/particles' or its corresponding type declarations.
+sos-fe/src/app/login/page.tsx(10,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/login/page.tsx(11,27): error TS2307: Cannot find module '@/components/magicui/magic-card' or its corresponding type declarations.
+sos-fe/src/app/login/page.tsx(12,29): error TS2307: Cannot find module '@/services/auth.service' or its corresponding type declarations.
+sos-fe/src/app/login/page.tsx(13,30): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/app/manager/page.tsx(4,47): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/manager/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/manager/page.tsx(6,30): error TS2307: Cannot find module '@/components/magicui/number-ticker' or its corresponding type declarations.
+sos-fe/src/app/manager/supplies/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/manager/supplies/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/manager/supplies/page.tsx(15,31): error TS2307: Cannot find module '@/services/supply.service' or its corresponding type declarations.
+sos-fe/src/app/manager/supplies/page.tsx(17,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/manager/supplies/page.tsx(19,40): error TS2307: Cannot find module '@/lib/dashboardFactory' or its corresponding type declarations.
+sos-fe/src/app/manager/vehicles/page.tsx(4,33): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/app/manager/vehicles/page.tsx(5,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/manager/vehicles/page.tsx(15,32): error TS2307: Cannot find module '@/services/vehicle.service' or its corresponding type declarations.
+sos-fe/src/app/manager/vehicles/page.tsx(17,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/manager/vehicles/page.tsx(19,40): error TS2307: Cannot find module '@/lib/dashboardFactory' or its corresponding type declarations.
+sos-fe/src/app/page.tsx(1,31): error TS2307: Cannot find module '@/components/landing/LandingHeader' or its corresponding type declarations.
+sos-fe/src/app/page.tsx(2,29): error TS2307: Cannot find module '@/components/landing/HeroSection' or its corresponding type declarations.
+sos-fe/src/app/page.tsx(3,33): error TS2307: Cannot find module '@/components/landing/FeaturesSection' or its corresponding type declarations.
+sos-fe/src/app/page.tsx(4,31): error TS2307: Cannot find module '@/components/landing/ImpactSection' or its corresponding type declarations.
+sos-fe/src/app/page.tsx(5,30): error TS2307: Cannot find module '@/components/landing/RolesSection' or its corresponding type declarations.
+sos-fe/src/app/page.tsx(6,28): error TS2307: Cannot find module '@/components/landing/CTASection' or its corresponding type declarations.
+sos-fe/src/app/page.tsx(7,31): error TS2307: Cannot find module '@/components/landing/LandingFooter' or its corresponding type declarations.
+sos-fe/src/app/register/page.tsx(8,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/register/page.tsx(9,28): error TS2307: Cannot find module '@/components/magicui/border-beam' or its corresponding type declarations.
+sos-fe/src/app/register/page.tsx(20,29): error TS2307: Cannot find module '@/services/auth.service' or its corresponding type declarations.
+sos-fe/src/app/rescue-team/layout.tsx(1,32): error TS2307: Cannot find module '@/components/ProtectedRoute' or its corresponding type declarations.
+sos-fe/src/app/rescue-team/page.tsx(22,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/rescue-team/page.tsx(24,29): error TS2307: Cannot find module '@/services/task.service' or its corresponding type declarations.
+sos-fe/src/app/rescue-team/page.tsx(25,29): error TS2307: Cannot find module '@/services/team.service' or its corresponding type declarations.
+sos-fe/src/app/rescue-team/page.tsx(26,26): error TS2307: Cannot find module '@/components/common/GoongMap' or its corresponding type declarations.
+sos-fe/src/app/rescue-team/page.tsx(27,25): error TS2307: Cannot find module '@/components/common/ChatBox' or its corresponding type declarations.
+sos-fe/src/app/rescue-team/page.tsx(28,23): error TS2307: Cannot find module '@/components/common/Modal' or its corresponding type declarations.
+sos-fe/src/app/rescue-team/page.tsx(29,30): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/app/rescue-team/page.tsx(158,42): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/app/sos/page.tsx(7,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/app/sos/page.tsx(24,38): error TS2307: Cannot find module '@/services/rescueRequest.service' or its corresponding type declarations.
+sos-fe/src/app/sos/page.tsx(25,29): error TS2307: Cannot find module '@/services/team.service' or its corresponding type declarations.
+sos-fe/src/app/sos/page.tsx(26,26): error TS2307: Cannot find module '@/components/common/GoongMap' or its corresponding type declarations.
+sos-fe/src/app/sos/page.tsx(27,30): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/app/sos/page.tsx(31,25): error TS2307: Cannot find module '@/components/common/ChatBox' or its corresponding type declarations.
+sos-fe/src/components/common/AddressAutocomplete.tsx(5,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/components/common/DashboardLayout.tsx(19,30): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/components/common/DashboardLayout.tsx(22,37): error TS2307: Cannot find module '@/services/notification.service' or its corresponding type declarations.
+sos-fe/src/components/common/DashboardLayout.tsx(265,18): error TS2365: Operator '>' cannot be applied to types 'unknown' and 'number'.
+sos-fe/src/components/common/DashboardLayout.tsx(267,21): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+sos-fe/src/components/common/DashboardLayout.tsx(279,24): error TS2365: Operator '>' cannot be applied to types 'unknown' and 'number'.
+sos-fe/src/components/common/GoongMap.tsx(4,31): error TS2307: Cannot find module '@/services/rescueRequest.service' or its corresponding type declarations.
+sos-fe/src/components/common/GoongMap.tsx(5,28): error TS2307: Cannot find module '@/services/team.service' or its corresponding type declarations.
+sos-fe/src/components/common/NotificationOverlay.tsx(6,30): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/components/common/NotificationOverlay.tsx(8,30): error TS2307: Cannot find module '@/config/constants' or its corresponding type declarations.
+sos-fe/src/components/landing/CTASection.tsx(4,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/components/landing/CTASection.tsx(5,31): error TS2307: Cannot find module '@/components/magicui/shimmer-button' or its corresponding type declarations.
+sos-fe/src/components/landing/CTASection.tsx(6,27): error TS2307: Cannot find module '@/components/magicui/particles' or its corresponding type declarations.
+sos-fe/src/components/landing/FeaturesSection.tsx(4,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/components/landing/FeaturesSection.tsx(5,27): error TS2307: Cannot find module '@/components/magicui/magic-card' or its corresponding type declarations.
+sos-fe/src/components/landing/HeroSection.tsx(6,27): error TS2307: Cannot find module '@/components/magicui/particles' or its corresponding type declarations.
+sos-fe/src/components/landing/HeroSection.tsx(7,30): error TS2307: Cannot find module '@/components/magicui/number-ticker' or its corresponding type declarations.
+sos-fe/src/components/landing/HeroSection.tsx(8,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/components/landing/HeroSection.tsx(9,31): error TS2307: Cannot find module '@/components/magicui/shimmer-button' or its corresponding type declarations.
+sos-fe/src/components/landing/ImpactSection.tsx(3,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/components/landing/ImpactSection.tsx(4,30): error TS2307: Cannot find module '@/components/magicui/number-ticker' or its corresponding type declarations.
+sos-fe/src/components/landing/LandingHeader.tsx(14,30): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/components/landing/RolesSection.tsx(3,26): error TS2307: Cannot find module '@/components/magicui/blur-fade' or its corresponding type declarations.
+sos-fe/src/components/landing/RolesSection.tsx(4,27): error TS2307: Cannot find module '@/components/magicui/magic-card' or its corresponding type declarations.
+sos-fe/src/components/ProtectedRoute.tsx(5,40): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/components/ui/StatusPill.tsx(2,15): error TS2305: Module '"@/types"' has no exported member 'SupplyStatus'.
+sos-fe/src/components/ui/StatusPill.tsx(2,29): error TS2305: Module '"@/types"' has no exported member 'VehicleStatus'.
+sos-fe/src/components/ui/StatusPill.tsx(2,44): error TS2305: Module '"@/types"' has no exported member 'SOSStatus'.
+sos-fe/src/components/ui/StatusPill.tsx(2,55): error TS2305: Module '"@/types"' has no exported member 'TeamStatus'.
+sos-fe/src/components/ui/StatusPill.tsx(2,67): error TS2305: Module '"@/types"' has no exported member 'UrgencyLevel'.
+sos-fe/src/lib/axios.ts(2,30): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/lib/dashboardFactory.ts(29,30): error TS2307: Cannot find module '@/components/common/DashboardLayout' or its corresponding type declarations.
+sos-fe/src/services/ai.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/auth.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/auth.service.ts(2,22): error TS2307: Cannot find module '@/store/useAuthStore' or its corresponding type declarations.
+sos-fe/src/services/notification.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/report.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/rescueRequest.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/supply.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/systemConfig.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/task.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/team.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/user.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+sos-fe/src/services/vehicle.service.ts(1,27): error TS2307: Cannot find module '@/lib/axios' or its corresponding type declarations.
+types.ts(87,11): error TS2304: Cannot find name 'AdminRole'.

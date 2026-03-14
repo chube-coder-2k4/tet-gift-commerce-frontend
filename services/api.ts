@@ -31,10 +31,13 @@ export interface RegisterRequest {
 export interface UserResponse {
   id: number;
   fullName: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
   username?: string;
   roleName?: string;
+  roles?: { id: number, name: string }[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -88,7 +91,7 @@ export const tokenStorage = {
 // API Error class
 export class ApiError extends Error {
   status: number;
-  
+
   constructor(message: string, status: number) {
     super(message);
     this.status = status;
@@ -103,7 +106,7 @@ export async function fetchWithAuth<T>(
   _isRetry = false
 ): Promise<ApiResponse<T>> {
   const accessToken = tokenStorage.getAccessToken();
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -146,7 +149,7 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(request),
     });
-    
+
     // Store tokens on successful login
     if (response.data) {
       tokenStorage.setTokens(
@@ -155,14 +158,14 @@ export const authApi = {
         response.data.userId
       );
     }
-    
+
     return response;
   },
 
   // Refresh access token
   refreshToken: async (): Promise<ApiResponse<LoginResponse>> => {
     const refreshToken = tokenStorage.getRefreshToken();
-    
+
     const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: 'POST',
       headers: {
