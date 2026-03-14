@@ -35,6 +35,8 @@ const pathToScreen: Record<string, Screen> = {
   '/profile': 'profile',
   '/admin': 'admin',
   '/dashboard': 'admin', // Admin dashboard
+  '/payment-result': 'payment-result',
+  '/orders': 'orders',
 };
 
 const screenToPath: Record<Screen, string> = {
@@ -50,6 +52,8 @@ const screenToPath: Record<Screen, string> = {
   'about': '/about',
   'profile': '/profile',
   'admin': '/admin',
+  'payment-result': '/payment-result',
+  'orders': '/orders',
 };
 
 const getScreenFromPath = (path: string): Screen => {
@@ -98,7 +102,7 @@ const App: React.FC = () => {
     // Check if this is a VNPay payment callback
     const urlParams = new URLSearchParams(window.location.search);
     const hasVnpParams = urlParams.has('vnp_ResponseCode') || urlParams.has('vnp_TxnRef');
-    
+
     if (hasVnpParams) {
       setCurrentScreen('payment-result');
       return;
@@ -107,18 +111,35 @@ const App: React.FC = () => {
     // Check if this is an OAuth callback (Backend redirects to /oauth2/redirect)
     const path = window.location.pathname;
     const hasOAuthParams = window.location.search.includes('token=');
-    
+
     if (path === '/oauth2/redirect' || hasOAuthParams) {
-      // Redirect to login page to handle OAuth callback
+      // Setup current screen but keep the URL search intact
       setCurrentScreen('login');
+      if (path === '/oauth2/redirect') {
+        window.history.replaceState({}, '', '/login' + window.location.search);
+      }
     }
   }, [handleCartUpdate]);
 
   // Sync URL with screen changes
   useEffect(() => {
+    // Keep OAuth callback query intact while Auth page processes token
+    const isOAuthCallbackUrl = window.location.pathname === '/oauth2/redirect' || window.location.search.includes('token=');
+    if (isOAuthCallbackUrl && currentScreen !== 'login') {
+      return;
+    }
+
     const newPath = screenToPath[currentScreen];
     if (window.location.pathname !== newPath) {
-      window.history.pushState({}, '', newPath);
+      const search = window.location.search;
+      if (search && (currentScreen === 'login' || currentScreen === 'payment-result')) {
+        // Prevent pushState infinite loops if already correct
+        if (window.location.pathname + search !== newPath + search) {
+          window.history.pushState({}, '', newPath + search);
+        }
+      } else {
+        window.history.pushState({}, '', newPath);
+      }
     }
   }, [currentScreen]);
 
