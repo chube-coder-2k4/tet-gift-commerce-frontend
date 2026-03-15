@@ -1,5 +1,5 @@
 // Admin API Service — All CRUD endpoints for admin panel
-import { fetchWithAuth, ApiResponse, UserResponse } from './api';
+import { fetchWithAuth, ApiResponse, UserResponse, tokenStorage } from './api';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
 
@@ -137,6 +137,7 @@ export interface ProductResponse {
   description: string;
   price: number;
   stock: number;
+  image?: string;
   categoryName: string;
   categoryId: number;
   isActive: boolean;
@@ -152,11 +153,53 @@ export const adminProductApi = {
   getById: async (id: number): Promise<ApiResponse<ProductResponse>> =>
     fetchWithAuth<ProductResponse>(`/products/${id}`),
 
+  // JSON-only create (no file upload)
   create: async (data: ProductRequest): Promise<ApiResponse<number>> =>
     fetchWithAuth<number>('/products/register', { method: 'POST', body: JSON.stringify(data) }),
 
-  update: async (id: number, data: ProductRequest): Promise<ApiResponse<ProductResponse>> =>
-    fetchWithAuth<ProductResponse>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  // Multipart create (with file upload)
+  createWithImage: async (data: ProductRequest, imageFile?: File): Promise<ApiResponse<number>> => {
+    const formData = new FormData();
+    formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+    const accessToken = tokenStorage.getAccessToken();
+    const response = await fetch(`${API_BASE_URL}/products/register`, {
+      method: 'POST',
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Tạo sản phẩm thất bại');
+    return result;
+  },
+
+  // JSON-only update (no file upload)
+  update: async (id: number, data: ProductRequest): Promise<ApiResponse<number>> =>
+    fetchWithAuth<number>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Multipart update (with file upload)
+  updateWithImage: async (id: number, data: ProductRequest, imageFile?: File): Promise<ApiResponse<number>> => {
+    const formData = new FormData();
+    formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+    const accessToken = tokenStorage.getAccessToken();
+    const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Cập nhật sản phẩm thất bại');
+    return result;
+  },
 
   delete: async (id: number): Promise<ApiResponse<string>> =>
     fetchWithAuth<string>(`/products/${id}`, { method: 'DELETE' }),
@@ -172,6 +215,7 @@ export interface BundleRequest {
   name: string;
   price: number;
   isCustom: boolean;
+  description?: string;
   products: BundleProductRequest[];
 }
 
@@ -225,6 +269,14 @@ export interface OrderResponse {
   id: number;
   status: OrderStatus;
   totalAmount: number;
+  customerName?: string;
+  customerEmail?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  shippingAddress?: string;
+  discountCode?: string;
+  discountAmount?: number;
+  userId?: number;
   vatCompanyName?: string;
   vatTaxCode?: string;
   vatPhone?: string;
@@ -251,6 +303,8 @@ export const adminOrderApi = {
 export interface DiscountRequest {
   code: string;
   discountValue: number;
+  minOrderAmount?: number;
+  usageLimit?: number;
   startDate: string;
   endDate: string;
 }
@@ -259,6 +313,9 @@ export interface DiscountResponse {
   id: number;
   code: string;
   discountValue: number;
+  minOrderAmount?: number;
+  usageLimit?: number;
+  usageCount?: number;
   startDate: string;
   endDate: string;
   isActive: boolean;

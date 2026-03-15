@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminUserApi, PageResponse } from '../../services/adminApi';
 import { UserResponse } from '../../services/api';
+import { useConfirmDialog } from '../../components/ConfirmDialog';
 
 const UserManager: React.FC = () => {
   const [users, setUsers] = useState<UserResponse[]>([]);
@@ -31,8 +32,16 @@ const UserManager: React.FC = () => {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Xóa người dùng này?')) return;
+    const ok = await confirm({
+      title: 'Xóa người dùng',
+      message: 'Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.',
+      confirmText: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await adminUserApi.delete(id);
       setMsg({ type: 'success', text: 'Đã xóa người dùng!' });
@@ -85,7 +94,7 @@ const UserManager: React.FC = () => {
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEditingUser(null)}>
           <div className="bg-white dark:bg-card-dark rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200 dark:border-white/10" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Chỉnh sửa người dùng #{editingUser.id}</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Chỉnh sửa người dùng: {editingUser.fullName}</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Họ tên</label>
@@ -110,7 +119,7 @@ const UserManager: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-surface-darker">
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">ID</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">STT</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Họ tên</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Email</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Username</th>
@@ -124,9 +133,9 @@ const UserManager: React.FC = () => {
                 <tr><td colSpan={7} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
               ) : users.length === 0 ? (
                 <tr><td colSpan={7} className="text-center py-12 text-gray-400">Không có dữ liệu</td></tr>
-              ) : users.map(u => (
+              ) : users.map((u, idx) => (
                 <tr key={u.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-3 text-sm font-medium text-gray-900 dark:text-white">#{u.id}</td>
+                  <td className="px-5 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{page * 10 + idx + 1}</td>
                   <td className="px-5 py-3 text-sm text-gray-700 dark:text-gray-300 font-semibold">{u.fullName}</td>
                   <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400">{u.email}</td>
                   <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400">{u.username || '—'}</td>

@@ -153,7 +153,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onNavigate, productId, on
     );
   }
 
-  const currentImage = product.images?.[selectedImageIdx]?.imageUrl || '';
+  const currentImage = product.images?.[selectedImageIdx]?.imageUrl || product.image || '';
   const inStock = product.stock > 0;
 
   return (

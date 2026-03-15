@@ -11,8 +11,9 @@ interface ShopProps {
   onCartUpdate?: () => void;
 }
 
-// Helper: lấy ảnh chính hoặc ảnh đầu tiên
+// Helper: lấy ảnh chính (ưu tiên field image từ backend)
 const getPrimaryImage = (product: ProductResponse): string => {
+  if (product.image) return product.image;
   if (!product.images || product.images.length === 0) return '';
   const primary = product.images.find(img => img.isPrimary);
   return primary ? primary.imageUrl : product.images[0].imageUrl;

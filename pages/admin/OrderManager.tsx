@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminOrderApi, adminPaymentApi, OrderResponse, OrderStatus, PaymentResponse, PageResponse } from '../../services/adminApi';
+import { useConfirmDialog } from '../../components/ConfirmDialog';
 
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
@@ -70,8 +71,18 @@ const OrderManager: React.FC = () => {
     setTimeout(() => setMsg(null), 3000);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleCancel = async (orderId: number) => {
-    if (!window.confirm('Hủy đơn hàng này?')) return;
+    const ok = await confirm({
+      title: 'Hủy đơn hàng',
+      message: 'Đơn hàng sẽ bị hủy và không thể khôi phục. Bạn có chắc chắn?',
+      confirmText: 'Hủy đơn',
+      cancelText: 'Quay lại',
+      variant: 'warning',
+      icon: 'cancel',
+    });
+    if (!ok) return;
     setUpdatingStatus(orderId);
     try {
       await adminOrderApi.cancel(orderId);
@@ -116,11 +127,11 @@ const OrderManager: React.FC = () => {
               <div className="flex items-center gap-4 px-5 py-4 cursor-pointer" onClick={() => toggleExpand(order.id)}>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
-                    <span className="font-bold text-gray-900 dark:text-white">#{order.id}</span>
+                    <span className="font-bold text-gray-900 dark:text-white">Đơn hàng {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : ''}</span>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${st.color}`}>{st.label}</span>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {order.items?.length || 0} sản phẩm • {(order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : 'N/A')}
+                    {order.customerName && <><span className="font-medium text-gray-700 dark:text-gray-300">{order.customerName}</span> · </>}{order.items?.length || 0} sản phẩm
                   </p>
                 </div>
                 <div className="text-right">
@@ -131,17 +142,58 @@ const OrderManager: React.FC = () => {
 
               {/* Expanded Detail */}
               {isExpanded && (
-                <div className="px-5 pb-5 border-t border-gray-100 dark:border-white/5 pt-4">
-                  {/* VAT Info */}
-                  {order.vatAddress && (
-                    <div className="mb-4 p-3 bg-gray-50 dark:bg-surface-darker rounded-xl">
-                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Địa chỉ (VAT)</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{order.vatAddress}</p>
+                <div className="px-5 pb-5 border-t border-gray-100 dark:border-white/5 pt-4 space-y-4">
+                  {/* Customer Info */}
+                  {(order.customerName || order.customerEmail) && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm">person</span>
+                        Khách hàng
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-primary">{(order.customerName || 'K').charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{order.customerName || 'Khách hàng'}</p>
+                          {order.customerEmail && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{order.customerEmail}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Shipping Info */}
+                  {(order.receiverName || order.shippingAddress) && (
+                    <div className="p-3 bg-gray-50 dark:bg-surface-darker rounded-xl">
+                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm">local_shipping</span>
+                        Giao hàng
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                        {order.receiverName && (
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Người nhận: </span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{order.receiverName}</span>
+                          </div>
+                        )}
+                        {order.receiverPhone && (
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">SĐT: </span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{order.receiverPhone}</span>
+                          </div>
+                        )}
+                        {order.shippingAddress && (
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Địa chỉ: </span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{order.shippingAddress}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Items */}
-                  <div className="mb-4">
+                  <div>
                     <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Sản phẩm</p>
                     <div className="space-y-2">
                       {order.items?.map((item, i) => (
@@ -156,13 +208,45 @@ const OrderManager: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Discount Info */}
+                  {order.discountCode && (
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-800/30">
+                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm">sell</span>
+                        Giảm giá
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-bold font-mono tracking-wider border border-emerald-200 dark:border-emerald-700/40">
+                          {order.discountCode}
+                        </span>
+                        {order.discountAmount != null && order.discountAmount > 0 && (
+                          <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                            -{formatCurrency(order.discountAmount)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Payment Info */}
                   {payment && (
-                    <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl">
                       <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Thanh toán</p>
                       <div className="flex gap-4 text-sm">
                         <span className="text-gray-600 dark:text-gray-400">Phương thức: <b className="text-gray-900 dark:text-white">{payment.method}</b></span>
                         <span className="text-gray-600 dark:text-gray-400">Trạng thái: <b className={payment.status === 'SUCCESS' ? 'text-green-600' : 'text-yellow-600'}>{payment.status}</b></span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* VAT Info */}
+                  {order.vatCompanyName && (
+                    <div className="p-3 bg-gray-50 dark:bg-surface-darker rounded-xl">
+                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Xuất hóa đơn</p>
+                      <div className="text-sm space-y-0.5 text-gray-700 dark:text-gray-300">
+                        <p><span className="font-medium">Công ty:</span> {order.vatCompanyName}</p>
+                        {order.vatTaxCode && <p><span className="font-medium">MST:</span> {order.vatTaxCode}</p>}
+                        {order.vatAddress && <p><span className="font-medium">Địa chỉ:</span> {order.vatAddress}</p>}
                       </div>
                     </div>
                   )}

@@ -3,6 +3,7 @@ import { Screen } from '../types';
 import { authApi } from '../services/api';
 import { orderApi, OrderResponse, OrderStatus, PageResponse } from '../services/orderApi';
 import { paymentApi, PaymentResponse } from '../services/paymentApi';
+import { useConfirmDialog } from '../components/ConfirmDialog';
 
 interface OrdersProps {
   onNavigate: (screen: Screen) => void;
@@ -81,8 +82,18 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
     }
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleCancelOrder = async (orderId: number) => {
-    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return;
+    const ok = await confirm({
+      title: 'Hủy đơn hàng',
+      message: 'Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác.',
+      confirmText: 'Hủy đơn',
+      cancelText: 'Quay lại',
+      variant: 'warning',
+      icon: 'cancel',
+    });
+    if (!ok) return;
     setCancellingId(orderId);
     try {
       const res = await orderApi.cancel(orderId);
@@ -245,7 +256,7 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                           <div>
                             <div className="flex items-center gap-3 flex-wrap">
                               <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                                Đơn hàng #{order.id}
+                                Đơn hàng {formatDate(order.createdAt).split(',')[0]}
                               </h3>
                               <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${statusCfg.bg} ${statusCfg.color}`}>
                                 <span className="material-symbols-outlined text-sm">{statusCfg.icon}</span>
@@ -299,6 +310,58 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                             ))}
                           </div>
                         </div>
+
+                        {/* Shipping Info */}
+                        {(order.receiverName || order.shippingAddress) && (
+                          <div className="px-5 pb-4">
+                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                              <span className="material-symbols-outlined text-lg">local_shipping</span>
+                              Thông tin giao hàng
+                            </h4>
+                            <div className="p-4 bg-gray-50 dark:bg-surface-dark rounded-xl">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {order.receiverName && (
+                                  <div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Người nhận</p>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{order.receiverName}</p>
+                                  </div>
+                                )}
+                                {order.receiverPhone && (
+                                  <div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Số điện thoại</p>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{order.receiverPhone}</p>
+                                  </div>
+                                )}
+                                {order.shippingAddress && (
+                                  <div className="sm:col-span-1">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Địa chỉ</p>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{order.shippingAddress}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Discount Info */}
+                        {order.discountCode && (
+                          <div className="px-5 pb-4">
+                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                              <span className="material-symbols-outlined text-lg">sell</span>
+                              Mã giảm giá
+                            </h4>
+                            <div className="flex items-center gap-4 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-800/30">
+                              <span className="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-bold font-mono tracking-wider border border-emerald-200 dark:border-emerald-700/40">
+                                {order.discountCode}
+                              </span>
+                              {order.discountAmount != null && order.discountAmount > 0 && (
+                                <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                                  -{order.discountAmount.toLocaleString()}₫
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Payment Info */}
                         {payment && (

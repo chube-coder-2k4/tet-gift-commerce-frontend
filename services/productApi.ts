@@ -16,6 +16,7 @@ export interface ProductResponse {
   description: string;
   price: number;
   stock: number;
+  image?: string;
   categoryName: string;
   categoryId: number;
   isActive: boolean;

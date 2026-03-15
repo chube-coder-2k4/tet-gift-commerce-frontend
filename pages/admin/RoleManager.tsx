@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminRoleApi, RoleResponse, RoleRequest } from '../../services/adminApi';
+import { useConfirmDialog } from '../../components/ConfirmDialog';
 
 const RoleManager: React.FC = () => {
   const [roles, setRoles] = useState<RoleResponse[]>([]);
@@ -62,8 +63,16 @@ const RoleManager: React.FC = () => {
     setTimeout(() => setMsg(null), 3000);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Xóa vai trò này?')) return;
+    const ok = await confirm({
+      title: 'Xóa vai trò',
+      message: 'Bạn có chắc chắn muốn xóa vai trò này? Các người dùng đang gán vai trò này có thể bị ảnh hưởng.',
+      confirmText: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await adminRoleApi.delete(id);
       setMsg({ type: 'success', text: 'Đã xóa!' });
@@ -131,7 +140,6 @@ const RoleManager: React.FC = () => {
               </div>
               <h3 className="font-bold text-gray-900 dark:text-white text-lg">{r.name}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{r.description || 'Không có mô tả'}</p>
-              <span className="inline-block mt-3 text-xs text-gray-400">ID: {r.id}</span>
             </div>
           ))}
         </div>

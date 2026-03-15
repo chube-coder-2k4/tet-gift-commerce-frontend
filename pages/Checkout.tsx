@@ -18,15 +18,14 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('VN_PAY');
-  const [discountCode, setDiscountCode] = useState('');
   const [discount, setDiscount] = useState<DiscountResponse | null>(null);
-  const [discountError, setDiscountError] = useState('');
-  const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'checkout' | 'success'>('checkout');
   const [createdOrder, setCreatedOrder] = useState<OrderResponse | null>(null);
+  const [showVat, setShowVat] = useState(false);
+  const [vatInfo, setVatInfo] = useState({ companyName: '', taxCode: '', phone: '', address: '' });
 
   useEffect(() => {
     if (!authApi.isAuthenticated()) {
@@ -53,21 +52,17 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
       }
     };
     fetchData();
+
+    // Load discount applied from Cart
+    try {
+      const saved = localStorage.getItem('appliedDiscount');
+      if (saved) setDiscount(JSON.parse(saved));
+    } catch {}
   }, []);
 
-  const handleValidateDiscount = async () => {
-    if (!discountCode.trim()) return;
-    setValidatingDiscount(true);
-    setDiscountError('');
+  const handleRemoveDiscount = () => {
     setDiscount(null);
-    try {
-      const res = await discountApi.validate(discountCode.trim());
-      setDiscount(res.data);
-    } catch (err: any) {
-      setDiscountError(err?.message || 'Mã giảm giá không hợp lệ');
-    } finally {
-      setValidatingDiscount(false);
-    }
+    localStorage.removeItem('appliedDiscount');
   };
 
   const handlePlaceOrder = async () => {
@@ -87,6 +82,12 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
       const orderRes = await orderApi.create({
         addressId: selectedAddressId,
         discountCode: discount ? discount.code : undefined,
+        ...(showVat && vatInfo.companyName ? {
+          vatCompanyName: vatInfo.companyName,
+          vatTaxCode: vatInfo.taxCode || undefined,
+          vatPhone: vatInfo.phone || undefined,
+          vatAddress: vatInfo.address || undefined,
+        } : {}),
       });
       const order = orderRes.data;
       setCreatedOrder(order);
@@ -101,6 +102,9 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
       // 3. Update cart count
       onCartUpdate?.();
       onOrderCreated?.(order.id);
+
+      // Clean up discount from localStorage after order placed
+      localStorage.removeItem('appliedDiscount');
 
       // 4. If VNPay, redirect to payment URL
       if (paymentMethod === 'VN_PAY' && paymentRes.data?.paymentUrl) {
@@ -134,7 +138,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
             <span className="material-symbols-outlined text-4xl text-green-600 dark:text-green-400">check_circle</span>
           </div>
           <h1 className="text-3xl font-serif text-gray-900 dark:text-white mb-3">Đặt Hàng Thành Công!</h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-2">Mã đơn hàng: <span className="font-bold text-primary">#{createdOrder.id}</span></p>
+          <p className="text-gray-500 dark:text-gray-400 mb-2">Đơn hàng của bạn đã được ghi nhận thành công!</p>
           <p className="text-gray-500 dark:text-gray-400 mb-8">
             {paymentMethod === 'COD' ? 'Bạn sẽ thanh toán khi nhận hàng.' : 'Thanh toán đã được xử lý.'}
           </p>
@@ -296,6 +300,75 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
             </div>
           </div>
 
+          {/* VAT Invoice (Optional) */}
+          <div className="bg-white dark:bg-card-dark border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowVat(!showVat)}
+              className="w-full flex items-center justify-between p-6 text-left"
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary">receipt_long</span>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Xuất hóa đơn VAT</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Tùy chọn — Điền nếu bạn cần xuất hóa đơn công ty</p>
+                </div>
+              </div>
+              <span className={`material-symbols-outlined text-gray-400 transition-transform duration-200 ${showVat ? 'rotate-180' : ''}`}>
+                expand_more
+              </span>
+            </button>
+
+            {showVat && (
+              <div className="px-6 pb-6 pt-0 space-y-4 border-t border-gray-100 dark:border-white/5">
+                <div className="pt-4">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Tên công ty <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={vatInfo.companyName}
+                    onChange={e => setVatInfo(prev => ({ ...prev, companyName: e.target.value }))}
+                    placeholder="VD: Công ty TNHH ABC"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors placeholder:text-gray-400"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Mã số thuế</label>
+                    <input
+                      type="text"
+                      value={vatInfo.taxCode}
+                      onChange={e => setVatInfo(prev => ({ ...prev, taxCode: e.target.value }))}
+                      placeholder="VD: 0123456789"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors placeholder:text-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Số điện thoại</label>
+                    <input
+                      type="text"
+                      value={vatInfo.phone}
+                      onChange={e => setVatInfo(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="VD: 0901234567"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors placeholder:text-gray-400"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Địa chỉ công ty</label>
+                  <input
+                    type="text"
+                    value={vatInfo.address}
+                    onChange={e => setVatInfo(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="VD: 123 Lê Lợi, Quận 1, TP.HCM"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="mt-4 flex items-center justify-between pt-6 border-t border-gray-200 dark:border-white/10">
             <a onClick={() => onNavigate('cart')} className="flex items-center gap-2 text-gray-600 dark:text-gray-300 font-medium hover:text-primary transition-colors cursor-pointer">
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -327,32 +400,25 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
               ))}
             </div>
             
-            {/* Discount Code */}
+            {/* Discount Display (read-only, applied from Cart) */}
             <div className="px-5 py-4 bg-gray-50 dark:bg-surface-darker border-y border-gray-200 dark:border-white/10">
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 bg-white dark:bg-surface-dark border border-gray-300 dark:border-white/10 rounded-lg py-2.5 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary placeholder-gray-500 transition-all"
-                  type="text"
-                  placeholder="Nhập mã giảm giá"
-                  value={discountCode}
-                  onChange={e => { setDiscountCode(e.target.value); setDiscountError(''); }}
-                />
-                <button
-                  onClick={handleValidateDiscount}
-                  disabled={validatingDiscount || !discountCode.trim()}
-                  className="px-4 bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 text-gray-900 dark:text-accent text-xs font-bold rounded-lg transition-colors uppercase disabled:opacity-50"
-                >
-                  {validatingDiscount ? '...' : 'Áp dụng'}
-                </button>
-              </div>
-              {discountError && <p className="text-red-500 text-xs mt-2">{discountError}</p>}
-              {discount && (
-                <div className="mt-2 flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-900/30">
-                  <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-sm">confirmation_number</span>
-                  <span className="text-xs font-medium text-gray-900 dark:text-gray-300">Mã {discount.code}! <span className="text-green-600 dark:text-green-400 font-bold">-{discount.discountValue.toLocaleString()}₫</span></span>
-                  <button onClick={() => { setDiscount(null); setDiscountCode(''); }} className="ml-auto text-gray-400 hover:text-red-500">
-                    <span className="material-symbols-outlined text-sm">close</span>
+              {discount ? (
+                <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-200 dark:border-green-800/30">
+                  <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
+                  <div className="flex-1">
+                    <span className="text-sm font-bold text-green-700 dark:text-green-400">{discount.code}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">-{discount.discountValue.toLocaleString()}₫</span>
+                  </div>
+                  <button onClick={handleRemoveDiscount} className="p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors" title="Xóa mã">
+                    <span className="material-symbols-outlined text-lg">close</span>
                   </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800/30">
+                  <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-lg">confirmation_number</span>
+                  <span className="text-xs text-amber-700 dark:text-amber-400">
+                    Bạn có mã giảm giá? <button onClick={() => onNavigate('cart')} className="font-bold underline hover:opacity-80">Nhập mã ở Giỏ hàng</button>
+                  </span>
                 </div>
               )}
             </div>

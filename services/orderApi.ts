@@ -23,6 +23,13 @@ export interface OrderResponse {
   id: number;
   status: OrderStatus;
   totalAmount: number;
+  customerName?: string;
+  customerEmail?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  shippingAddress?: string;
+  discountCode?: string;
+  discountAmount?: number;
   vatCompanyName?: string;
   vatTaxCode?: string;
   vatPhone?: string;

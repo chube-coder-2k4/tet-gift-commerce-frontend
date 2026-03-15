@@ -18,6 +18,7 @@ import { Screen, User } from './types';
 import { authApi } from './services/api';
 import { cartApi } from './services/cartApi';
 import MusicPlayer from './components/MusicPlayer';
+import { ConfirmDialogProvider } from './components/ConfirmDialog';
 
 // Map URL paths to Screen types
 const pathToScreen: Record<string, Screen> = {
@@ -222,7 +223,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <>
+    <ConfirmDialogProvider>
       <MusicPlayer />
       {currentScreen !== 'login' && currentScreen !== 'register' && currentScreen !== 'admin' && (
         <Header onNavigate={handleNavigate} currentScreen={currentScreen} user={user} onLogout={handleLogout} cartItemCount={cartItemCount} />
@@ -232,7 +233,7 @@ const App: React.FC = () => {
         <Footer />
       )}
       <ChatWidget onProductClick={handleProductClick} />
-    </>
+    </ConfirmDialogProvider>
   );
 };
 

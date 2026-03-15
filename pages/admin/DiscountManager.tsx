@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminDiscountApi, DiscountResponse, DiscountRequest } from '../../services/adminApi';
+import { useConfirmDialog } from '../../components/ConfirmDialog';
 
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
@@ -87,8 +88,16 @@ const DiscountManager: React.FC = () => {
     setTimeout(() => setMsg(null), 3000);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Xóa mã giảm giá này?')) return;
+    const ok = await confirm({
+      title: 'Xóa mã giảm giá',
+      message: 'Bạn có chắc chắn muốn xóa mã giảm giá này?',
+      confirmText: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await adminDiscountApi.delete(id);
       setMsg({ type: 'success', text: 'Đã xóa!' });
@@ -173,7 +182,7 @@ const DiscountManager: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-surface-darker">
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">ID</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">STT</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Mã</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Giá trị</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Thời gian</th>
@@ -186,9 +195,9 @@ const DiscountManager: React.FC = () => {
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
               ) : discounts.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400">Không có mã giảm giá</td></tr>
-              ) : discounts.map(d => (
+              ) : discounts.map((d, idx) => (
                 <tr key={d.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-3 text-sm font-medium text-gray-900 dark:text-white">#{d.id}</td>
+                  <td className="px-5 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{idx + 1}</td>
                   <td className="px-5 py-3"><span className="font-mono font-bold text-sm px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg">{d.code}</span></td>
                   <td className="px-5 py-3 text-right text-sm font-bold text-primary">{formatCurrency(d.discountValue)}</td>
                   <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400">

@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { chatbotApi, ChatSuggestion, ChatHistoryItem } from '../services/chatbotApi';
+import { productApi, ProductResponse } from '../services/productApi';
+import { bundleApi, BundleResponse } from '../services/bundleApi';
 
 interface Message {
   id: number;
@@ -15,13 +17,74 @@ interface ChatWidgetProps {
 
 const SESSION_KEY = 'chatbot_session_id';
 
-// Simple markdown: **bold** and \n to <br>
-function renderMarkdown(text: string) {
+// Simple markdown: **bold** and \n to <br>, plus product links
+function renderMarkdown(
+  text: string,
+  suggestions?: ChatSuggestion[],
+  onProductClick?: (id: number) => void
+) {
+  // First, handle **bold**
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
+  
+  const processedParts = parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
+      const innerText = part.slice(2, -2);
+      // Check if bold text matches a product name
+      const matchedSuggestion = suggestions?.find(
+        s => s.name.toLowerCase() === innerText.toLowerCase()
+      );
+      if (matchedSuggestion && onProductClick) {
+        return (
+          <button
+            key={i}
+            onClick={(e) => { e.stopPropagation(); onProductClick(matchedSuggestion.id); }}
+            className="inline-flex items-center gap-0.5 font-bold text-primary dark:text-[#daa520] hover:underline cursor-pointer transition-colors"
+            title={`Xem ${matchedSuggestion.name}`}
+          >
+            {innerText}
+            <span className="material-symbols-outlined text-[12px] align-middle">open_in_new</span>
+          </button>
+        );
+      }
+      return <strong key={i}>{innerText}</strong>;
     }
+
+    // For non-bold parts, check if any product name appears as plain text
+    if (suggestions && suggestions.length > 0 && onProductClick) {
+      // Build regex from suggestion names, sorted longest first to avoid partial matches
+      const names = suggestions.map(s => s.name).sort((a, b) => b.length - a.length);
+      const escapedNames = names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      const regex = new RegExp(`(${escapedNames.join('|')})`, 'gi');
+      const segments = part.split(regex);
+      
+      return segments.map((seg, j) => {
+        const matchedSug = suggestions.find(
+          s => s.name.toLowerCase() === seg.toLowerCase()
+        );
+        if (matchedSug) {
+          return (
+            <button
+              key={`${i}-${j}`}
+              onClick={(e) => { e.stopPropagation(); onProductClick(matchedSug.id); }}
+              className="inline-flex items-center gap-0.5 font-bold text-primary dark:text-[#daa520] hover:underline cursor-pointer transition-colors"
+              title={`Xem ${matchedSug.name}`}
+            >
+              {seg}
+              <span className="material-symbols-outlined text-[12px] align-middle">open_in_new</span>
+            </button>
+          );
+        }
+        // Handle line breaks in non-matched segments
+        return seg.split('\n').map((line, k, arr) => (
+          <React.Fragment key={`${i}-${j}-${k}`}>
+            {line}
+            {k < arr.length - 1 && <br />}
+          </React.Fragment>
+        ));
+      });
+    }
+
+    // Fallback: just handle line breaks
     return part.split('\n').map((line, j, arr) => (
       <React.Fragment key={`${i}-${j}`}>
         {line}
@@ -29,10 +92,54 @@ function renderMarkdown(text: string) {
       </React.Fragment>
     ));
   });
+
+  return processedParts;
 }
 
-function formatPrice(price: string) {
+function formatPrice(price: string | number) {
   return Number(price).toLocaleString('vi-VN') + 'đ';
+}
+
+// Catalog item for matching product names in text
+interface CatalogItem {
+  id: number;
+  type: 'PRODUCT' | 'BUNDLE';
+  name: string;
+  price: number;
+  stock: number;
+  imageUrl: string | null;
+}
+
+// Extract product suggestions from AI text by matching against local catalog
+function extractSuggestionsFromText(text: string, catalog: CatalogItem[]): ChatSuggestion[] {
+  if (catalog.length === 0) return [];
+  
+  const found: ChatSuggestion[] = [];
+  const seenIds = new Set<string>();
+  const lowerText = text.toLowerCase();
+  
+  // Sort by name length descending for longest match first
+  const sorted = [...catalog].sort((a, b) => b.name.length - a.name.length);
+  
+  for (const item of sorted) {
+    const key = `${item.type}-${item.id}`;
+    if (seenIds.has(key)) continue;
+    
+    // Check if product name appears in text (case-insensitive)
+    if (lowerText.includes(item.name.toLowerCase())) {
+      seenIds.add(key);
+      found.push({
+        id: item.id,
+        type: item.type,
+        name: item.name,
+        price: item.price.toString(),
+        stock: item.stock,
+        imageUrl: item.imageUrl,
+      });
+    }
+  }
+  
+  return found;
 }
 
 export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
@@ -50,6 +157,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
   const [sessionId, setSessionId] = useState<string | null>(() => localStorage.getItem(SESSION_KEY));
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const catalogRef = useRef<CatalogItem[]>([]);
+  const catalogLoaded = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -79,6 +188,35 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
     }
   }, [isOpen, sessionId, historyLoaded]);
 
+  // Preload product+bundle catalog when chat opens
+  useEffect(() => {
+    if (isOpen && !catalogLoaded.current) {
+      catalogLoaded.current = true;
+      Promise.all([
+        productApi.getAll({ size: 100 }).catch(() => ({ data: { data: [] } })),
+        bundleApi.getAll({ size: 100 }).catch(() => ({ data: { data: [] } })),
+      ]).then(([prodRes, bundleRes]) => {
+        const products: CatalogItem[] = (prodRes.data?.data || []).map((p: ProductResponse) => ({
+          id: p.id,
+          type: 'PRODUCT' as const,
+          name: p.name,
+          price: p.price,
+          stock: p.stock,
+          imageUrl: p.images?.find(img => img.isPrimary)?.imageUrl || p.images?.[0]?.imageUrl || null,
+        }));
+        const bundles: CatalogItem[] = (bundleRes.data?.data || []).map((b: BundleResponse) => ({
+          id: b.id,
+          type: 'BUNDLE' as const,
+          name: b.name,
+          price: b.price,
+          stock: 999,
+          imageUrl: null,
+        }));
+        catalogRef.current = [...products, ...bundles];
+      });
+    }
+  }, [isOpen]);
+
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
 
@@ -107,12 +245,21 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
           localStorage.setItem(SESSION_KEY, res.data.sessionId);
         }
 
+        // Auto-extract suggestions from text if backend didn't provide any
+        let suggestions = res.data.suggestions?.length > 0 ? res.data.suggestions : undefined;
+        if (!suggestions || suggestions.length === 0) {
+          const autoSuggestions = extractSuggestionsFromText(res.data.message, catalogRef.current);
+          if (autoSuggestions.length > 0) {
+            suggestions = autoSuggestions;
+          }
+        }
+
         const botMsg: Message = {
           id: Date.now() + 1,
           sender: 'bot',
           text: res.data.message,
           timestamp: new Date(res.data.timestamp),
-          suggestions: res.data.suggestions?.length > 0 ? res.data.suggestions : undefined,
+          suggestions,
         };
         setMessages(prev => [...prev, botMsg]);
       }
@@ -175,7 +322,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                           : 'bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-[#3a3330]/60 rounded-bl-sm shadow-sm dark:shadow-lg'
                       }`}
                     >
-                      <p className="text-sm leading-relaxed">{renderMarkdown(message.text)}</p>
+                      <p className="text-sm leading-relaxed">{renderMarkdown(message.text, message.suggestions, onProductClick)}</p>
                     </div>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 px-1">
                       {message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}

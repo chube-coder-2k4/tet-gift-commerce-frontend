@@ -20,6 +20,18 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate }) => {
   const [discountError, setDiscountError] = useState('');
   const [validatingDiscount, setValidatingDiscount] = useState(false);
 
+  // Load saved discount from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('appliedDiscount');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setDiscount(parsed);
+        setDiscountCode(parsed.code || '');
+      }
+    } catch {}
+  }, []);
+
   const fetchCart = async () => {
     if (!authApi.isAuthenticated()) {
       setIsLoading(false);
@@ -88,16 +100,26 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate }) => {
       if (res.data) {
         setDiscount(res.data);
         setDiscountError('');
+        // Save to localStorage for Checkout
+        localStorage.setItem('appliedDiscount', JSON.stringify(res.data));
       } else {
         setDiscountError('Mã giảm giá không hợp lệ');
         setDiscount(null);
+        localStorage.removeItem('appliedDiscount');
       }
     } catch (err: any) {
       setDiscountError(err?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn');
       setDiscount(null);
+      localStorage.removeItem('appliedDiscount');
     } finally {
       setValidatingDiscount(false);
     }
+  };
+
+  const handleRemoveDiscount = () => {
+    setDiscount(null);
+    setDiscountCode('');
+    localStorage.removeItem('appliedDiscount');
   };
 
   // Not logged in
@@ -257,36 +279,49 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate }) => {
                 <span>Phí vận chuyển</span>
                 <span className="text-gray-900 dark:text-white font-medium">Miễn phí</span>
               </div>
-              <div className="flex justify-between items-center text-gray-600 dark:text-gray-400 text-sm">
-                <span>Giảm giá</span>
-                <span className="text-primary font-medium">-{(discount?.discountValue || 0).toLocaleString()}₫</span>
-              </div>
+              {discount && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[16px]">confirmation_number</span>
+                    Giảm giá
+                  </span>
+                  <span className="text-green-600 dark:text-green-400 font-bold">-{discount.discountValue.toLocaleString()}₫</span>
+                </div>
+              )}
             </div>
             
+            {/* Discount Code Input */}
             <div className="relative mb-4">
-              <div className="flex gap-2">
-                <input 
-                  className="flex-1 bg-gray-50 dark:bg-surface-dark border border-gray-300 dark:border-white/10 rounded-lg py-3 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent placeholder-gray-500 transition-all" 
-                  type="text" 
-                  placeholder="Nhập mã giảm giá"
-                  value={discountCode}
-                  onChange={e => { setDiscountCode(e.target.value); setDiscountError(''); }}
-                />
-                <button 
-                  onClick={handleValidateDiscount}
-                  disabled={validatingDiscount || !discountCode.trim()}
-                  className="px-4 bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 text-gray-900 dark:text-accent text-xs font-bold rounded-lg transition-colors uppercase disabled:opacity-50"
-                >
-                  {validatingDiscount ? '...' : 'Áp dụng'}
-                </button>
-              </div>
-              {discountError && <p className="text-red-500 text-xs mt-2">{discountError}</p>}
-              {discount && (
-                <div className="mt-2 flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-900/30">
-                  <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-sm">confirmation_number</span>
-                  <span className="text-xs font-medium text-gray-900 dark:text-gray-300">Mã {discount.code}! <span className="text-green-600 dark:text-green-400 font-bold">-{discount.discountValue.toLocaleString()}₫</span></span>
-                  <button onClick={() => { setDiscount(null); setDiscountCode(''); }} className="ml-auto text-gray-400 hover:text-red-500">
-                    <span className="material-symbols-outlined text-sm">close</span>
+              {!discount ? (
+                <>
+                  <div className="flex gap-2">
+                    <input 
+                      className="flex-1 bg-gray-50 dark:bg-surface-dark border border-gray-300 dark:border-white/10 rounded-lg py-3 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent placeholder-gray-500 transition-all" 
+                      type="text" 
+                      placeholder="Nhập mã giảm giá"
+                      value={discountCode}
+                      onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountError(''); }}
+                      onKeyDown={e => { if (e.key === 'Enter') handleValidateDiscount(); }}
+                    />
+                    <button 
+                      onClick={handleValidateDiscount}
+                      disabled={validatingDiscount || !discountCode.trim()}
+                      className="px-4 bg-primary hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors uppercase disabled:opacity-50"
+                    >
+                      {validatingDiscount ? '...' : 'Áp dụng'}
+                    </button>
+                  </div>
+                  {discountError && <p className="text-red-500 text-xs mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">error</span>{discountError}</p>}
+                </>
+              ) : (
+                <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-200 dark:border-green-800/30">
+                  <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
+                  <div className="flex-1">
+                    <span className="text-sm font-bold text-green-700 dark:text-green-400">{discount.code}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">-{discount.discountValue.toLocaleString()}₫</span>
+                  </div>
+                  <button onClick={handleRemoveDiscount} className="p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors" title="Xóa mã">
+                    <span className="material-symbols-outlined text-lg">close</span>
                   </button>
                 </div>
               )}

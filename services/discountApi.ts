@@ -5,6 +5,9 @@ export interface DiscountResponse {
   id: number;
   code: string;
   discountValue: number;
+  minOrderAmount?: number;
+  usageLimit?: number;
+  usageCount?: number;
   startDate: string;
   endDate: string;
   isActive: boolean;

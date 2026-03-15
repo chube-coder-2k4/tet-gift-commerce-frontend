@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminProductApi, adminCategoryApi, ProductResponse, ProductRequest, CategoryResponse, PageResponse } from '../../services/adminApi';
+import { useConfirmDialog } from '../../components/ConfirmDialog';
 
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
@@ -14,6 +15,8 @@ const ProductManager: React.FC = () => {
   const [editing, setEditing] = useState<ProductResponse | null>(null);
   const [form, setForm] = useState<ProductRequest>({ name: '', description: '', price: 0, stock: 0, categoryId: 0 });
   const [imageUrls, setImageUrls] = useState<string[]>(['']);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -45,6 +48,9 @@ const ProductManager: React.FC = () => {
   const resetForm = () => {
     setForm({ name: '', description: '', price: 0, stock: 0, categoryId: categories[0]?.id || 0 });
     setImageUrls(['']);
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
     setEditing(null);
     setShowForm(false);
   };
@@ -67,7 +73,25 @@ const ProductManager: React.FC = () => {
       expDate: p.expDate || undefined,
     });
     setImageUrls(p.images?.map(i => i.imageUrl) || ['']);
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
     setShowForm(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeSelectedFile = () => {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
   };
 
   const handleSubmit = async () => {
@@ -76,15 +100,30 @@ const ProductManager: React.FC = () => {
     if (!form.categoryId) { setMsg({ type: 'error', text: 'Chọn danh mục' }); setTimeout(() => setMsg(null), 3000); return; }
 
     setSaving(true);
-    const images = imageUrls.filter(u => u.trim()).map(u => ({ imageUrl: u }));
+    // Build image metadata from URLs (for JSON mode)
+    const images = imageUrls.filter(u => u.trim()).map((u, i) => ({
+      imageUrl: u,
+      imageType: i === 0 ? 'MAIN' : 'SUB',
+      publicId: '',
+      isPrimary: i === 0,
+    }));
     const payload: ProductRequest = { ...form, images: images.length > 0 ? images : undefined };
 
     try {
       if (editing) {
-        await adminProductApi.update(editing.id, payload);
+        // Has file → multipart; no file → JSON
+        if (imageFile) {
+          await adminProductApi.updateWithImage(editing.id, payload, imageFile);
+        } else {
+          await adminProductApi.update(editing.id, payload);
+        }
         setMsg({ type: 'success', text: 'Cập nhật thành công!' });
       } else {
-        await adminProductApi.create(payload);
+        if (imageFile) {
+          await adminProductApi.createWithImage(payload, imageFile);
+        } else {
+          await adminProductApi.create(payload);
+        }
         setMsg({ type: 'success', text: 'Tạo sản phẩm thành công!' });
       }
       resetForm();
@@ -97,8 +136,16 @@ const ProductManager: React.FC = () => {
     setTimeout(() => setMsg(null), 3000);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Xóa sản phẩm này?')) return;
+    const ok = await confirm({
+      title: 'Xóa sản phẩm',
+      message: 'Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này không thể hoàn tác.',
+      confirmText: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await adminProductApi.delete(id);
       setMsg({ type: 'success', text: 'Đã xóa!' });
@@ -180,14 +227,48 @@ const ProductManager: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hình ảnh (URL)</label>
-                {imageUrls.map((url, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input value={url} onChange={e => updateImageUrl(i, e.target.value)} placeholder="https://..." className="flex-1 px-4 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
-                    {imageUrls.length > 1 && <button onClick={() => removeImageUrl(i)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"><span className="material-symbols-outlined text-lg">close</span></button>}
-                  </div>
-                ))}
-                <button onClick={addImageUrl} className="text-sm text-primary font-medium hover:underline">+ Thêm ảnh</button>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hình ảnh sản phẩm</label>
+
+                {/* File Upload */}
+                <div className="mb-3">
+                  {imagePreview ? (
+                    <div className="relative group">
+                      <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-xl border border-gray-200 dark:border-white/10" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity flex items-center justify-center">
+                        <button onClick={removeSelectedFile} className="px-3 py-1.5 bg-white/90 text-red-600 rounded-lg text-sm font-bold flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">close</span>Xóa ảnh
+                        </button>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="material-symbols-outlined text-sm text-green-500">check_circle</span>
+                        <span className="truncate">{imageFile?.name}</span>
+                        <span>({((imageFile?.size || 0) / 1024).toFixed(0)} KB)</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group">
+                      <span className="material-symbols-outlined text-3xl text-gray-400 group-hover:text-primary transition-colors">cloud_upload</span>
+                      <span className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">Chọn ảnh để upload</span>
+                      <span className="text-xs text-gray-400">JPG, PNG, WebP — Tối đa 5MB</span>
+                      <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                    </label>
+                  )}
+                </div>
+
+                {/* URL Input (alternative) */}
+                <div className="pt-3 border-t border-dashed border-gray-200 dark:border-white/10">
+                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">link</span>
+                    Hoặc nhập URL ảnh có sẵn
+                  </p>
+                  {imageUrls.map((url, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <input value={url} onChange={e => updateImageUrl(i, e.target.value)} placeholder="https://..." className="flex-1 px-4 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                      {imageUrls.length > 1 && <button onClick={() => removeImageUrl(i)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"><span className="material-symbols-outlined text-lg">close</span></button>}
+                    </div>
+                  ))}
+                  <button onClick={addImageUrl} className="text-sm text-primary font-medium hover:underline">+ Thêm URL ảnh</button>
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button onClick={resetForm} className="flex-1 py-2.5 rounded-xl border border-gray-300 dark:border-white/20 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-white/5">Hủy</button>
@@ -220,14 +301,13 @@ const ProductManager: React.FC = () => {
                 <tr key={p.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      {p.images?.[0] ? (
-                        <img src={p.images[0].imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-gray-200 dark:border-white/10" />
+                      {(p.image || p.images?.[0]?.imageUrl) ? (
+                        <img src={p.image || p.images[0].imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-gray-200 dark:border-white/10" />
                       ) : (
                         <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center"><span className="material-symbols-outlined text-gray-400">image</span></div>
                       )}
                       <div>
                         <p className="font-semibold text-sm text-gray-900 dark:text-white">{p.name}</p>
-                        <p className="text-xs text-gray-400">ID: {p.id}</p>
                       </div>
                     </div>
                   </td>

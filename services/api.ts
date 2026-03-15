@@ -38,6 +38,8 @@ export interface UserResponse {
   username?: string;
   roleName?: string;
   roles?: { id: number, name: string }[];
+  createdBy?: string | null;
+  updatedBy?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -285,7 +287,7 @@ export const userApi = {
   },
 
   // Update user profile
-  updateProfile: async (userId: number, data: { fullName?: string; phone?: string }): Promise<ApiResponse<number>> => {
+  updateProfile: async (userId: number, data: { fullName?: string; email?: string; phone?: string; username?: string }): Promise<ApiResponse<number>> => {
     return fetchWithAuth<number>(`/user/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(data),

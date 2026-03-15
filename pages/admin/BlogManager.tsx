@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminBlogApi, adminBlogTopicApi, BlogPostResponse, BlogPostRequest, BlogTopicResponse, BlogTopicRequest, PageResponse } from '../../services/adminApi';
+import { useConfirmDialog } from '../../components/ConfirmDialog';
 
 const BlogManager: React.FC = () => {
   // Tab: 'posts' or 'topics'
@@ -70,8 +71,16 @@ const TopicSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: st
     setTimeout(() => setMsg(null), 3000);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Xóa chủ đề này?')) return;
+    const ok = await confirm({
+      title: 'Xóa chủ đề',
+      message: 'Bạn có chắc chắn muốn xóa chủ đề này? Các bài viết thuộc chủ đề có thể bị ảnh hưởng.',
+      confirmText: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await adminBlogTopicApi.delete(id);
       setMsg({ type: 'success', text: 'Đã xóa!' }); fetchTopics();
@@ -117,7 +126,6 @@ const TopicSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: st
             <div key={t.id} className="bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 p-5 hover:shadow-lg transition-all flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-white">{t.name}</h3>
-                <span className="text-xs text-gray-400">ID: {t.id}</span>
               </div>
               <div className="flex gap-1">
                 <button onClick={() => { setEditing(t); setForm({ name: t.name }); setShowForm(true); }} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400"><span className="material-symbols-outlined text-lg">edit</span></button>
@@ -199,8 +207,16 @@ const PostSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: str
     setTimeout(() => setMsg(null), 3000);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Xóa bài viết này?')) return;
+    const ok = await confirm({
+      title: 'Xóa bài viết',
+      message: 'Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.',
+      confirmText: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await adminBlogApi.delete(id);
       setMsg({ type: 'success', text: 'Đã xóa!' }); fetchPosts();
@@ -256,7 +272,7 @@ const PostSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: str
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-surface-darker">
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">ID</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">STT</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tiêu đề</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Chủ đề</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tác giả</th>
@@ -269,12 +285,12 @@ const PostSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: str
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
               ) : posts.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400">Không có bài viết</td></tr>
-              ) : posts.map(p => (
+              ) : posts.map((p, idx) => (
                 <tr key={p.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-3 text-sm font-medium text-gray-900 dark:text-white">#{p.id}</td>
+                  <td className="px-5 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{page * 10 + idx + 1}</td>
                   <td className="px-5 py-3 text-sm font-semibold text-gray-900 dark:text-white max-w-xs truncate">{p.title}</td>
                   <td className="px-5 py-3"><span className="px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">{getTopicName(p.topicId)}</span></td>
-                  <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400">{p.authorName || `User #${p.authorId}`}</td>
+                  <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400">{p.authorName || 'Tác giả'}</td>
                   <td className="px-5 py-3 text-sm text-gray-500">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : '—'}</td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex gap-1 justify-end">

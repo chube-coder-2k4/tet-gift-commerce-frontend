@@ -21,6 +21,7 @@ export interface ChatResponse {
   timestamp: string;
   detectedIntent: string;
   success: boolean;
+  errorMessage?: string | null;
   suggestions: ChatSuggestion[];
 }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminCategoryApi, CategoryResponse, CategoryRequest } from '../../services/adminApi';
+import { useConfirmDialog } from '../../components/ConfirmDialog';
 
 const CategoryManager: React.FC = () => {
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
@@ -55,8 +56,16 @@ const CategoryManager: React.FC = () => {
     setTimeout(() => setMsg(null), 3000);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Xóa danh mục này?')) return;
+    const ok = await confirm({
+      title: 'Xóa danh mục',
+      message: 'Bạn có chắc chắn muốn xóa danh mục này? Các sản phẩm thuộc danh mục có thể bị ảnh hưởng.',
+      confirmText: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await adminCategoryApi.delete(id);
       setMsg({ type: 'success', text: 'Đã xóa!' });
@@ -124,7 +133,6 @@ const CategoryManager: React.FC = () => {
               </div>
               <h3 className="font-bold text-gray-900 dark:text-white">{c.name}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{c.description || 'Không có mô tả'}</p>
-              <span className="inline-block mt-3 text-xs text-gray-400">ID: {c.id}</span>
             </div>
           ))}
         </div>

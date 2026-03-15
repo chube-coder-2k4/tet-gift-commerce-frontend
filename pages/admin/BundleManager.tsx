@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminBundleApi, adminProductApi, BundleResponse, BundleRequest, BundleProductRequest, ProductResponse, PageResponse } from '../../services/adminApi';
+import { useConfirmDialog } from '../../components/ConfirmDialog';
 
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
@@ -87,8 +88,16 @@ const BundleManager: React.FC = () => {
     setTimeout(() => setMsg(null), 3000);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Xóa combo này?')) return;
+    const ok = await confirm({
+      title: 'Xóa combo',
+      message: 'Bạn có chắc chắn muốn xóa combo này? Hành động này không thể hoàn tác.',
+      confirmText: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await adminBundleApi.delete(id);
       setMsg({ type: 'success', text: 'Đã xóa!' });
@@ -108,7 +117,7 @@ const BundleManager: React.FC = () => {
   const addBP = () => setBundleProducts([...bundleProducts, { productId: 0, quantity: 1 }]);
   const removeBP = (idx: number) => setBundleProducts(bundleProducts.filter((_, i) => i !== idx));
 
-  const getProductName = (id: number) => products.find(p => p.id === id)?.name || `#${id}`;
+  const getProductName = (id: number) => products.find(p => p.id === id)?.name || `Sản phẩm`;
 
   return (
     <div>
@@ -180,7 +189,7 @@ const BundleManager: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-surface-darker">
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">ID</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">STT</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tên combo</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Giá</th>
                 <th className="text-center px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Sản phẩm</th>
@@ -193,9 +202,9 @@ const BundleManager: React.FC = () => {
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
               ) : bundles.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400">Không có combo</td></tr>
-              ) : bundles.map(b => (
+              ) : bundles.map((b, idx) => (
                 <tr key={b.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-3 text-sm font-medium text-gray-900 dark:text-white">#{b.id}</td>
+                  <td className="px-5 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{page * 10 + idx + 1}</td>
                   <td className="px-5 py-3 text-sm font-semibold text-gray-900 dark:text-white">{b.name}</td>
                   <td className="px-5 py-3 text-right text-sm font-bold text-primary">{formatCurrency(b.price)}</td>
                   <td className="px-5 py-3 text-center">

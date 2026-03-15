@@ -9,6 +9,7 @@ import BundleManager from './BundleManager';
 import OrderManager from './OrderManager';
 import DiscountManager from './DiscountManager';
 import BlogManager from './BlogManager';
+import DashboardStats from './DashboardStats';
 
 type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'bundles' | 'orders' | 'discounts' | 'blogs';
 
@@ -162,30 +163,40 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) =>
   ];
 
   return (
-    <div>
-      <div className="mb-8">
+    <div className="space-y-8">
+      <div>
         <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Chào mừng đến Trang quản trị</h2>
         <p className="text-gray-500 dark:text-gray-400">Quản lý toàn bộ dữ liệu cửa hàng Quà Tết từ đây.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {cards.map(card => (
-          <button
-            key={card.key}
-            onClick={() => onTabChange(card.key)}
-            className="text-left p-5 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 hover:shadow-lg hover:border-primary/30 transition-all group"
-          >
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-              <span className="material-symbols-outlined text-white text-2xl">{card.icon}</span>
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{card.title}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{card.desc}</p>
-          </button>
-        ))}
+      {/* Revenue Charts, Top Products & Top Customers */}
+      <DashboardStats />
+
+      {/* Quick Access Cards */}
+      <div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary">apps</span>
+          Quản lý nhanh
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {cards.map(card => (
+            <button
+              key={card.key}
+              onClick={() => onTabChange(card.key)}
+              className="text-left p-5 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 hover:shadow-lg hover:border-primary/30 transition-all group"
+            >
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
+                <span className="material-symbols-outlined text-white text-2xl">{card.icon}</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{card.title}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{card.desc}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* AI Embeddings Sync */}
-      <div className="mt-8 p-5 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5">
+      <div className="p-5 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-lg">
