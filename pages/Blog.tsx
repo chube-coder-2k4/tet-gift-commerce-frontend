@@ -121,7 +121,11 @@ const Blog: React.FC<BlogProps> = ({ onNavigate, onBlogPostClick }) => {
               <div className="order-1 lg:order-2 relative group cursor-pointer" onClick={() => handlePostClick(featuredPost.id)}>
                 <div className="absolute -inset-2 bg-gradient-to-r from-primary to-accent opacity-20 blur-2xl rounded-[2rem] -z-10 transition-opacity duration-500 group-hover:opacity-30"></div>
                 <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border-2 border-primary/20 dark:border-white/10 shadow-2xl bg-gradient-to-br from-red-100 to-yellow-50 dark:from-primary/20 dark:to-accent/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[120px] text-primary/30 dark:text-accent/30">article</span>
+                  {featuredPost.image ? (
+                    <img src={featuredPost.image} alt={featuredPost.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  ) : (
+                    <span className="material-symbols-outlined text-[120px] text-primary/30 dark:text-accent/30">article</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -178,7 +182,11 @@ const Blog: React.FC<BlogProps> = ({ onNavigate, onBlogPostClick }) => {
               {posts.map((post, idx) => (
                 <article key={post.id} className="group flex flex-col h-full bg-transparent hover:bg-gray-50 dark:hover:bg-white/[0.02] rounded-2xl transition-all duration-300 p-3 -mx-3 border border-transparent hover:border-gray-200 dark:hover:border-white/5 cursor-pointer" onClick={() => handlePostClick(post.id)}>
                   <div className="relative overflow-hidden rounded-xl aspect-[16/10] mb-5 border border-gray-200 dark:border-white/5 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-surface-dark dark:to-surface-darker flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[60px] text-gray-300 dark:text-gray-600 group-hover:scale-110 transition-transform duration-500">article</span>
+                    {post.image ? (
+                      <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <span className="material-symbols-outlined text-[60px] text-gray-300 dark:text-gray-600 group-hover:scale-110 transition-transform duration-500">article</span>
+                    )}
                     {post.topicName && (
                       <span className={`absolute top-4 left-4 z-20 px-3 py-1 backdrop-blur border border-white/10 text-[10px] font-bold uppercase tracking-wider rounded-md shadow-lg ${topicColors[idx % topicColors.length]}`}>
                         {post.topicName}

@@ -12,7 +12,9 @@ export interface BundleProduct {
 export interface BundleResponse {
   id: number;
   name: string;
+  description?: string;
   price: number;
+  image?: string;
   isCustom: boolean;
   isActive: boolean;
   products: BundleProduct[];

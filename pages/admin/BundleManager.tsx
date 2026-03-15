@@ -14,9 +14,12 @@ const BundleManager: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<BundleResponse | null>(null);
   const [formName, setFormName] = useState('');
+  const [formDescription, setFormDescription] = useState('');
   const [formPrice, setFormPrice] = useState(0);
   const [formIsCustom, setFormIsCustom] = useState(false);
   const [bundleProducts, setBundleProducts] = useState<BundleProductRequest[]>([{ productId: 0, quantity: 1 }]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -47,8 +50,11 @@ const BundleManager: React.FC = () => {
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const resetForm = () => {
-    setFormName(''); setFormPrice(0); setFormIsCustom(false);
+    setFormName(''); setFormDescription(''); setFormPrice(0); setFormIsCustom(false);
     setBundleProducts([{ productId: 0, quantity: 1 }]);
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
     setEditing(null); setShowForm(false);
   };
 
@@ -57,10 +63,29 @@ const BundleManager: React.FC = () => {
   const openEdit = (b: BundleResponse) => {
     setEditing(b);
     setFormName(b.name);
+    setFormDescription(b.description || '');
     setFormPrice(b.price);
     setFormIsCustom(b.isCustom);
     setBundleProducts(b.products?.map(p => ({ productId: p.productId, quantity: p.quantity })) || [{ productId: 0, quantity: 1 }]);
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
     setShowForm(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeSelectedFile = () => {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
   };
 
   const handleSubmit = async () => {
@@ -69,13 +94,21 @@ const BundleManager: React.FC = () => {
     if (validProducts.length === 0) { setMsg({ type: 'error', text: 'Thêm ít nhất 1 sản phẩm' }); setTimeout(() => setMsg(null), 3000); return; }
 
     setSaving(true);
-    const payload: BundleRequest = { name: formName, price: formPrice, isCustom: formIsCustom, products: validProducts };
+    const payload: BundleRequest = { name: formName, description: formDescription || undefined, price: formPrice, isCustom: formIsCustom, products: validProducts };
     try {
       if (editing) {
-        await adminBundleApi.update(editing.id, payload);
+        if (imageFile) {
+          await adminBundleApi.updateWithImage(editing.id, payload, imageFile);
+        } else {
+          await adminBundleApi.update(editing.id, payload);
+        }
         setMsg({ type: 'success', text: 'Cập nhật thành công!' });
       } else {
-        await adminBundleApi.create(payload);
+        if (imageFile) {
+          await adminBundleApi.createWithImage(payload, imageFile);
+        } else {
+          await adminBundleApi.create(payload);
+        }
         setMsg({ type: 'success', text: 'Tạo combo thành công!' });
       }
       resetForm();
@@ -146,6 +179,10 @@ const BundleManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tên combo *</label>
                 <input value={formName} onChange={e => setFormName(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mô tả</label>
+                <textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} rows={2} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none" />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Giá combo (VNĐ)</label>
@@ -157,6 +194,41 @@ const BundleManager: React.FC = () => {
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Combo tùy chỉnh</span>
                   </label>
                 </div>
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hình ảnh combo</label>
+                {imagePreview || (editing?.image) ? (
+                  <div className="relative group">
+                    <img src={imagePreview || editing?.image} alt="Preview" className="w-full h-36 object-cover rounded-xl border border-gray-200 dark:border-white/10" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity flex items-center justify-center gap-2">
+                      <label className="px-3 py-1.5 bg-white/90 text-blue-600 rounded-lg text-sm font-bold flex items-center gap-1 cursor-pointer">
+                        <span className="material-symbols-outlined text-sm">swap_horiz</span>Đổi ảnh
+                        <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                      </label>
+                      {imageFile && (
+                        <button onClick={removeSelectedFile} className="px-3 py-1.5 bg-white/90 text-red-600 rounded-lg text-sm font-bold flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">close</span>Xóa
+                        </button>
+                      )}
+                    </div>
+                    {imageFile && (
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="material-symbols-outlined text-sm text-green-500">check_circle</span>
+                        <span className="truncate">{imageFile.name}</span>
+                        <span>({((imageFile.size) / 1024).toFixed(0)} KB)</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group">
+                    <span className="material-symbols-outlined text-3xl text-gray-400 group-hover:text-primary transition-colors">cloud_upload</span>
+                    <span className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">Chọn ảnh combo</span>
+                    <span className="text-xs text-gray-400">JPG, PNG, WebP — Tối đa 10MB</span>
+                    <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                  </label>
+                )}
               </div>
 
               <div>
@@ -189,8 +261,7 @@ const BundleManager: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-surface-darker">
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">STT</th>
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tên combo</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Combo</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Giá</th>
                 <th className="text-center px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Sản phẩm</th>
                 <th className="text-center px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tùy chỉnh</th>
@@ -199,13 +270,24 @@ const BundleManager: React.FC = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
+                <tr><td colSpan={5} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
               ) : bundles.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-gray-400">Không có combo</td></tr>
-              ) : bundles.map((b, idx) => (
+                <tr><td colSpan={5} className="text-center py-12 text-gray-400">Không có combo</td></tr>
+              ) : bundles.map((b) => (
                 <tr key={b.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{page * 10 + idx + 1}</td>
-                  <td className="px-5 py-3 text-sm font-semibold text-gray-900 dark:text-white">{b.name}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      {b.image ? (
+                        <img src={b.image} alt="" className="w-12 h-12 rounded-xl object-cover border border-gray-200 dark:border-white/10" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center"><span className="material-symbols-outlined text-gray-400">inventory_2</span></div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white">{b.name}</p>
+                        {b.description && <p className="text-xs text-gray-500 truncate max-w-[200px]">{b.description}</p>}
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-5 py-3 text-right text-sm font-bold text-primary">{formatCurrency(b.price)}</td>
                   <td className="px-5 py-3 text-center">
                     <div className="flex flex-wrap gap-1 justify-center">

@@ -150,6 +150,8 @@ const PostSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: str
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<BlogPostResponse | null>(null);
   const [form, setForm] = useState<BlogPostRequest>({ title: '', content: '', topicId: 0 });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const fetchPosts = useCallback(async () => {
@@ -177,14 +179,39 @@ const PostSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: str
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
   useEffect(() => { fetchTopics(); }, [fetchTopics]);
 
-  const resetForm = () => { setForm({ title: '', content: '', topicId: topics[0]?.id || 0 }); setEditing(null); setShowForm(false); };
+  const resetForm = () => {
+    setForm({ title: '', content: '', topicId: topics[0]?.id || 0 });
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    setEditing(null);
+    setShowForm(false);
+  };
 
   const openCreate = () => { resetForm(); setForm(f => ({ ...f, topicId: topics[0]?.id || 0 })); setShowForm(true); };
 
   const openEdit = (p: BlogPostResponse) => {
     setEditing(p);
     setForm({ title: p.title, content: p.content, topicId: p.topicId || 0 });
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
     setShowForm(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeSelectedFile = () => {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
   };
 
   const handleSubmit = async () => {
@@ -194,10 +221,18 @@ const PostSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: str
     setSaving(true);
     try {
       if (editing) {
-        await adminBlogApi.update(editing.id, form);
+        if (imageFile) {
+          await adminBlogApi.updateWithImage(editing.id, form, imageFile);
+        } else {
+          await adminBlogApi.update(editing.id, form);
+        }
         setMsg({ type: 'success', text: 'Cập nhật thành công!' });
       } else {
-        await adminBlogApi.create(form);
+        if (imageFile) {
+          await adminBlogApi.createWithImage(form, imageFile);
+        } else {
+          await adminBlogApi.create(form);
+        }
         setMsg({ type: 'success', text: 'Tạo bài viết thành công!' });
       }
       resetForm(); fetchPosts();
@@ -253,6 +288,42 @@ const PostSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: str
                   {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
+
+              {/* Thumbnail Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ảnh thumbnail</label>
+                {imagePreview || (editing?.image) ? (
+                  <div className="relative group">
+                    <img src={imagePreview || editing?.image} alt="Preview" className="w-full h-40 object-cover rounded-xl border border-gray-200 dark:border-white/10" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity flex items-center justify-center gap-2">
+                      <label className="px-3 py-1.5 bg-white/90 text-blue-600 rounded-lg text-sm font-bold flex items-center gap-1 cursor-pointer">
+                        <span className="material-symbols-outlined text-sm">swap_horiz</span>Đổi ảnh
+                        <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                      </label>
+                      {imageFile && (
+                        <button onClick={removeSelectedFile} className="px-3 py-1.5 bg-white/90 text-red-600 rounded-lg text-sm font-bold flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">close</span>Xóa
+                        </button>
+                      )}
+                    </div>
+                    {imageFile && (
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="material-symbols-outlined text-sm text-green-500">check_circle</span>
+                        <span className="truncate">{imageFile.name}</span>
+                        <span>({((imageFile.size) / 1024).toFixed(0)} KB)</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group">
+                    <span className="material-symbols-outlined text-3xl text-gray-400 group-hover:text-primary transition-colors">cloud_upload</span>
+                    <span className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">Chọn ảnh thumbnail</span>
+                    <span className="text-xs text-gray-400">JPG, PNG, WebP — Tối đa 10MB</span>
+                    <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                  </label>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nội dung *</label>
                 <textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} rows={10} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none font-mono text-sm" />
@@ -272,25 +343,33 @@ const PostSection: React.FC<{ setMsg: (m: { type: 'success' | 'error'; text: str
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-surface-darker">
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">STT</th>
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tiêu đề</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Bài viết</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Chủ đề</th>
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tác giả</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Ngày tạo</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
+                <tr><td colSpan={4} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
               ) : posts.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-gray-400">Không có bài viết</td></tr>
-              ) : posts.map((p, idx) => (
+                <tr><td colSpan={4} className="text-center py-12 text-gray-400">Không có bài viết</td></tr>
+              ) : posts.map((p) => (
                 <tr key={p.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{page * 10 + idx + 1}</td>
-                  <td className="px-5 py-3 text-sm font-semibold text-gray-900 dark:text-white max-w-xs truncate">{p.title}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      {p.image ? (
+                        <img src={p.image} alt="" className="w-14 h-10 rounded-lg object-cover border border-gray-200 dark:border-white/10" />
+                      ) : (
+                        <div className="w-14 h-10 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center"><span className="material-symbols-outlined text-gray-400 text-lg">article</span></div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white truncate max-w-xs">{p.title}</p>
+                        {p.authorName && <p className="text-xs text-gray-500">{p.authorName}</p>}
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-5 py-3"><span className="px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">{getTopicName(p.topicId)}</span></td>
-                  <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400">{p.authorName || 'Tác giả'}</td>
                   <td className="px-5 py-3 text-sm text-gray-500">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : '—'}</td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex gap-1 justify-end">

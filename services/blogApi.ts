@@ -10,6 +10,7 @@ export interface BlogPostResponse {
   id: number;
   title: string;
   content: string;
+  image?: string;
   topicName: string;
   topicId: number;
   createdAt: string;

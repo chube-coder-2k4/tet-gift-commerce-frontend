@@ -230,7 +230,9 @@ export interface BundleProductResponse {
 export interface BundleResponse {
   id: number;
   name: string;
+  description?: string;
   price: number;
+  image?: string;
   isCustom: boolean;
   isActive: boolean;
   products: BundleProductResponse[];
@@ -246,8 +248,38 @@ export const adminBundleApi = {
   create: async (data: BundleRequest): Promise<ApiResponse<number>> =>
     fetchWithAuth<number>('/bundles', { method: 'POST', body: JSON.stringify(data) }),
 
-  update: async (id: number, data: BundleRequest): Promise<ApiResponse<BundleResponse>> =>
-    fetchWithAuth<BundleResponse>(`/bundles/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  createWithImage: async (data: BundleRequest, imageFile?: File): Promise<ApiResponse<number>> => {
+    const formData = new FormData();
+    formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    if (imageFile) formData.append('image', imageFile);
+    const accessToken = tokenStorage.getAccessToken();
+    const response = await fetch(`${API_BASE_URL}/bundles`, {
+      method: 'POST',
+      headers: { ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Tạo combo thất bại');
+    return result;
+  },
+
+  update: async (id: number, data: BundleRequest): Promise<ApiResponse<number>> =>
+    fetchWithAuth<number>(`/bundles/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  updateWithImage: async (id: number, data: BundleRequest, imageFile?: File): Promise<ApiResponse<number>> => {
+    const formData = new FormData();
+    formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    if (imageFile) formData.append('image', imageFile);
+    const accessToken = tokenStorage.getAccessToken();
+    const response = await fetch(`${API_BASE_URL}/bundles/${id}`, {
+      method: 'PUT',
+      headers: { ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Cập nhật combo thất bại');
+    return result;
+  },
 
   delete: async (id: number): Promise<ApiResponse<string>> =>
     fetchWithAuth<string>(`/bundles/${id}`, { method: 'DELETE' }),
@@ -373,8 +405,10 @@ export interface BlogPostResponse {
   id: number;
   title: string;
   content: string;
+  image?: string;
   topicName: string;
   topicId: number;
+  authorName?: string;
   createdAt: string;
 }
 
@@ -388,8 +422,38 @@ export const adminBlogApi = {
   create: async (data: BlogPostRequest): Promise<ApiResponse<BlogPostResponse>> =>
     fetchWithAuth<BlogPostResponse>('/blogs', { method: 'POST', body: JSON.stringify(data) }),
 
+  createWithImage: async (data: BlogPostRequest, imageFile?: File): Promise<ApiResponse<BlogPostResponse>> => {
+    const formData = new FormData();
+    formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    if (imageFile) formData.append('image', imageFile);
+    const accessToken = tokenStorage.getAccessToken();
+    const response = await fetch(`${API_BASE_URL}/blogs`, {
+      method: 'POST',
+      headers: { ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Tạo bài viết thất bại');
+    return result;
+  },
+
   update: async (id: number, data: BlogPostRequest): Promise<ApiResponse<BlogPostResponse>> =>
     fetchWithAuth<BlogPostResponse>(`/blogs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  updateWithImage: async (id: number, data: BlogPostRequest, imageFile?: File): Promise<ApiResponse<BlogPostResponse>> => {
+    const formData = new FormData();
+    formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    if (imageFile) formData.append('image', imageFile);
+    const accessToken = tokenStorage.getAccessToken();
+    const response = await fetch(`${API_BASE_URL}/blogs/${id}`, {
+      method: 'PUT',
+      headers: { ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Cập nhật bài viết thất bại');
+    return result;
+  },
 
   delete: async (id: number): Promise<ApiResponse<string>> =>
     fetchWithAuth<string>(`/blogs/${id}`, { method: 'DELETE' }),

@@ -105,6 +105,12 @@ const BlogDetail: React.FC<BlogDetailProps> = ({ onNavigate, blogPostId, onBlogP
           </div>
         </header>
 
+        {post.image && (
+          <div className="max-w-4xl mx-auto mb-12 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 shadow-lg">
+            <img src={post.image} alt={post.title} className="w-full aspect-[2/1] object-cover" />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <article className="lg:col-span-8">
             <div 
@@ -140,7 +146,11 @@ const BlogDetail: React.FC<BlogDetailProps> = ({ onNavigate, blogPostId, onBlogP
                   {relatedPosts.map(related => (
                     <a key={related.id} className="group flex gap-4 items-start cursor-pointer" onClick={() => onBlogPostClick?.(related.id)}>
                       <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden relative bg-gradient-to-br from-gray-100 to-gray-50 dark:from-surface-dark dark:to-surface-darker flex items-center justify-center border border-gray-200 dark:border-white/5">
-                        <span className="material-symbols-outlined text-2xl text-gray-400 group-hover:scale-110 transition-transform">article</span>
+                        {related.image ? (
+                          <img src={related.image} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                        ) : (
+                          <span className="material-symbols-outlined text-2xl text-gray-400 group-hover:scale-110 transition-transform">article</span>
+                        )}
                       </div>
                       <div className="flex-1">
                         {related.topicName && (
