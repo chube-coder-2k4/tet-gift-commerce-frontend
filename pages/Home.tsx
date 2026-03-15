@@ -5,6 +5,7 @@ import { cartApi } from '../services/cartApi';
 import { Screen } from '../types';
 import { Firewall } from '@/components/Firewall';
 import { authApi } from '../services/api';
+import BannerCarousel, { BannerSlide } from '../components/BannerCarousel';
 
 interface HomeProps {
   onNavigate: (screen: Screen) => void;
@@ -64,6 +65,37 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate })
   return (
     <div className="flex-1 flex flex-col items-center w-full">
       <Firewall />
+
+      {/* Banner Carousel */}
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pt-6">
+        <BannerCarousel
+          slides={[
+            {
+              image: '/banners/banner1.png',
+              title: 'Quà Tết Cao Cấp 2026',
+              subtitle: 'Bộ sưu tập hộp quà sang trọng, mang đậm hương vị truyền thống',
+              cta: 'Khám Phá Ngay',
+              onClick: () => onNavigate('shop'),
+            },
+            {
+              image: '/banners/banner2.png',
+              title: 'Giỏ Quà Doanh Nghiệp',
+              subtitle: 'Thiết kế riêng cho doanh nghiệp — Ưu đãi đặc biệt khi đặt số lượng lớn',
+              cta: 'Xem Bộ Sưu Tập',
+              onClick: () => onNavigate('shop'),
+            },
+            {
+              image: '/banners/banner3.png',
+              title: 'Lì Xì & Quà Tặng Tết',
+              subtitle: 'Lựa chọn hoàn hảo cho những người thân yêu nhân dịp Xuân về',
+              cta: 'Mua Ngay',
+              onClick: () => onNavigate('shop'),
+            },
+          ] as BannerSlide[]}
+          interval={5000}
+        />
+      </div>
+
  {/* Hero Section */}
       <div className="w-full relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-to-b from-primary/10 via-transparent to-transparent opacity-50 pointer-events-none"></div>

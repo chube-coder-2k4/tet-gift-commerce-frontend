@@ -4,6 +4,7 @@ import { cartApi } from '../services/cartApi';
 import { reviewApi, ReviewResponse } from '../services/reviewApi';
 import { Screen } from '../types';
 import { authApi } from '../services/api';
+import Pagination from '../components/Pagination';
 
 interface ProductDetailProps {
   onNavigate: (screen: Screen) => void;
@@ -517,23 +518,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onNavigate, productId, on
 
                     {/* Pagination */}
                     {reviewTotalPages > 1 && (
-                      <div className="flex justify-center items-center gap-2 pt-4">
-                        <button
-                          onClick={() => setReviewPage(p => Math.max(0, p - 1))}
-                          disabled={reviewPage === 0}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-30 text-sm"
-                        >
-                          Trước
-                        </button>
-                        <span className="text-sm text-gray-500">Trang {reviewPage + 1} / {reviewTotalPages}</span>
-                        <button
-                          onClick={() => setReviewPage(p => Math.min(reviewTotalPages - 1, p + 1))}
-                          disabled={reviewPage >= reviewTotalPages - 1}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-30 text-sm"
-                        >
-                          Sau
-                        </button>
-                      </div>
+                      <Pagination page={reviewPage} totalPages={reviewTotalPages} onPageChange={setReviewPage} variant="simple" className="pt-4" />
                     )}
                   </>
                 )}

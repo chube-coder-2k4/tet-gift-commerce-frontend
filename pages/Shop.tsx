@@ -4,6 +4,7 @@ import { categoryApi, CategoryResponse } from '../services/categoryApi';
 import { cartApi } from '../services/cartApi';
 import { Screen } from '../types';
 import { authApi } from '../services/api';
+import Pagination from '../components/Pagination';
 
 interface ShopProps {
   onNavigate: (screen: Screen) => void;
@@ -363,35 +364,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-10">
-                  <button
-                    onClick={() => setPage(p => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                    className="size-10 rounded-lg border border-gray-300 dark:border-white/10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-lg">chevron_left</span>
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setPage(i)}
-                      className={`size-10 rounded-lg font-medium text-sm transition-colors ${
-                        page === i 
-                          ? 'bg-primary text-white shadow-md' 
-                          : 'border border-gray-300 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                    disabled={page === totalPages - 1}
-                    className="size-10 rounded-lg border border-gray-300 dark:border-white/10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-lg">chevron_right</span>
-                  </button>
-                </div>
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} variant="numbered" className="mt-10" />
               )}
             </>
           )}

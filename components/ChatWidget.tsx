@@ -286,9 +286,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
     <>
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-[380px] h-[580px] bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark border-2 border-gray-200 dark:border-[#3a3330]/60 rounded-2xl shadow-2xl dark:shadow-[#8b2332]/20 flex flex-col z-50 animate-slide-up">
+        <div className="fixed bottom-20 right-6 w-[380px] h-[580px] bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark border border-gray-200 dark:border-[#3a3330]/60 rounded-2xl shadow-2xl dark:shadow-[#8b2332]/20 flex flex-col z-50 animate-slide-up">
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary to-red-700 dark:from-[#8b2332] dark:to-[#6b1a28] text-white p-4 rounded-t-2xl flex items-center justify-between">
+          <div className="bg-gradient-to-r from-primary to-red-700 dark:from-[#8b2332] dark:to-[#6b1a28] text-white p-3 rounded-t-2xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="size-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                 <span className="material-symbols-outlined text-2xl">smart_toy</span>
@@ -310,7 +310,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50 dark:bg-transparent">
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-transparent">
             {messages.map((message) => (
               <div key={message.id}>
                 <div className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -380,7 +380,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t border-gray-200 dark:border-[#3a3330]/60 bg-white dark:bg-surface-dark/50">
+          <div className="p-3 border-t border-gray-200 dark:border-[#3a3330]/60 bg-white dark:bg-surface-dark/50">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -409,15 +409,16 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
       {/* Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 size-16 bg-gradient-to-r from-primary to-red-600 dark:from-[#8b2332] dark:to-[#6b1a28] hover:from-red-600 hover:to-red-700 dark:hover:from-[#a02a3c] dark:hover:to-[#8b2332] text-white rounded-full shadow-2xl hover:shadow-[0_8px_30px_rgba(217,4,41,0.4)] dark:shadow-[#8b2332]/40 flex items-center justify-center transition-all z-50 group"
+        className="fixed bottom-6 right-6 size-12 bg-gradient-to-r from-primary to-red-600 dark:from-[#8b2332] dark:to-[#6b1a28] hover:from-red-600 hover:to-red-700 dark:hover:from-[#a02a3c] dark:hover:to-[#8b2332] text-white rounded-full shadow-2xl hover:shadow-[0_8px_30px_rgba(217,4,41,0.4)] dark:shadow-[#8b2332]/40 flex items-center justify-center transition-all z-50 group"
         aria-label="Open chat"
       >
         {isOpen ? (
-          <span className="material-symbols-outlined text-3xl">close</span>
+          <span className="material-symbols-outlined text-2xl">close</span>
         ) : (
           <>
-            <span className="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">chat</span>
-            <span className="absolute -top-1 -right-1 size-4 bg-green-500 border-2 border-white dark:border-surface-dark rounded-full animate-pulse"></span>
+            <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">chat</span>
+            <span className="absolute -top-0.5 -right-0.5 size-3 bg-green-500 border-2 border-white dark:border-surface-dark rounded-full"></span>
+            <span className="absolute inset-0 rounded-full border-2 border-primary/60 dark:border-[#8b2332]/60 animate-chat-ping"></span>
           </>
         )}
       </button>
@@ -435,6 +436,23 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
         }
         .animate-slide-up {
           animation: slide-up 0.3s ease-out;
+        }
+        @keyframes chat-ping {
+          0% {
+            transform: scale(1);
+            opacity: 0.6;
+          }
+          70% {
+            transform: scale(1.6);
+            opacity: 0;
+          }
+          100% {
+            transform: scale(1.6);
+            opacity: 0;
+          }
+        }
+        .animate-chat-ping {
+          animation: chat-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
       `}</style>
     </>

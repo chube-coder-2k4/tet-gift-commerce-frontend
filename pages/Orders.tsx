@@ -4,6 +4,7 @@ import { authApi } from '../services/api';
 import { orderApi, OrderResponse, OrderStatus, PageResponse } from '../services/orderApi';
 import { paymentApi, PaymentResponse } from '../services/paymentApi';
 import { useConfirmDialog } from '../components/ConfirmDialog';
+import Pagination from '../components/Pagination';
 
 interface OrdersProps {
   onNavigate: (screen: Screen) => void;
@@ -455,36 +456,7 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8">
-                <button
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className="p-2 rounded-lg border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <span className="material-symbols-outlined text-xl">chevron_left</span>
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setPage(i)}
-                    className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
-                      i === page
-                        ? 'bg-primary text-white shadow-md'
-                        : 'border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                )).slice(Math.max(0, page - 2), Math.min(totalPages, page + 3))}
-                {page + 3 < totalPages && <span className="text-gray-400">...</span>}
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  className="p-2 rounded-lg border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <span className="material-symbols-outlined text-xl">chevron_right</span>
-                </button>
-              </div>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} variant="numbered" className="mt-8" />
             )}
           </>
         )}

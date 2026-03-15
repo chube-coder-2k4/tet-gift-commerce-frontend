@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminUserApi, PageResponse } from '../../services/adminApi';
 import { UserResponse } from '../../services/api';
+import Pagination from '../../components/Pagination';
 import { useConfirmDialog } from '../../components/ConfirmDialog';
 
 const UserManager: React.FC = () => {
@@ -153,13 +154,7 @@ const UserManager: React.FC = () => {
           </table>
         </div>
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 dark:border-white/5">
-            <span className="text-sm text-gray-500">Trang {page + 1} / {totalPages}</span>
-            <div className="flex gap-2">
-              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-white/10 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-white/5">← Trước</button>
-              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-white/10 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-white/5">Sau →</button>
-            </div>
-          </div>
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} variant="simple" className="px-5 py-3 border-t border-gray-200 dark:border-white/5" />
         )}
       </div>
     </div>

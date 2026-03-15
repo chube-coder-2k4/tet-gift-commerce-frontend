@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { blogApi, blogTopicApi, BlogPostResponse, BlogTopic } from '../services/blogApi';
 import { Screen } from '../types';
+import Pagination from '../components/Pagination';
 
 interface BlogProps {
   onNavigate: (screen: Screen) => void;
@@ -222,35 +223,7 @@ const Blog: React.FC<BlogProps> = ({ onNavigate, onBlogPostClick }) => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-12">
-                <button
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className="px-4 py-2 rounded-lg border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-30"
-                >
-                  <span className="material-symbols-outlined text-sm">chevron_left</span>
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setPage(i)}
-                    className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
-                      page === i
-                        ? 'bg-primary text-white shadow-md'
-                        : 'border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  className="px-4 py-2 rounded-lg border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-30"
-                >
-                  <span className="material-symbols-outlined text-sm">chevron_right</span>
-                </button>
-              </div>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} variant="numbered" className="mt-12" />
             )}
           </>
         )}
