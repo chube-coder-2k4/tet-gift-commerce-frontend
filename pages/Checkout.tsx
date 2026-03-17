@@ -170,8 +170,8 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
 
   const cartItems = cart?.items || [];
   const subtotal = cart?.totalPrice || 0;
-  const discountValue = discount ? discount.discountValue : 0;
-  const total = Math.max(0, subtotal - discountValue);
+  const actualDiscountValue = discount ? (discount.actualDiscountAmount || discount.discountValue) : 0;
+  const total = Math.max(0, subtotal - actualDiscountValue);
   return (
     <div className="w-full max-w-[1440px] mx-auto px-4 lg:px-10 py-8">
       {/* Back Button */}
@@ -406,8 +406,21 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
                 <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-200 dark:border-green-800/30">
                   <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
                   <div className="flex-1">
-                    <span className="text-sm font-bold text-green-700 dark:text-green-400">{discount.code}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">-{discount.discountValue.toLocaleString()}₫</span>
+                    <div className="flex items-center gap-2">
+    <span className="text-sm font-bold text-green-700 dark:text-green-400">
+      {discount.code}
+    </span>
+                      {/* Hiển thị Badge loại giảm giá để người dùng dễ hiểu */}
+                      <span className="text-[10px] px-1.5 py-0.5 bg-green-200 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded border border-green-300">
+      {discount.discountType === 'PERCENTAGE' ? 'Giảm %' : 'Giảm trực tiếp'}
+    </span>
+                    </div>
+
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+    Tiết kiệm: <span className="font-semibold text-gray-700">-{discount.actualDiscountAmount?.toLocaleString()}₫</span>
+                      {/* Chỉ hiện % nếu là loại Percentage, nếu không thì ẩn đi hoặc hiện text khác */}
+                      {discount.discountType === 'PERCENTAGE' && ` (áp dụng mức giảm ${discount.discountValue}%)`}
+  </span>
                   </div>
                   <button onClick={handleRemoveDiscount} className="p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors" title="Xóa mã">
                     <span className="material-symbols-outlined text-lg">close</span>
@@ -433,10 +446,10 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
                 <span className="text-gray-900 dark:text-gray-200 font-semibold">Miễn phí</span>
               </div>
               {discount && (
-                <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                  <span>Giảm giá</span>
-                  <span className="font-bold">-{discountValue.toLocaleString()}₫</span>
-                </div>
+                  <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                    <span>Giảm giá</span>
+                    <span className="font-bold">-{actualDiscountValue.toLocaleString()}₫</span>
+                  </div>
               )}
               <div className="pt-4 border-t border-dashed border-gray-200 dark:border-gray-700 mt-4">
                 <div className="flex justify-between items-end mb-1">
