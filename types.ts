@@ -13,6 +13,7 @@ export interface Product {
   description: string;
   price: number;
   stock: number;
+  primaryImage?: string;
   categoryName: string;
   categoryId: number;
   isActive: boolean;

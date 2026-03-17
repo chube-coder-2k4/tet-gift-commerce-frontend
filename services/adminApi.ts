@@ -137,6 +137,7 @@ export interface ProductResponse {
   description: string;
   price: number;
   stock: number;
+  primaryImage?: string;
   image?: string;
   categoryName: string;
   categoryId: number;
@@ -157,12 +158,14 @@ export const adminProductApi = {
   create: async (data: ProductRequest): Promise<ApiResponse<number>> =>
     fetchWithAuth<number>('/products/register', { method: 'POST', body: JSON.stringify(data) }),
 
-  // Multipart create (with file upload)
-  createWithImage: async (data: ProductRequest, imageFile?: File): Promise<ApiResponse<number>> => {
+  // Multipart create (with file upload — multi images)
+  createWithImages: async (data: ProductRequest, imageFiles?: File[]): Promise<ApiResponse<number>> => {
     const formData = new FormData();
     formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (imageFile) {
-      formData.append('image', imageFile);
+    if (imageFiles && imageFiles.length > 0) {
+      imageFiles.forEach(file => {
+        formData.append('images', file);
+      });
     }
     const accessToken = tokenStorage.getAccessToken();
     const response = await fetch(`${API_BASE_URL}/products/register`, {
@@ -181,12 +184,14 @@ export const adminProductApi = {
   update: async (id: number, data: ProductRequest): Promise<ApiResponse<number>> =>
     fetchWithAuth<number>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
-  // Multipart update (with file upload)
-  updateWithImage: async (id: number, data: ProductRequest, imageFile?: File): Promise<ApiResponse<number>> => {
+  // Multipart update (with file upload — multi images)
+  updateWithImages: async (id: number, data: ProductRequest, imageFiles?: File[]): Promise<ApiResponse<number>> => {
     const formData = new FormData();
     formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (imageFile) {
-      formData.append('image', imageFile);
+    if (imageFiles && imageFiles.length > 0) {
+      imageFiles.forEach(file => {
+        formData.append('images', file);
+      });
     }
     const accessToken = tokenStorage.getAccessToken();
     const response = await fetch(`${API_BASE_URL}/products/${id}`, {

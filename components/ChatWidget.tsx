@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { chatbotApi, ChatSuggestion, ChatHistoryItem } from '../services/chatbotApi';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { chatbotApi, ChatSuggestion, ChatHistoryItem, RateLimitError } from '../services/chatbotApi';
 import { productApi, ProductResponse } from '../services/productApi';
 import { bundleApi, BundleResponse } from '../services/bundleApi';
 
@@ -9,6 +9,8 @@ interface Message {
   text: string;
   timestamp: Date;
   suggestions?: ChatSuggestion[];
+  isError?: boolean;        // true when success=false or [ERROR]
+  retryPayload?: string;    // original user message for retry
 }
 
 interface ChatWidgetProps {
@@ -23,13 +25,11 @@ function renderMarkdown(
   suggestions?: ChatSuggestion[],
   onProductClick?: (id: number) => void
 ) {
-  // First, handle **bold**
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   
   const processedParts = parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       const innerText = part.slice(2, -2);
-      // Check if bold text matches a product name
       const matchedSuggestion = suggestions?.find(
         s => s.name.toLowerCase() === innerText.toLowerCase()
       );
@@ -49,9 +49,7 @@ function renderMarkdown(
       return <strong key={i}>{innerText}</strong>;
     }
 
-    // For non-bold parts, check if any product name appears as plain text
     if (suggestions && suggestions.length > 0 && onProductClick) {
-      // Build regex from suggestion names, sorted longest first to avoid partial matches
       const names = suggestions.map(s => s.name).sort((a, b) => b.length - a.length);
       const escapedNames = names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
       const regex = new RegExp(`(${escapedNames.join('|')})`, 'gi');
@@ -74,7 +72,6 @@ function renderMarkdown(
             </button>
           );
         }
-        // Handle line breaks in non-matched segments
         return seg.split('\n').map((line, k, arr) => (
           <React.Fragment key={`${i}-${j}-${k}`}>
             {line}
@@ -84,7 +81,6 @@ function renderMarkdown(
       });
     }
 
-    // Fallback: just handle line breaks
     return part.split('\n').map((line, j, arr) => (
       <React.Fragment key={`${i}-${j}`}>
         {line}
@@ -100,7 +96,7 @@ function formatPrice(price: string | number) {
   return Number(price).toLocaleString('vi-VN') + 'đ';
 }
 
-// Catalog item for matching product names in text
+// Catalog item for local fallback matching
 interface CatalogItem {
   id: number;
   type: 'PRODUCT' | 'BUNDLE';
@@ -110,22 +106,16 @@ interface CatalogItem {
   imageUrl: string | null;
 }
 
-// Extract product suggestions from AI text by matching against local catalog
 function extractSuggestionsFromText(text: string, catalog: CatalogItem[]): ChatSuggestion[] {
   if (catalog.length === 0) return [];
-  
   const found: ChatSuggestion[] = [];
   const seenIds = new Set<string>();
   const lowerText = text.toLowerCase();
-  
-  // Sort by name length descending for longest match first
   const sorted = [...catalog].sort((a, b) => b.name.length - a.name.length);
   
   for (const item of sorted) {
     const key = `${item.type}-${item.id}`;
     if (seenIds.has(key)) continue;
-    
-    // Check if product name appears in text (case-insensitive)
     if (lowerText.includes(item.name.toLowerCase())) {
       seenIds.add(key);
       found.push({
@@ -138,7 +128,6 @@ function extractSuggestionsFromText(text: string, catalog: CatalogItem[]): ChatS
       });
     }
   }
-  
   return found;
 }
 
@@ -153,20 +142,23 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
     }
   ]);
   const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const [streamingMsgId, setStreamingMsgId] = useState<number | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(() => localStorage.getItem(SESSION_KEY));
+  const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const catalogRef = useRef<CatalogItem[]>([]);
   const catalogLoaded = useRef(false);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, streamingText, scrollToBottom]);
 
   // Load chat history when opening widget with existing session
   useEffect(() => {
@@ -202,7 +194,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
           name: p.name,
           price: p.price,
           stock: p.stock,
-          imageUrl: p.images?.find(img => img.isPrimary)?.imageUrl || p.images?.[0]?.imageUrl || null,
+          imageUrl: p.primaryImage || p.image || p.images?.find(img => img.isPrimary)?.imageUrl || p.images?.[0]?.imageUrl || null,
         }));
         const bundles: CatalogItem[] = (bundleRes.data?.data || []).map((b: BundleResponse) => ({
           id: b.id,
@@ -217,62 +209,115 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
     }
   }, [isOpen]);
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
+  // Send message with SSE streaming
+  const handleSendMessage = async (retryMessage?: string) => {
+    const messageText = retryMessage || inputText.trim();
+    if (!messageText || isStreaming) return;
 
-    const userMsg: Message = {
-      id: Date.now(),
-      sender: 'user',
-      text: inputText,
-      timestamp: new Date()
-    };
+    // Clear rate limit message
+    setRateLimitMsg(null);
 
-    setMessages(prev => [...prev, userMsg]);
-    const messageText = inputText;
-    setInputText('');
-    setIsLoading(true);
+    // Add user message (skip if retrying)
+    if (!retryMessage) {
+      const userMsg: Message = {
+        id: Date.now(),
+        sender: 'user',
+        text: messageText,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMsg]);
+      setInputText('');
+    }
+
+    // Setup streaming state
+    const botMsgId = Date.now() + 1;
+    setStreamingMsgId(botMsgId);
+    setStreamingText('');
+    setIsStreaming(true);
+
+    let accumulated = '';
+    let suggestions: ChatSuggestion[] | undefined;
 
     try {
-      const res = await chatbotApi.chat({
-        message: messageText,
-        sessionId: sessionId || undefined,
-      });
-
-      if (res.data) {
-        // Store sessionId
-        if (res.data.sessionId && res.data.sessionId !== sessionId) {
-          setSessionId(res.data.sessionId);
-          localStorage.setItem(SESSION_KEY, res.data.sessionId);
+      await chatbotApi.chatStream(
+        {
+          message: messageText,
+          sessionId: sessionId || undefined,
+        },
+        {
+          onSession: (newSessionId: string) => {
+            setSessionId(newSessionId);
+            localStorage.setItem(SESSION_KEY, newSessionId);
+          },
+          onToken: (token: string) => {
+            accumulated += token;
+            setStreamingText(accumulated);
+          },
+          onSuggestions: (sug: ChatSuggestion[]) => {
+            suggestions = sug;
+          },
+          onDone: () => {
+            // Auto-extract suggestions from text if backend didn't provide any
+            if (!suggestions || suggestions.length === 0) {
+              const autoSuggestions = extractSuggestionsFromText(accumulated, catalogRef.current);
+              if (autoSuggestions.length > 0) {
+                suggestions = autoSuggestions;
+              }
+            }
+          },
+          onError: (errorMsg: string) => {
+            accumulated = errorMsg || 'Xin lỗi, hệ thống AI đang bận. Vui lòng thử lại sau.';
+          },
         }
+      );
 
-        // Auto-extract suggestions from text if backend didn't provide any
-        let suggestions = res.data.suggestions?.length > 0 ? res.data.suggestions : undefined;
-        if (!suggestions || suggestions.length === 0) {
-          const autoSuggestions = extractSuggestionsFromText(res.data.message, catalogRef.current);
-          if (autoSuggestions.length > 0) {
-            suggestions = autoSuggestions;
-          }
-        }
+      // Check if it was an error response (no accumulated text = something went wrong)
+      const isError = accumulated.includes('Xin lỗi') && accumulated.includes('thử lại');
 
-        const botMsg: Message = {
-          id: Date.now() + 1,
-          sender: 'bot',
-          text: res.data.message,
-          timestamp: new Date(res.data.timestamp),
-          suggestions,
-        };
-        setMessages(prev => [...prev, botMsg]);
-      }
-    } catch {
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
+      // Finalize: add completed message
+      const botMsg: Message = {
+        id: botMsgId,
         sender: 'bot',
-        text: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.',
+        text: accumulated || 'Xin lỗi, không nhận được phản hồi từ AI.',
         timestamp: new Date(),
-      }]);
+        suggestions,
+        isError: isError || !accumulated,
+        retryPayload: isError || !accumulated ? messageText : undefined,
+      };
+      setMessages(prev => [...prev, botMsg]);
+
+    } catch (err) {
+      let errorText = 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.';
+      let showRetry = true;
+
+      if (err instanceof RateLimitError) {
+        errorText = err.message;
+        setRateLimitMsg(err.message);
+        showRetry = false;
+      } else if (err instanceof Error) {
+        errorText = err.message;
+      }
+
+      const botMsg: Message = {
+        id: botMsgId,
+        sender: 'bot',
+        text: errorText,
+        timestamp: new Date(),
+        isError: showRetry,
+        retryPayload: showRetry ? messageText : undefined,
+      };
+      setMessages(prev => [...prev, botMsg]);
     } finally {
-      setIsLoading(false);
+      setIsStreaming(false);
+      setStreamingMsgId(null);
+      setStreamingText('');
     }
+  };
+
+  const handleRetry = (retryPayload: string) => {
+    // Remove the error message
+    setMessages(prev => prev.filter(m => m.retryPayload !== retryPayload || !m.isError));
+    handleSendMessage(retryPayload);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -296,8 +341,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
               <div>
                 <h3 className="font-bold text-lg">AI TetGifts</h3>
                 <p className="text-xs text-white/80 flex items-center gap-1">
-                  <span className="size-2 bg-green-400 rounded-full animate-pulse"></span>
-                  Trợ lý AI đang hoạt động
+                  <span className={`size-2 rounded-full ${isStreaming ? 'bg-yellow-400 animate-pulse' : 'bg-green-400 animate-pulse'}`}></span>
+                  {isStreaming ? 'Đang trả lời...' : 'Trợ lý AI đang hoạt động'}
                 </p>
               </div>
             </div>
@@ -309,6 +354,17 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
             </button>
           </div>
 
+          {/* Rate Limit Warning */}
+          {rateLimitMsg && (
+            <div className="mx-3 mt-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl flex items-start gap-2">
+              <span className="material-symbols-outlined text-amber-500 text-lg shrink-0 mt-0.5">schedule</span>
+              <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">{rateLimitMsg}</p>
+              <button onClick={() => setRateLimitMsg(null)} className="shrink-0 text-amber-500 hover:text-amber-700">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+          )}
+
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-transparent">
             {messages.map((message) => (
@@ -319,17 +375,31 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                       className={`rounded-2xl px-4 py-3 ${
                         message.sender === 'user'
                           ? 'bg-gradient-to-r from-primary to-red-600 dark:from-[#8b2332] dark:to-[#6b1a28] text-white rounded-br-sm'
-                          : 'bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-[#3a3330]/60 rounded-bl-sm shadow-sm dark:shadow-lg'
+                          : message.isError
+                            ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800/40 rounded-bl-sm'
+                            : 'bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-[#3a3330]/60 rounded-bl-sm shadow-sm dark:shadow-lg'
                       }`}
                     >
                       <p className="text-sm leading-relaxed">{renderMarkdown(message.text, message.suggestions, onProductClick)}</p>
                     </div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 px-1">
-                      {message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1 px-1">
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        {message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {/* Retry button for error messages */}
+                      {message.isError && message.retryPayload && (
+                        <button
+                          onClick={() => handleRetry(message.retryPayload!)}
+                          className="text-xs font-semibold text-primary dark:text-[#daa520] hover:underline flex items-center gap-0.5"
+                        >
+                          <span className="material-symbols-outlined text-sm">refresh</span>
+                          Thử lại
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-                {/* Product Suggestions */}
+                {/* Product/Bundle Suggestions */}
                 {message.suggestions && message.suggestions.length > 0 && (
                   <div className="mt-2 space-y-2 ml-2">
                     {message.suggestions.map((s) => (
@@ -348,12 +418,17 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate group-hover:text-primary transition-colors">{s.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate group-hover:text-primary transition-colors">{s.name}</p>
+                            {s.type === 'BUNDLE' && (
+                              <span className="shrink-0 px-1.5 py-0.5 bg-accent/15 text-accent text-[9px] font-bold rounded uppercase">Combo</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 text-xs">
                             <span className="font-bold text-primary dark:text-[#daa520]">{formatPrice(s.price)}</span>
                             <span className="text-gray-400">•</span>
-                            <span className={s.stock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
-                              {s.stock > 0 ? `Còn ${s.stock}` : 'Hết hàng'}
+                            <span className={s.stock && s.stock > 0 ? 'text-green-600 dark:text-green-400' : s.stock === null ? 'text-gray-400' : 'text-red-500'}>
+                              {s.stock === null ? 'Combo' : s.stock > 0 ? `Còn ${s.stock}` : 'Hết hàng'}
                             </span>
                           </div>
                         </div>
@@ -364,14 +439,27 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                 )}
               </div>
             ))}
-            {/* Typing indicator */}
-            {isLoading && (
+
+            {/* Streaming indicator — live text appearing */}
+            {isStreaming && (
               <div className="flex justify-start">
-                <div className="bg-white dark:bg-surface-dark/80 border border-gray-200 dark:border-[#3a3330]/60 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-                  <div className="flex gap-1.5">
-                    <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                <div className="max-w-[75%]">
+                  <div className="bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm border border-gray-200 dark:border-[#3a3330]/60 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm dark:shadow-lg">
+                    {streamingText ? (
+                      <p className="text-sm leading-relaxed text-gray-900 dark:text-gray-200">
+                        {streamingText}
+                        <span className="inline-block w-1.5 h-4 bg-primary/70 dark:bg-[#daa520] ml-0.5 animate-blink align-middle rounded-sm"></span>
+                      </p>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1.5">
+                          <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                          <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                          <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                        </div>
+                        <span className="text-xs text-gray-400">Đang suy nghĩ...</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -387,20 +475,20 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Hỏi AI về sản phẩm, giá cả, tồn kho..."
+                placeholder={isStreaming ? 'Đang trả lời...' : 'Hỏi AI về sản phẩm, giá cả, tồn kho...'}
                 className="flex-1 bg-gray-100 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#b8860b]/20 transition-all"
-                disabled={isLoading}
+                disabled={isStreaming}
               />
               <button
-                onClick={handleSendMessage}
-                disabled={!inputText.trim() || isLoading}
+                onClick={() => handleSendMessage()}
+                disabled={!inputText.trim() || isStreaming}
                 className="size-10 bg-gradient-to-r from-primary to-red-600 dark:from-[#8b2332] dark:to-[#6b1a28] hover:from-red-600 hover:to-red-700 dark:hover:from-[#a02a3c] dark:hover:to-[#8b2332] text-white rounded-xl flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
-                <span className="material-symbols-outlined">send</span>
+                <span className="material-symbols-outlined">{isStreaming ? 'pending' : 'send'}</span>
               </button>
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
-              AI tư vấn dựa trên dữ liệu sản phẩm thực tế
+              AI tư vấn dựa trên dữ liệu sản phẩm thực tế • Streaming ⚡
             </p>
           </div>
         </div>
@@ -453,6 +541,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
         }
         .animate-chat-ping {
           animation: chat-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        .animate-blink {
+          animation: blink 0.8s ease-in-out infinite;
         }
       `}</style>
     </>

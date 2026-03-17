@@ -13,8 +13,9 @@ interface HomeProps {
   onCartUpdate?: () => void;
 }
 
-// Helper: lấy ảnh chính (ưu tiên field image từ backend)
+// Helper: lấy ảnh chính (ưu tiên field primaryImage → image → images[])
 const getPrimaryImage = (product: ProductResponse): string => {
+  if (product.primaryImage) return product.primaryImage;
   if (product.image) return product.image;
   if (!product.images || product.images.length === 0) return '';
   const primary = product.images.find(img => img.isPrimary);
