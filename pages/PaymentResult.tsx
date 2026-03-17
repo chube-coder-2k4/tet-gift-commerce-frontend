@@ -14,93 +14,91 @@ const PaymentResult: React.FC<PaymentResultProps> = ({ onNavigate }) => {
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Safe wrapper for history modifying to prevent SecurityErrors in App Webviews
+  const clearUrlParams = () => {
+    try {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (err) {
+      console.warn('Failed to clear URL params (ignoring):', err);
+    }
+  };
+
   useEffect(() => {
     let isCancelled = false;
 
     const processPaymentResult = async () => {
       try {
-        // Parse VNPay return URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const hasQueryParams = Array.from(urlParams.keys()).length > 0;
-        let orderId: number | null = null;
-        let verifiedPayment: PaymentResponse | null = null;
+        
+        // 1. Luồng chạy từ VNPAY Redirect về trả params status, orderId
+        const statusParam = urlParams.get('status');
+        const orderIdParam = urlParams.get('orderId');
+        
+        // Dọn URL sạch sẽ ngay lập tức
+        clearUrlParams();
 
-        // 1) Callback flow: gửi toàn bộ params lên backend để xác thực chữ ký
-        if (hasQueryParams) {
-          const callbackParams = Object.fromEntries(urlParams.entries());
-          const callbackRes = await paymentApi.verifyVnpayCallback(callbackParams);
-          verifiedPayment = callbackRes.data;
-          orderId = verifiedPayment?.orderId ?? null;
+        let targetOrderId = orderIdParam ? parseInt(orderIdParam, 10) : null;
 
-          if (!isCancelled) {
-            setPayment(verifiedPayment);
-            if (verifiedPayment?.status === 'SUCCESS') {
-              setStatus('success');
-            } else {
-              setStatus('failed');
-              setErrorMsg(callbackRes.message || 'Thanh toán thất bại hoặc lỗi xác thực.');
-            }
+        // 2. Chuyển hướng thanh toán (Redirect)
+        if (statusParam) {
+          if (statusParam === 'SUCCESS') {
+            setStatus('success');
+          } else {
+            setStatus('failed');
+            setErrorMsg('Thanh toán thất bại từ cổng thanh toán.');
           }
-
-          // Dọn URL sau khi đã verify xong
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        // 2) Fallback flow: nếu không có callback params, dùng lastOrderId
-        if (!orderId) {
-          const savedOrderId = localStorage.getItem('lastOrderId');
-          if (savedOrderId) {
-            orderId = parseInt(savedOrderId);
-            localStorage.removeItem('lastOrderId');
-          }
-        }
-
-        // Fetch order and payment details if we have orderId
-        if (orderId && !isNaN(orderId)) {
+        } else {
+          // 3. Luồng COD hoặc Fallback: Kiểm tra lastOrderId từ localStorage
           try {
-            const orderRes = await orderApi.getById(orderId);
-            if (!isCancelled) {
-              setOrder(orderRes.data);
+            const savedOrderId = localStorage.getItem('lastOrderId');
+            if (savedOrderId) {
+              targetOrderId = parseInt(savedOrderId, 10);
+              localStorage.removeItem('lastOrderId');
             }
+          } catch (e) {
+            console.warn('Could not read localStorage', e);
+          }
+        }
 
-            if (!verifiedPayment) {
-              const paymentRes = await paymentApi.getByOrderId(orderId);
-              if (!isCancelled) {
-                setPayment(paymentRes.data);
-              }
+        // 4. Nếu có targetOrderId, fetch thông tin đơn hàng và thanh toán để hiển thị
+        if (targetOrderId && !isNaN(targetOrderId)) {
+          try {
+            const [orderRes, paymentRes] = await Promise.all([
+              orderApi.getById(targetOrderId).catch(() => null),
+              paymentApi.getByOrderId(targetOrderId).catch(() => null)
+            ]);
 
-              // Chỉ tự xác định khi không đi callback verify
-              if (!hasQueryParams) {
-                if (paymentRes.data.status === 'SUCCESS') {
+            if (!isCancelled) {
+              if (orderRes?.data) setOrder(orderRes.data);
+              if (paymentRes?.data) setPayment(paymentRes.data);
+
+              // Nếu không phải luồng Redirect (ví dụ: COD) thì dựa vào payment API status
+              if (!statusParam) {
+                if (paymentRes?.data?.status === 'SUCCESS' || paymentRes?.data?.method === 'COD') {
                   setStatus('success');
                 } else {
                   setStatus('failed');
                   setErrorMsg('Thanh toán chưa hoàn tất.');
                 }
               }
-            } else if (!hasQueryParams) {
-              if (verifiedPayment.status === 'SUCCESS') {
-                setStatus('success');
-              } else {
-                setStatus('failed');
-                setErrorMsg('Thanh toán chưa hoàn tất.');
-              }
             }
-          } catch {
-            // Order/payment fetch failed but callback verify may have succeeded already
-            if (!isCancelled && !hasQueryParams) {
-              setStatus('failed');
-              setErrorMsg('Không thể tải thông tin đơn hàng.');
-            }
+          } catch (apiErr) {
+             console.error('API fetch error:', apiErr);
+             if (!isCancelled && !statusParam) {
+               setStatus('failed');
+               setErrorMsg('Không thể tải thông tin đơn hàng.');
+             }
           }
-        } else if (!hasQueryParams && !isCancelled) {
+        } else if (!isCancelled && !statusParam) {
           setStatus('failed');
           setErrorMsg('Không tìm thấy thông tin thanh toán.');
         }
-      } catch {
+
+      } catch (globalErr: any) {
+        console.error('Global error in processPaymentResult:', globalErr);
         if (!isCancelled) {
           setStatus('failed');
-          setErrorMsg('Đã xảy ra lỗi khi xử lý kết quả thanh toán.');
+          setErrorMsg('Đã xảy ra lỗi khi xử lý.' + (globalErr?.message ? ` (${globalErr.message})` : ''));
         }
       }
     };
