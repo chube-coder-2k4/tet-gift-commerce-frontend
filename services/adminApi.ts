@@ -1,7 +1,7 @@
 // Admin API Service — All CRUD endpoints for admin panel
 import { fetchWithAuth, ApiResponse, UserResponse, tokenStorage } from './api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.quanghuycoder.id.vn/api/v1';
 
 // ===== Shared =====
 export interface PageResponse<T> {

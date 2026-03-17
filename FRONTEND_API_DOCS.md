@@ -1,7 +1,7 @@
 # 🎁 TetGifts Frontend API Integration Guide
 
-> **Base URL:** `http://localhost:8080/api/v1`
-> **OAuth URL:** `http://localhost:8080`
+> **Base URL:** `https://api.quanghuycoder.id.vn/api/v1`
+> **OAuth URL:** `https://api.quanghuycoder.id.vn`
 > **Tech Stack:** React 18 + TypeScript + Vite (Vanilla Fetch API)
 > **Auth Strategy:** JWT Bearer Token stored in `localStorage`
 
@@ -150,28 +150,28 @@ services/
 
 ```env
 # .env
-VITE_API_URL=http://localhost:8080/api/v1
-VITE_OAUTH_URL=http://localhost:8080
+VITE_API_URL=https://api.quanghuycoder.id.vn/api/v1
+VITE_OAUTH_URL=https://api.quanghuycoder.id.vn
 ```
 
 ### 3.2 Token Storage Strategy
 
 Tokens are stored in **`localStorage`** using clear key names:
 
-| Key | Value | Purpose |
-|-----|-------|---------|
-| `accessToken` | JWT string | Sent in `Authorization: Bearer <token>` header |
-| `refreshToken` | JWT string | Used to get new access token when expired |
-| `userId` | Number string | Current logged-in user's ID |
-| `user` | JSON string | Cached user profile data |
+| Key            | Value         | Purpose                                        |
+| -------------- | ------------- | ---------------------------------------------- |
+| `accessToken`  | JWT string    | Sent in `Authorization: Bearer <token>` header |
+| `refreshToken` | JWT string    | Used to get new access token when expired      |
+| `userId`       | Number string | Current logged-in user's ID                    |
+| `user`         | JSON string   | Cached user profile data                       |
 
 ```typescript
-const TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
-const USER_ID_KEY = 'userId';
+const TOKEN_KEY = "accessToken";
+const REFRESH_TOKEN_KEY = "refreshToken";
+const USER_ID_KEY = "userId";
 
 export const tokenStorage = {
-  getAccessToken:  () => localStorage.getItem(TOKEN_KEY),
+  getAccessToken: () => localStorage.getItem(TOKEN_KEY),
   getRefreshToken: () => localStorage.getItem(REFRESH_TOKEN_KEY),
   getUserId: (): number | null => {
     const id = localStorage.getItem(USER_ID_KEY);
@@ -186,7 +186,7 @@ export const tokenStorage = {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_ID_KEY);
-    localStorage.removeItem('user');
+    localStorage.removeItem("user");
   },
 };
 ```
@@ -194,6 +194,7 @@ export const tokenStorage = {
 ### 3.3 Base Fetch Wrapper (`fetchWithAuth`)
 
 All API calls go through this central function which handles:
+
 - **Auto-attaching** `Authorization: Bearer <token>` header
 - **Auto-retrying** on 401 with token refresh
 - **Throwing** typed `ApiError` on failure
@@ -204,24 +205,25 @@ export class ApiError extends Error {
   constructor(message: string, status: number) {
     super(message);
     this.status = status;
-    this.name = 'ApiError';
+    this.name = "ApiError";
   }
 }
 
 export async function fetchWithAuth<T>(
   endpoint: string,
   options: RequestInit = {},
-  _isRetry = false
+  _isRetry = false,
 ): Promise<ApiResponse<T>> {
   const accessToken = tokenStorage.getAccessToken();
-  
+
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...options.headers,
   };
 
   if (accessToken) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${accessToken}`;
+    (headers as Record<string, string>)["Authorization"] =
+      `Bearer ${accessToken}`;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -230,21 +232,23 @@ export async function fetchWithAuth<T>(
   });
 
   // Auto refresh token on 401 with X-Token-Expired header
-  if (response.status === 401
-    && response.headers.get('X-Token-Expired') === 'true'
-    && !_isRetry) {
+  if (
+    response.status === 401 &&
+    response.headers.get("X-Token-Expired") === "true" &&
+    !_isRetry
+  ) {
     try {
       await authApi.refreshToken();
       return fetchWithAuth<T>(endpoint, options, true);
     } catch {
       tokenStorage.clearTokens();
-      throw new ApiError('Session expired. Please login again.', 401);
+      throw new ApiError("Session expired. Please login again.", 401);
     }
   }
 
   const data = await response.json();
   if (!response.ok) {
-    throw new ApiError(data.message || 'An error occurred', response.status);
+    throw new ApiError(data.message || "An error occurred", response.status);
   }
   return data;
 }
@@ -268,25 +272,25 @@ POST /auth/refresh-token (Header: x-refresh-token)
 
 ### 4.1 Endpoints Summary
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/auth/login` | ❌ | Login with username/email + password |
-| `POST` | `/auth/refresh-token` | ❌ (refresh token in header) | Get new access token |
-| `POST` | `/auth/logout` | ✅ Bearer + refresh | Invalidate session |
-| `POST` | `/auth/forgot-password` | ❌ | Send reset email |
-| `POST` | `/auth/reset-password` | ❌ | Reset password with token |
-| `POST` | `/auth/change-password` | ✅ | Change password (logged in) |
-| `POST` | `/auth/verify-otp` | ❌ | Verify OTP after registration |
-| `POST` | `/auth/resend-otp` | ❌ | Resend OTP email |
-| `GET`  | `/oauth2/authorization/google` | ❌ | Google OAuth2 redirect |
-| `GET`  | `/oauth2/authorization/github` | ❌ | GitHub OAuth2 redirect |
+| Method | Endpoint                       | Auth                         | Description                          |
+| ------ | ------------------------------ | ---------------------------- | ------------------------------------ |
+| `POST` | `/auth/login`                  | ❌                           | Login with username/email + password |
+| `POST` | `/auth/refresh-token`          | ❌ (refresh token in header) | Get new access token                 |
+| `POST` | `/auth/logout`                 | ✅ Bearer + refresh          | Invalidate session                   |
+| `POST` | `/auth/forgot-password`        | ❌                           | Send reset email                     |
+| `POST` | `/auth/reset-password`         | ❌                           | Reset password with token            |
+| `POST` | `/auth/change-password`        | ✅                           | Change password (logged in)          |
+| `POST` | `/auth/verify-otp`             | ❌                           | Verify OTP after registration        |
+| `POST` | `/auth/resend-otp`             | ❌                           | Resend OTP email                     |
+| `GET`  | `/oauth2/authorization/google` | ❌                           | Google OAuth2 redirect               |
+| `GET`  | `/oauth2/authorization/github` | ❌                           | GitHub OAuth2 redirect               |
 
 ### 4.2 Login Flow
 
 ```typescript
 // Request
 interface LoginRequest {
-  usernameOrEmail: string;  // Can be username OR email
+  usernameOrEmail: string; // Can be username OR email
   password: string;
 }
 
@@ -299,8 +303,8 @@ interface LoginResponse {
 
 // Usage
 const res = await authApi.login({
-  usernameOrEmail: 'admin123',
-  password: 'admin123'
+  usernameOrEmail: "admin123",
+  password: "admin123",
 });
 // Tokens are auto-stored in localStorage by the login function
 ```
@@ -334,10 +338,10 @@ const res = await userApi.register(request);
 // Returns user ID
 
 // Step 2: Verify OTP (sent to email)
-await authApi.verifyOtp({ email: 'user@example.com', otp: '123456' });
+await authApi.verifyOtp({ email: "user@example.com", otp: "123456" });
 
 // Step 3: Login with credentials
-await authApi.login({ usernameOrEmail: 'username', password: 'pass' });
+await authApi.login({ usernameOrEmail: "username", password: "pass" });
 ```
 
 ### 4.4 OAuth2 Flow (Google / GitHub)
@@ -352,9 +356,9 @@ window.location.href = authApi.getGoogleLoginUrl();
 
 // Step 3: Store tokens and fetch user profile
 const params = new URLSearchParams(window.location.search);
-const token = params.get('token');
-const refreshToken = params.get('refreshToken');
-const userId = params.get('userId');
+const token = params.get("token");
+const refreshToken = params.get("refreshToken");
+const userId = params.get("userId");
 tokenStorage.setTokens(token, refreshToken, parseInt(userId));
 ```
 
@@ -362,15 +366,15 @@ tokenStorage.setTokens(token, refreshToken, parseInt(userId));
 
 ```typescript
 // Step 1: Request reset email
-await authApi.forgotPassword('user@example.com');
+await authApi.forgotPassword("user@example.com");
 // Backend sends email with reset token
 
 // Step 2: User clicks link in email, frontend extracts token
 // Step 3: Submit new password
 await authApi.resetPassword({
-  token: 'reset-token-from-url',
-  newPassword: 'newPass123',
-  confirmPassword: 'newPass123'
+  token: "reset-token-from-url",
+  newPassword: "newPass123",
+  confirmPassword: "newPass123",
 });
 ```
 
@@ -381,16 +385,16 @@ await authApi.resetPassword({
 const isLoggedIn = authApi.isAuthenticated(); // checks localStorage for token
 
 // In App component — redirect to login for protected screens
-const protectedScreens: Screen[] = ['cart', 'checkout', 'profile', 'orders'];
+const protectedScreens: Screen[] = ["cart", "checkout", "profile", "orders"];
 
 if (protectedScreens.includes(targetScreen) && !authApi.isAuthenticated()) {
-  handleNavigate('login');
+  handleNavigate("login");
   return;
 }
 
 // Admin route protection (role-based)
-if (targetScreen === 'admin' && user?.roleName !== 'ADMIN') {
-  handleNavigate('home');
+if (targetScreen === "admin" && user?.roleName !== "ADMIN") {
+  handleNavigate("home");
   return;
 }
 ```
@@ -401,11 +405,11 @@ if (targetScreen === 'admin' && user?.roleName !== 'ADMIN') {
 
 ### 5.1 Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/user/register` | ❌ | Register new account |
-| `GET`  | `/user/{id}` | ✅ | Get user profile |
-| `PUT`  | `/user/{id}` | ✅ | Update user profile |
+| Method | Endpoint         | Auth | Description          |
+| ------ | ---------------- | ---- | -------------------- |
+| `POST` | `/user/register` | ❌   | Register new account |
+| `GET`  | `/user/{id}`     | ✅   | Get user profile     |
+| `PUT`  | `/user/{id}`     | ✅   | Update user profile  |
 
 ### 5.2 Types
 
@@ -418,10 +422,10 @@ interface UserResponse {
   email: string;
   phone?: string;
   username?: string;
-  roleName?: string;           // 'USER' | 'ADMIN'
+  roleName?: string; // 'USER' | 'ADMIN'
   roles?: { id: number; name: string }[];
-  createdBy?: string | null;   // Audit: who created
-  updatedBy?: string | null;   // Audit: who last updated
+  createdBy?: string | null; // Audit: who created
+  updatedBy?: string | null; // Audit: who last updated
   createdAt?: string;
   updatedAt?: string;
 }
@@ -434,12 +438,12 @@ interface UserResponse {
 const userId = tokenStorage.getUserId();
 const res = await userApi.getProfile(userId!);
 const user = res.data;
-localStorage.setItem('user', JSON.stringify(user));
+localStorage.setItem("user", JSON.stringify(user));
 
 // Update profile
 await userApi.updateProfile(userId!, {
-  fullName: 'Nguyễn Văn A',
-  phone: '0901234567'
+  fullName: "Nguyễn Văn A",
+  phone: "0901234567",
 });
 ```
 
@@ -449,33 +453,33 @@ await userApi.updateProfile(userId!, {
 
 ### 6.1 Endpoints (Public)
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET`  | `/products?page=0&size=10&sortBy=createdAt&sortDir=desc` | ❌ | List products (paginated) |
-| `GET`  | `/products/{id}` | ❌ | Product detail |
+| Method | Endpoint                                                 | Auth | Description               |
+| ------ | -------------------------------------------------------- | ---- | ------------------------- |
+| `GET`  | `/products?page=0&size=10&sortBy=createdAt&sortDir=desc` | ❌   | List products (paginated) |
+| `GET`  | `/products/{id}`                                         | ❌   | Product detail            |
 
 ### 6.2 Types
 
 ```typescript
 interface ProductImage {
   id: number;
-  imageUrl: string;       // Cloudinary URL
-  imageType: string;      // e.g. 'MAIN', 'GALLERY'
-  publicId: string;       // Cloudinary public ID
-  isPrimary: boolean;     // Primary display image
+  imageUrl: string; // Cloudinary URL
+  imageType: string; // e.g. 'MAIN', 'GALLERY'
+  publicId: string; // Cloudinary public ID
+  isPrimary: boolean; // Primary display image
 }
 
 interface ProductResponse {
   id: number;
   name: string;
   description: string;
-  price: number;          // VND (integer)
+  price: number; // VND (integer)
   stock: number;
   categoryName: string;
   categoryId: number;
   isActive: boolean;
-  manufactureDate?: string;  // ISO date
-  expDate?: string;          // ISO date
+  manufactureDate?: string; // ISO date
+  expDate?: string; // ISO date
   images: ProductImage[];
 }
 ```
@@ -487,23 +491,23 @@ interface ProductResponse {
 const res = await productApi.getAll({
   page: 0,
   size: 12,
-  sortBy: 'price',
-  sortDir: 'asc'
+  sortBy: "price",
+  sortDir: "asc",
 });
 
-const products = res.data.data;       // ProductResponse[]
+const products = res.data.data; // ProductResponse[]
 const totalPages = res.data.totalPages;
 const totalItems = res.data.totalItems;
 
 // Get primary image
 const getPrimaryImage = (product: ProductResponse): string => {
-  const primary = product.images.find(img => img.isPrimary);
-  return primary?.imageUrl || product.images[0]?.imageUrl || '/placeholder.png';
+  const primary = product.images.find((img) => img.isPrimary);
+  return primary?.imageUrl || product.images[0]?.imageUrl || "/placeholder.png";
 };
 
 // Format price (VND)
 const formatPrice = (price: number): string => {
-  return price.toLocaleString('vi-VN') + 'đ';
+  return price.toLocaleString("vi-VN") + "đ";
 };
 // Example: 88000 → "88,000đ"
 ```
@@ -514,10 +518,10 @@ const formatPrice = (price: number): string => {
 
 ### 7.1 Endpoints (Public)
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET`  | `/bundles?page=0&size=10` | ❌ | List bundles (paginated) |
-| `GET`  | `/bundles/{id}` | ❌ | Bundle detail |
+| Method | Endpoint                  | Auth | Description              |
+| ------ | ------------------------- | ---- | ------------------------ |
+| `GET`  | `/bundles?page=0&size=10` | ❌   | List bundles (paginated) |
+| `GET`  | `/bundles/{id}`           | ❌   | Bundle detail            |
 
 ### 7.2 Types
 
@@ -533,10 +537,10 @@ interface BundleProduct {
 interface BundleResponse {
   id: number;
   name: string;
-  price: number;        // Bundle price (may differ from sum of products)
-  isCustom: boolean;    // User-customized bundle
+  price: number; // Bundle price (may differ from sum of products)
+  isCustom: boolean; // User-customized bundle
   isActive: boolean;
-  products: BundleProduct[];  // Products included in the bundle
+  products: BundleProduct[]; // Products included in the bundle
 }
 ```
 
@@ -549,7 +553,8 @@ const res = await bundleApi.getAll({ page: 0, size: 20 });
 // Calculate savings
 const bundle = res.data.data[0];
 const originalTotal = bundle.products.reduce(
-  (sum, p) => sum + p.productPrice * p.quantity, 0
+  (sum, p) => sum + p.productPrice * p.quantity,
+  0,
 );
 const savings = originalTotal - bundle.price;
 ```
@@ -560,17 +565,17 @@ const savings = originalTotal - bundle.price;
 
 ### 8.1 Endpoints (Public)
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET`  | `/categories` | ❌ | List all active categories |
-| `GET`  | `/categories/{id}` | ❌ | Category detail |
+| Method | Endpoint           | Auth | Description                |
+| ------ | ------------------ | ---- | -------------------------- |
+| `GET`  | `/categories`      | ❌   | List all active categories |
+| `GET`  | `/categories/{id}` | ❌   | Category detail            |
 
 ### 8.2 Types
 
 ```typescript
 interface CategoryResponse {
   id: number;
-  name: string;           // e.g. "Quà tết", "Rượu Tết", "Mứt Tết"
+  name: string; // e.g. "Quà tết", "Rượu Tết", "Mứt Tết"
   description?: string;
   isActive: boolean;
 }
@@ -590,38 +595,38 @@ const categories = res.data; // CategoryResponse[] (not paginated)
 
 ### 9.1 Endpoints (Auth Required ✅)
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET`  | `/cart` | ✅ | Get current cart |
-| `POST` | `/cart/items` | ✅ | Add item to cart |
-| `PUT`  | `/cart/items/{itemId}?quantity=3` | ✅ | Update item quantity |
-| `DELETE`| `/cart/items/{itemId}` | ✅ | Remove item from cart |
-| `DELETE`| `/cart` | ✅ | Clear entire cart |
+| Method   | Endpoint                          | Auth | Description           |
+| -------- | --------------------------------- | ---- | --------------------- |
+| `GET`    | `/cart`                           | ✅   | Get current cart      |
+| `POST`   | `/cart/items`                     | ✅   | Add item to cart      |
+| `PUT`    | `/cart/items/{itemId}?quantity=3` | ✅   | Update item quantity  |
+| `DELETE` | `/cart/items/{itemId}`            | ✅   | Remove item from cart |
+| `DELETE` | `/cart`                           | ✅   | Clear entire cart     |
 
 ### 9.2 Types
 
 ```typescript
 interface CartItem {
-  id: number;              // Cart item ID (for update/delete)
-  itemType: 'PRODUCT' | 'BUNDLE';
-  itemId: number;          // Product or Bundle ID
+  id: number; // Cart item ID (for update/delete)
+  itemType: "PRODUCT" | "BUNDLE";
+  itemId: number; // Product or Bundle ID
   itemName: string;
   itemPrice: number;
   quantity: number;
-  subtotal: number;        // itemPrice × quantity
+  subtotal: number; // itemPrice × quantity
 }
 
 interface CartResponse {
-  id: number;              // Cart ID
+  id: number; // Cart ID
   items: CartItem[];
-  totalPrice: number;      // Sum of all subtotals
-  totalItems: number;      // Total number of items
+  totalPrice: number; // Sum of all subtotals
+  totalItems: number; // Total number of items
 }
 
 interface AddToCartRequest {
-  itemType: 'PRODUCT' | 'BUNDLE';
-  productId?: number;      // Required if itemType = 'PRODUCT'
-  bundleId?: number;       // Required if itemType = 'BUNDLE'
+  itemType: "PRODUCT" | "BUNDLE";
+  productId?: number; // Required if itemType = 'PRODUCT'
+  bundleId?: number; // Required if itemType = 'BUNDLE'
   quantity: number;
 }
 ```
@@ -631,16 +636,16 @@ interface AddToCartRequest {
 ```typescript
 // Add a product to cart
 await cartApi.addItem({
-  itemType: 'PRODUCT',
+  itemType: "PRODUCT",
   productId: 5,
-  quantity: 2
+  quantity: 2,
 });
 
 // Add a bundle/combo to cart
 await cartApi.addItem({
-  itemType: 'BUNDLE',
+  itemType: "BUNDLE",
   bundleId: 3,
-  quantity: 1
+  quantity: 1,
 });
 
 // Update quantity (use cart item ID, NOT product ID)
@@ -663,39 +668,39 @@ setCartItemCount(res.data.totalItems);
 
 ### 10.1 Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/orders` | ✅ | Create order from cart |
-| `GET`  | `/orders?page=0&size=10` | ✅ | My orders (paginated) |
-| `GET`  | `/orders/{id}` | ✅ | Order detail |
-| `PUT`  | `/orders/{id}/cancel` | ✅ | Cancel order |
+| Method | Endpoint                 | Auth | Description            |
+| ------ | ------------------------ | ---- | ---------------------- |
+| `POST` | `/orders`                | ✅   | Create order from cart |
+| `GET`  | `/orders?page=0&size=10` | ✅   | My orders (paginated)  |
+| `GET`  | `/orders/{id}`           | ✅   | Order detail           |
+| `PUT`  | `/orders/{id}/cancel`    | ✅   | Cancel order           |
 
 ### 10.2 Types
 
 ```typescript
 interface CreateOrderRequest {
-  addressId: number;          // Shipping address ID
-  discountCode?: string;      // Optional discount code
-  vatCompanyName?: string;    // VAT invoice fields
+  addressId: number; // Shipping address ID
+  discountCode?: string; // Optional discount code
+  vatCompanyName?: string; // VAT invoice fields
   vatTaxCode?: string;
   vatPhone?: string;
   vatAddress?: string;
 }
 
 type OrderStatus =
-  | 'CREATED'           // Just created
-  | 'WAITING_PAYMENT'   // Awaiting payment
-  | 'PAID'              // Payment confirmed
-  | 'PROCESSING'        // In preparation
-  | 'SHIPPED'           // Out for delivery
-  | 'COMPLETED'         // Delivered
-  | 'CANCELLED';        // Cancelled
+  | "CREATED" // Just created
+  | "WAITING_PAYMENT" // Awaiting payment
+  | "PAID" // Payment confirmed
+  | "PROCESSING" // In preparation
+  | "SHIPPED" // Out for delivery
+  | "COMPLETED" // Delivered
+  | "CANCELLED"; // Cancelled
 
 interface OrderItem {
   id: number;
-  itemType: 'PRODUCT' | 'BUNDLE';
+  itemType: "PRODUCT" | "BUNDLE";
   itemName: string;
-  priceSnapshot: number;   // Price at time of order
+  priceSnapshot: number; // Price at time of order
   quantity: number;
   subtotal: number;
 }
@@ -704,14 +709,14 @@ interface OrderResponse {
   id: number;
   status: OrderStatus;
   totalAmount: number;
-  discountCode?: string;   // Applied discount code
+  discountCode?: string; // Applied discount code
   discountAmount?: number; // Calculated discount amount
   vatCompanyName?: string;
   vatTaxCode?: string;
   vatPhone?: string;
   vatAddress?: string;
   items: OrderItem[];
-  createdAt: string;       // ISO datetime
+  createdAt: string; // ISO datetime
 }
 ```
 
@@ -721,27 +726,27 @@ interface OrderResponse {
 // Step 1: Create order (converts cart → order)
 const orderRes = await orderApi.create({
   addressId: selectedAddress.id,
-  discountCode: appliedDiscount?.code,  // Optional
+  discountCode: appliedDiscount?.code, // Optional
 });
 const order = orderRes.data;
 
 // Step 2: Create payment
 const paymentRes = await paymentApi.create({
   orderId: order.id,
-  method: 'VN_PAY'  // or 'COD'
+  method: "VN_PAY", // or 'COD'
 });
 
 // Step 3: Handle payment
-if (paymentRes.data.method === 'VN_PAY' && paymentRes.data.paymentUrl) {
+if (paymentRes.data.method === "VN_PAY" && paymentRes.data.paymentUrl) {
   // Redirect to VNPay payment gateway
   window.location.href = paymentRes.data.paymentUrl;
 } else {
   // COD — order confirmed immediately
-  navigate('orders');
+  navigate("orders");
 }
 
 // Step 4: Clear discount from localStorage after successful order
-localStorage.removeItem('appliedDiscount');
+localStorage.removeItem("appliedDiscount");
 ```
 
 ---
@@ -750,17 +755,17 @@ localStorage.removeItem('appliedDiscount');
 
 ### 11.1 Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/payments/create` | ✅ | Create payment for order |
-| `GET`  | `/payments/vnpay-callback?vnp_...` | ✅ | Verify VNPay callback |
-| `GET`  | `/payments/{orderId}` | ✅ | Get payment by order ID |
+| Method | Endpoint                           | Auth | Description              |
+| ------ | ---------------------------------- | ---- | ------------------------ |
+| `POST` | `/payments/create`                 | ✅   | Create payment for order |
+| `GET`  | `/payments/vnpay-callback?vnp_...` | ✅   | Verify VNPay callback    |
+| `GET`  | `/payments/{orderId}`              | ✅   | Get payment by order ID  |
 
 ### 11.2 Types
 
 ```typescript
-type PaymentMethod = 'COD' | 'VN_PAY';
-type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
+type PaymentMethod = "COD" | "VN_PAY";
+type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED" | "CANCELLED" | "EXPIRED";
 
 interface CreatePaymentRequest {
   orderId: number;
@@ -773,9 +778,9 @@ interface PaymentResponse {
   method: PaymentMethod;
   status: PaymentStatus;
   amount: number;
-  transactionId: string | null;   // VNPay transaction reference
-  paidAt: string | null;          // Payment timestamp
-  paymentUrl: string | null;      // VNPay redirect URL (for VN_PAY only)
+  transactionId: string | null; // VNPay transaction reference
+  paidAt: string | null; // Payment timestamp
+  paymentUrl: string | null; // VNPay redirect URL (for VN_PAY only)
 }
 ```
 
@@ -814,17 +819,18 @@ Frontend                   Backend                  VNPay
 
 // App.tsx detects VNPay params
 const urlParams = new URLSearchParams(window.location.search);
-const hasVnpParams = urlParams.has('vnp_ResponseCode') || urlParams.has('vnp_TxnRef');
+const hasVnpParams =
+  urlParams.has("vnp_ResponseCode") || urlParams.has("vnp_TxnRef");
 
 if (hasVnpParams) {
-  setCurrentScreen('payment-result');
+  setCurrentScreen("payment-result");
 }
 
 // PaymentResult page verifies with backend
 const params = Object.fromEntries(urlParams.entries());
 const res = await paymentApi.verifyVnpayCallback(params);
 
-if (res.data.status === 'SUCCESS') {
+if (res.data.status === "SUCCESS") {
   // Show success message
 } else {
   // Show failure message
@@ -837,9 +843,9 @@ if (res.data.status === 'SUCCESS') {
 
 ### 12.1 Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/discounts/validate?code=TETGIFT2026` | ✅ | Validate discount code |
+| Method | Endpoint                               | Auth | Description            |
+| ------ | -------------------------------------- | ---- | ---------------------- |
+| `POST` | `/discounts/validate?code=TETGIFT2026` | ✅   | Validate discount code |
 
 ### 12.2 Types
 
@@ -847,12 +853,12 @@ if (res.data.status === 'SUCCESS') {
 interface DiscountResponse {
   id: number;
   code: string;
-  discountValue: number;    // Flat amount discount (VND)
-  minOrderAmount?: number;  // Minimum order value to apply discount
-  usageLimit?: number;      // Maximum usage count (null = unlimited)
-  usageCount?: number;      // Current number of times used
-  startDate: string;        // ISO date
-  endDate: string;          // ISO date
+  discountValue: number; // Flat amount discount (VND)
+  minOrderAmount?: number; // Minimum order value to apply discount
+  usageLimit?: number; // Maximum usage count (null = unlimited)
+  usageCount?: number; // Current number of times used
+  startDate: string; // ISO date
+  endDate: string; // ISO date
   isActive: boolean;
 }
 ```
@@ -865,7 +871,7 @@ interface DiscountResponse {
 const res = await discountApi.validate(discountCode);
 
 // Step 2: Save to localStorage for checkout
-localStorage.setItem('appliedDiscount', JSON.stringify(res.data));
+localStorage.setItem("appliedDiscount", JSON.stringify(res.data));
 
 // Step 3: Show discount in order summary
 const discountAmount = res.data.discountValue;
@@ -873,17 +879,17 @@ const finalTotal = cartTotal - discountAmount;
 
 // === Checkout Page ===
 // Step 1: Read discount from localStorage (read-only display)
-const saved = localStorage.getItem('appliedDiscount');
+const saved = localStorage.getItem("appliedDiscount");
 const discount = saved ? JSON.parse(saved) : null;
 
 // Step 2: Pass discount code when creating order
 await orderApi.create({
   addressId: selectedAddress.id,
-  discountCode: discount?.code
+  discountCode: discount?.code,
 });
 
 // Step 3: Clean up after order placed
-localStorage.removeItem('appliedDiscount');
+localStorage.removeItem("appliedDiscount");
 ```
 
 ---
@@ -892,14 +898,14 @@ localStorage.removeItem('appliedDiscount');
 
 ### 13.1 Endpoints (Auth Required ✅)
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET`  | `/addresses` | ✅ | List user's addresses |
-| `GET`  | `/addresses/{id}` | ✅ | Get address detail |
-| `POST` | `/addresses` | ✅ | Create new address |
-| `PUT`  | `/addresses/{id}` | ✅ | Update address |
-| `DELETE`| `/addresses/{id}` | ✅ | Delete address |
-| `PUT`  | `/addresses/{id}/default` | ✅ | Set as default address |
+| Method   | Endpoint                  | Auth | Description            |
+| -------- | ------------------------- | ---- | ---------------------- |
+| `GET`    | `/addresses`              | ✅   | List user's addresses  |
+| `GET`    | `/addresses/{id}`         | ✅   | Get address detail     |
+| `POST`   | `/addresses`              | ✅   | Create new address     |
+| `PUT`    | `/addresses/{id}`         | ✅   | Update address         |
+| `DELETE` | `/addresses/{id}`         | ✅   | Delete address         |
+| `PUT`    | `/addresses/{id}/default` | ✅   | Set as default address |
 
 ### 13.2 Types
 
@@ -925,10 +931,10 @@ interface AddressRequest {
 ```typescript
 // Fetch all addresses for checkout page
 const res = await addressApi.getAll();
-const addresses = res.data;  // AddressResponse[] (NOT paginated)
+const addresses = res.data; // AddressResponse[] (NOT paginated)
 
 // Pre-select default address
-const defaultAddr = addresses.find(a => a.isDefault);
+const defaultAddr = addresses.find((a) => a.isDefault);
 
 // Create order with selected address
 await orderApi.create({ addressId: selectedAddr.id });
@@ -940,12 +946,12 @@ await orderApi.create({ addressId: selectedAddr.id });
 
 ### 14.1 Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET`  | `/products/{productId}/reviews?page=0&size=10` | ❌ | Get reviews for product |
-| `POST` | `/products/{productId}/reviews` | ✅ | Create review |
-| `PUT`  | `/reviews/{reviewId}` | ✅ (owner only) | Update own review |
-| `DELETE`| `/reviews/{reviewId}` | ✅ (owner only) | Delete own review |
+| Method   | Endpoint                                       | Auth            | Description             |
+| -------- | ---------------------------------------------- | --------------- | ----------------------- |
+| `GET`    | `/products/{productId}/reviews?page=0&size=10` | ❌              | Get reviews for product |
+| `POST`   | `/products/{productId}/reviews`                | ✅              | Create review           |
+| `PUT`    | `/reviews/{reviewId}`                          | ✅ (owner only) | Update own review       |
+| `DELETE` | `/reviews/{reviewId}`                          | ✅ (owner only) | Delete own review       |
 
 ### 14.2 Types
 
@@ -955,13 +961,13 @@ interface ReviewResponse {
   productId: number;
   userId: number;
   userName: string;
-  rating: number;      // 1-5
+  rating: number; // 1-5
   comment: string;
   createdAt: string;
 }
 
 interface CreateReviewRequest {
-  rating: number;      // 1-5
+  rating: number; // 1-5
   comment: string;
 }
 ```
@@ -975,12 +981,13 @@ const reviews = res.data.data;
 const totalReviews = res.data.totalItems;
 
 // Calculate average rating
-const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+const avgRating =
+  reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
 
 // Submit a review
 await reviewApi.create(productId, {
   rating: 5,
-  comment: 'Sản phẩm tuyệt vời, đóng gói đẹp!'
+  comment: "Sản phẩm tuyệt vời, đóng gói đẹp!",
 });
 ```
 
@@ -990,11 +997,11 @@ await reviewApi.create(productId, {
 
 ### 15.1 Endpoints (Public)
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET`  | `/blog-topics` | ❌ | List all blog topics |
-| `GET`  | `/blogs?page=0&size=10` | ❌ | List blog posts (paginated) |
-| `GET`  | `/blogs/{id}` | ❌ | Blog post detail |
+| Method | Endpoint                | Auth | Description                 |
+| ------ | ----------------------- | ---- | --------------------------- |
+| `GET`  | `/blog-topics`          | ❌   | List all blog topics        |
+| `GET`  | `/blogs?page=0&size=10` | ❌   | List blog posts (paginated) |
+| `GET`  | `/blogs/{id}`           | ❌   | Blog post detail            |
 
 ### 15.2 Types
 
@@ -1007,7 +1014,7 @@ interface BlogTopic {
 interface BlogPostResponse {
   id: number;
   title: string;
-  content: string;      // May contain HTML/markdown
+  content: string; // May contain HTML/markdown
   topicName: string;
   topicId: number;
   createdAt: string;
@@ -1020,23 +1027,23 @@ interface BlogPostResponse {
 
 ### 16.1 Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/chatbot/chat` | ❌ | Send message to AI chatbot |
-| `GET`  | `/chatbot/history/{sessionId}` | ❌ | Get chat history |
-| `POST` | `/chatbot/embeddings/sync` | ✅ (Admin) | Sync product embeddings |
+| Method | Endpoint                       | Auth       | Description                |
+| ------ | ------------------------------ | ---------- | -------------------------- |
+| `POST` | `/chatbot/chat`                | ❌         | Send message to AI chatbot |
+| `GET`  | `/chatbot/history/{sessionId}` | ❌         | Get chat history           |
+| `POST` | `/chatbot/embeddings/sync`     | ✅ (Admin) | Sync product embeddings    |
 
 ### 16.2 Types
 
 ```typescript
 interface ChatRequest {
   message: string;
-  sessionId?: string;    // Include to maintain conversation
+  sessionId?: string; // Include to maintain conversation
 }
 
 interface ChatSuggestion {
   id: number;
-  type: 'PRODUCT' | 'BUNDLE';
+  type: "PRODUCT" | "BUNDLE";
   name: string;
   price: string;
   stock: number;
@@ -1044,17 +1051,17 @@ interface ChatSuggestion {
 }
 
 interface ChatResponse {
-  sessionId: string;            // Store this for follow-up messages
-  message: string;              // AI response text (with **bold** markdown)
+  sessionId: string; // Store this for follow-up messages
+  message: string; // AI response text (with **bold** markdown)
   timestamp: string;
-  detectedIntent: string;       // e.g. 'PRODUCT_QUERY', 'PRICE_CHECK'
+  detectedIntent: string; // e.g. 'PRODUCT_QUERY', 'PRICE_CHECK'
   success: boolean;
-  suggestions: ChatSuggestion[];  // Product cards to display
+  suggestions: ChatSuggestion[]; // Product cards to display
 }
 
 interface ChatHistoryItem {
   id: number;
-  role: 'USER' | 'ASSISTANT';
+  role: "USER" | "ASSISTANT";
   content: string;
   intent: string | null;
   createdAt: string;
@@ -1065,17 +1072,17 @@ interface ChatHistoryItem {
 
 ```typescript
 // Session is stored in localStorage
-const SESSION_KEY = 'chatbot_session_id';
+const SESSION_KEY = "chatbot_session_id";
 
 // First message — no sessionId
-const res = await chatbotApi.chat({ message: 'Tư vấn quà tết tặng sếp' });
+const res = await chatbotApi.chat({ message: "Tư vấn quà tết tặng sếp" });
 const sessionId = res.data.sessionId;
 localStorage.setItem(SESSION_KEY, sessionId);
 
 // Follow-up messages — include sessionId
 const res2 = await chatbotApi.chat({
-  message: 'Giá bao nhiêu?',
-  sessionId: sessionId
+  message: "Giá bao nhiêu?",
+  sessionId: sessionId,
 });
 
 // Resume previous session on page reload
@@ -1094,11 +1101,14 @@ When the backend doesn't return `suggestions`, the frontend auto-extracts produc
 // Preload catalog when chat opens
 const [products] = await Promise.all([
   productApi.getAll({ size: 100 }),
-  bundleApi.getAll({ size: 100 })
+  bundleApi.getAll({ size: 100 }),
 ]);
 
 // After receiving AI response, if no suggestions provided:
-function extractSuggestionsFromText(text: string, catalog: CatalogItem[]): ChatSuggestion[] {
+function extractSuggestionsFromText(
+  text: string,
+  catalog: CatalogItem[],
+): ChatSuggestion[] {
   const found: ChatSuggestion[] = [];
   const lowerText = text.toLowerCase();
 
@@ -1128,92 +1138,92 @@ All admin endpoints require **ADMIN role** (`roleName: 'ADMIN'`).
 
 #### Users
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/user?page=0&size=10` | List all users (paginated) |
-| `GET`  | `/user/{id}` | Get user details |
-| `PUT`  | `/user/{id}` | Update user |
-| `DELETE`| `/user/{id}` | Delete user |
+| Method   | Endpoint               | Description                |
+| -------- | ---------------------- | -------------------------- |
+| `GET`    | `/user?page=0&size=10` | List all users (paginated) |
+| `GET`    | `/user/{id}`           | Get user details           |
+| `PUT`    | `/user/{id}`           | Update user                |
+| `DELETE` | `/user/{id}`           | Delete user                |
 
 #### Roles
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/role` | List all roles |
-| `GET`  | `/role/{id}` | Get role details |
-| `POST` | `/role` | Create role |
-| `PUT`  | `/role?id={id}` | Update role |
-| `DELETE`| `/role?id={id}` | Delete role |
+| Method   | Endpoint        | Description      |
+| -------- | --------------- | ---------------- |
+| `GET`    | `/role`         | List all roles   |
+| `GET`    | `/role/{id}`    | Get role details |
+| `POST`   | `/role`         | Create role      |
+| `PUT`    | `/role?id={id}` | Update role      |
+| `DELETE` | `/role?id={id}` | Delete role      |
 
 #### Categories
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/categories` | List all categories |
-| `POST` | `/categories` | Create category |
-| `PUT`  | `/categories/{id}` | Update category |
-| `DELETE`| `/categories/{id}` | Delete category |
+| Method   | Endpoint           | Description         |
+| -------- | ------------------ | ------------------- |
+| `GET`    | `/categories`      | List all categories |
+| `POST`   | `/categories`      | Create category     |
+| `PUT`    | `/categories/{id}` | Update category     |
+| `DELETE` | `/categories/{id}` | Delete category     |
 
 #### Products
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/products?page=0&size=10` | List all products (paginated) |
-| `GET`  | `/products/{id}` | Get product details |
-| `POST` | `/products/register` | Create product |
-| `PUT`  | `/products/{id}` | Update product |
-| `DELETE`| `/products/{id}` | Delete product |
+| Method   | Endpoint                   | Description                   |
+| -------- | -------------------------- | ----------------------------- |
+| `GET`    | `/products?page=0&size=10` | List all products (paginated) |
+| `GET`    | `/products/{id}`           | Get product details           |
+| `POST`   | `/products/register`       | Create product                |
+| `PUT`    | `/products/{id}`           | Update product                |
+| `DELETE` | `/products/{id}`           | Delete product                |
 
 #### Bundles (Combos)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/bundles?page=0&size=10` | List all bundles (paginated) |
-| `POST` | `/bundles` | Create bundle |
-| `PUT`  | `/bundles/{id}` | Update bundle |
-| `DELETE`| `/bundles/{id}` | Delete bundle |
+| Method   | Endpoint                  | Description                  |
+| -------- | ------------------------- | ---------------------------- |
+| `GET`    | `/bundles?page=0&size=10` | List all bundles (paginated) |
+| `POST`   | `/bundles`                | Create bundle                |
+| `PUT`    | `/bundles/{id}`           | Update bundle                |
+| `DELETE` | `/bundles/{id}`           | Delete bundle                |
 
 #### Orders (Admin view)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/orders/all?page=0&size=10` | List ALL orders (paginated) |
-| `GET`  | `/orders/{id}` | Get order details |
-| `PUT`  | `/orders/{id}/status?status=SHIPPED` | Update order status |
-| `PUT`  | `/orders/{id}/cancel` | Cancel order |
+| Method | Endpoint                             | Description                 |
+| ------ | ------------------------------------ | --------------------------- |
+| `GET`  | `/orders/all?page=0&size=10`         | List ALL orders (paginated) |
+| `GET`  | `/orders/{id}`                       | Get order details           |
+| `PUT`  | `/orders/{id}/status?status=SHIPPED` | Update order status         |
+| `PUT`  | `/orders/{id}/cancel`                | Cancel order                |
 
 #### Discounts
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/discounts` | List all discount codes |
-| `GET`  | `/discounts/{id}` | Get discount details |
-| `POST` | `/discounts` | Create discount |
-| `PUT`  | `/discounts/{id}` | Update discount |
-| `DELETE`| `/discounts/{id}` | Delete discount |
+| Method   | Endpoint          | Description             |
+| -------- | ----------------- | ----------------------- |
+| `GET`    | `/discounts`      | List all discount codes |
+| `GET`    | `/discounts/{id}` | Get discount details    |
+| `POST`   | `/discounts`      | Create discount         |
+| `PUT`    | `/discounts/{id}` | Update discount         |
+| `DELETE` | `/discounts/{id}` | Delete discount         |
 
 #### Blogs
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/blogs?page=0&size=10` | List all blog posts |
-| `POST` | `/blogs` | Create blog post |
-| `PUT`  | `/blogs/{id}` | Update blog post |
-| `DELETE`| `/blogs/{id}` | Delete blog post |
+| Method   | Endpoint                | Description         |
+| -------- | ----------------------- | ------------------- |
+| `GET`    | `/blogs?page=0&size=10` | List all blog posts |
+| `POST`   | `/blogs`                | Create blog post    |
+| `PUT`    | `/blogs/{id}`           | Update blog post    |
+| `DELETE` | `/blogs/{id}`           | Delete blog post    |
 
 #### Blog Topics
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/blog-topics` | List all topics |
-| `POST` | `/blog-topics` | Create topic |
-| `PUT`  | `/blog-topics/{id}` | Update topic |
-| `DELETE`| `/blog-topics/{id}` | Delete topic |
+| Method   | Endpoint            | Description     |
+| -------- | ------------------- | --------------- |
+| `GET`    | `/blog-topics`      | List all topics |
+| `POST`   | `/blog-topics`      | Create topic    |
+| `PUT`    | `/blog-topics/{id}` | Update topic    |
+| `DELETE` | `/blog-topics/{id}` | Delete topic    |
 
 #### Payment (Read-only)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+| Method | Endpoint              | Description               |
+| ------ | --------------------- | ------------------------- |
 | `GET`  | `/payments/{orderId}` | Get payment info by order |
 
 ### 17.2 Admin Request Types
@@ -1229,9 +1239,9 @@ interface ProductRequest {
   manufactureDate?: string;
   expDate?: string;
   images?: Array<{
-    imageUrl: string;     // Cloudinary URL
+    imageUrl: string; // Cloudinary URL
     imageType: string;
-    publicId: string;     // Cloudinary public ID
+    publicId: string; // Cloudinary public ID
     isPrimary: boolean;
   }>;
 }
@@ -1250,9 +1260,9 @@ interface BundleRequest {
 // Discount creation
 interface DiscountRequest {
   code: string;
-  discountValue: number;   // Flat VND amount
-  startDate: string;       // ISO date
-  endDate: string;         // ISO date
+  discountValue: number; // Flat VND amount
+  startDate: string; // ISO date
+  endDate: string; // ISO date
 }
 
 // Blog post creation
@@ -1264,8 +1274,14 @@ interface BlogPostRequest {
 
 // Order status update (Admin)
 // PUT /orders/{id}/status?status=SHIPPED
-type OrderStatus = 'CREATED' | 'WAITING_PAYMENT' | 'PAID'
-                 | 'PROCESSING' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
+type OrderStatus =
+  | "CREATED"
+  | "WAITING_PAYMENT"
+  | "PAID"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "COMPLETED"
+  | "CANCELLED";
 ```
 
 ---
@@ -1274,22 +1290,22 @@ type OrderStatus = 'CREATED' | 'WAITING_PAYMENT' | 'PAID'
 
 ### 18.1 Route Mapping
 
-| URL Path | Screen | Auth Required | Description |
-|----------|--------|---------------|-------------|
-| `/` | `home` | ❌ | Landing page with hero + featured products |
-| `/shop` | `shop` | ❌ | Product catalog with filters |
-| `/product` | `product-detail` | ❌ | Single product detail + reviews |
-| `/cart` | `cart` | ✅ | Shopping cart + discount code input |
-| `/checkout` | `checkout` | ✅ | Address + payment selection |
-| `/login` | `login` | ❌ | Login form + OAuth buttons |
-| `/register` | `register` | ❌ | Registration form |
-| `/profile` | `profile` | ✅ | User profile + address management |
-| `/orders` | `orders` | ✅ | Order history |
-| `/blog` | `blog` | ❌ | Blog listing |
-| `/blog-detail` | `blog-detail` | ❌ | Single blog post |
-| `/about` | `about` | ❌ | About page |
-| `/admin` | `admin` | ✅ (ADMIN) | Admin dashboard |
-| `/payment-result` | `payment-result` | ✅ | VNPay callback result |
+| URL Path          | Screen           | Auth Required | Description                                |
+| ----------------- | ---------------- | ------------- | ------------------------------------------ |
+| `/`               | `home`           | ❌            | Landing page with hero + featured products |
+| `/shop`           | `shop`           | ❌            | Product catalog with filters               |
+| `/product`        | `product-detail` | ❌            | Single product detail + reviews            |
+| `/cart`           | `cart`           | ✅            | Shopping cart + discount code input        |
+| `/checkout`       | `checkout`       | ✅            | Address + payment selection                |
+| `/login`          | `login`          | ❌            | Login form + OAuth buttons                 |
+| `/register`       | `register`       | ❌            | Registration form                          |
+| `/profile`        | `profile`        | ✅            | User profile + address management          |
+| `/orders`         | `orders`         | ✅            | Order history                              |
+| `/blog`           | `blog`           | ❌            | Blog listing                               |
+| `/blog-detail`    | `blog-detail`    | ❌            | Single blog post                           |
+| `/about`          | `about`          | ❌            | About page                                 |
+| `/admin`          | `admin`          | ✅ (ADMIN)    | Admin dashboard                            |
+| `/payment-result` | `payment-result` | ✅            | VNPay callback result                      |
 
 ### 18.2 Complete Shopping Flow
 
@@ -1367,31 +1383,31 @@ try {
     switch (error.status) {
       case 400:
         // Bad request — show validation errors
-        showToast(error.message, 'error');
+        showToast(error.message, "error");
         break;
       case 401:
         // Unauthorized — redirect to login
         tokenStorage.clearTokens();
-        navigate('login');
+        navigate("login");
         break;
       case 403:
         // Forbidden — insufficient permissions
-        showToast('Bạn không có quyền thực hiện hành động này', 'error');
+        showToast("Bạn không có quyền thực hiện hành động này", "error");
         break;
       case 404:
         // Not found
-        showToast('Không tìm thấy dữ liệu', 'error');
+        showToast("Không tìm thấy dữ liệu", "error");
         break;
       case 409:
         // Conflict (e.g., duplicate)
-        showToast(error.message, 'warning');
+        showToast(error.message, "warning");
         break;
       case 500:
         // Server error
-        showToast('Lỗi hệ thống. Vui lòng thử lại sau.', 'error');
+        showToast("Lỗi hệ thống. Vui lòng thử lại sau.", "error");
         break;
       default:
-        showToast(error.message || 'Đã có lỗi xảy ra', 'error');
+        showToast(error.message || "Đã có lỗi xảy ra", "error");
     }
   }
 }
@@ -1403,22 +1419,22 @@ Instead of using browser's native `window.confirm()`, the project uses a custom 
 
 ```typescript
 // Usage in any component
-import { useConfirmDialog } from './components/ConfirmDialog';
+import { useConfirmDialog } from "./components/ConfirmDialog";
 
 const { confirm } = useConfirmDialog();
 
 const handleDelete = async () => {
   const confirmed = await confirm({
-    title: 'Xác nhận xoá',
-    message: 'Bạn có chắc chắn muốn xoá sản phẩm này?',
-    confirmText: 'Xoá',
-    cancelText: 'Huỷ',
-    variant: 'danger'   // 'danger' | 'warning' | 'info'
+    title: "Xác nhận xoá",
+    message: "Bạn có chắc chắn muốn xoá sản phẩm này?",
+    confirmText: "Xoá",
+    cancelText: "Huỷ",
+    variant: "danger", // 'danger' | 'warning' | 'info'
   });
 
   if (confirmed) {
     await adminProductApi.delete(productId);
-    showToast('Đã xoá thành công!');
+    showToast("Đã xoá thành công!");
   }
 };
 ```
@@ -1431,10 +1447,10 @@ const handleDelete = async () => {
 
 ```typescript
 interface PaginationParams {
-  page?: number;      // 0-indexed page number (default: 0)
-  size?: number;      // Items per page (default: 10)
-  sortBy?: string;    // Sort field (e.g., 'createdAt', 'price', 'name')
-  sortDir?: 'asc' | 'desc';  // Sort direction
+  page?: number; // 0-indexed page number (default: 0)
+  size?: number; // Items per page (default: 10)
+  sortBy?: string; // Sort field (e.g., 'createdAt', 'price', 'name')
+  sortDir?: "asc" | "desc"; // Sort direction
 }
 ```
 
@@ -1492,36 +1508,36 @@ const renderPagination = () => (
 
 ```typescript
 const [formData, setFormData] = useState({
-  name: '',
-  description: '',
+  name: "",
+  description: "",
   price: 0,
   stock: 0,
   categoryId: 0,
 });
 const [isSubmitting, setIsSubmitting] = useState(false);
-const [error, setError] = useState('');
+const [error, setError] = useState("");
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
-  setError('');
+  setError("");
   setIsSubmitting(true);
 
   try {
     // Validate
     if (!formData.name.trim()) {
-      setError('Tên sản phẩm không được để trống');
+      setError("Tên sản phẩm không được để trống");
       return;
     }
 
     // Submit
     await adminProductApi.create(formData);
-    showToast('Tạo sản phẩm thành công!');
-    navigate('admin');
+    showToast("Tạo sản phẩm thành công!");
+    navigate("admin");
   } catch (err) {
     if (err instanceof ApiError) {
       setError(err.message);
     } else {
-      setError('Đã có lỗi xảy ra');
+      setError("Đã có lỗi xảy ra");
     }
   } finally {
     setIsSubmitting(false);
@@ -1533,25 +1549,25 @@ const handleSubmit = async (e: React.FormEvent) => {
 
 ## Quick Reference: Required Headers
 
-| Scenario | Headers |
-|----------|---------|
-| **Public endpoint** | `Content-Type: application/json` |
-| **Authenticated endpoint** | `Content-Type: application/json` + `Authorization: Bearer {accessToken}` |
-| **Token refresh** | `Content-Type: application/json` + `x-refresh-token: {refreshToken}` |
-| **Logout** | `Authorization: Bearer {accessToken}` + `x-refresh-token: {refreshToken}` |
+| Scenario                   | Headers                                                                   |
+| -------------------------- | ------------------------------------------------------------------------- |
+| **Public endpoint**        | `Content-Type: application/json`                                          |
+| **Authenticated endpoint** | `Content-Type: application/json` + `Authorization: Bearer {accessToken}`  |
+| **Token refresh**          | `Content-Type: application/json` + `x-refresh-token: {refreshToken}`      |
+| **Logout**                 | `Authorization: Bearer {accessToken}` + `x-refresh-token: {refreshToken}` |
 
 ---
 
 ## Quick Reference: localStorage Keys
 
-| Key | Type | Used By |
-|-----|------|---------|
-| `accessToken` | string | All authenticated API calls |
-| `refreshToken` | string | Token refresh & logout |
-| `userId` | string (number) | Fetch user profile |
-| `user` | JSON string | Cache user data for UI |
-| `appliedDiscount` | JSON string | Pass discount from Cart → Checkout |
-| `chatbot_session_id` | string | Maintain chatbot conversation |
+| Key                  | Type            | Used By                            |
+| -------------------- | --------------- | ---------------------------------- |
+| `accessToken`        | string          | All authenticated API calls        |
+| `refreshToken`       | string          | Token refresh & logout             |
+| `userId`             | string (number) | Fetch user profile                 |
+| `user`               | JSON string     | Cache user data for UI             |
+| `appliedDiscount`    | JSON string     | Pass discount from Cart → Checkout |
+| `chatbot_session_id` | string          | Maintain chatbot conversation      |
 
 ---
 

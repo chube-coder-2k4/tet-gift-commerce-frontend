@@ -1,6 +1,6 @@
 // API Configuration & Base Service
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.quanghuycoder.id.vn/api/v1';
+const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_URL || 'https://api.quanghuycoder.id.vn';
 
 // Types
 export interface ApiResponse<T> {
