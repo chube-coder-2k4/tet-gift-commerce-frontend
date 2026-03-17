@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Screen } from '../types';
 import { paymentApi, PaymentResponse } from '../services/paymentApi';
 import { orderApi, OrderResponse } from '../services/orderApi';
+import { InvoiceButton } from '../components/InvoiceButton';
 
 interface PaymentResultProps {
   onNavigate: (screen: Screen) => void;
@@ -186,6 +187,24 @@ const PaymentResult: React.FC<PaymentResultProps> = ({ onNavigate }) => {
                   <span className="text-sm text-gray-500 dark:text-gray-400">Ngày đặt</span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(order.createdAt)}</span>
                 </div>
+                {order.tierDiscountAmount != null && order.tierDiscountAmount > 0 && (
+                  <div className="flex justify-between items-center py-2.5 border-b border-gray-100 dark:border-white/5">
+                    <span className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">trending_down</span>
+                      Giảm theo đơn ({order.tierDiscountPercent}%)
+                    </span>
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400">-{order.tierDiscountAmount.toLocaleString()}₫</span>
+                  </div>
+                )}
+                {order.discountCode && order.discountAmount != null && order.discountAmount > 0 && (
+                  <div className="flex justify-between items-center py-2.5 border-b border-gray-100 dark:border-white/5">
+                    <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">sell</span>
+                      Mã {order.discountCode}
+                    </span>
+                    <span className="text-sm font-bold text-green-600 dark:text-green-400">-{order.discountAmount.toLocaleString()}₫</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -228,6 +247,13 @@ const PaymentResult: React.FC<PaymentResultProps> = ({ onNavigate }) => {
               </div>
             )}
           </div>
+
+          {/* Invoice Download */}
+          {status === 'success' && order && (
+            <div className="px-6">
+              <InvoiceButton orderId={order.id} orderStatus={order.status} variant="card" />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="p-6 pt-2 space-y-3">

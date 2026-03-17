@@ -23,6 +23,9 @@ export interface OrderResponse {
   id: number;
   status: OrderStatus;
   totalAmount: number;
+  subtotalBeforeDiscount?: number;
+  tierDiscountPercent?: number;
+  tierDiscountAmount?: number;
   customerName?: string;
   customerEmail?: string;
   receiverName?: string;

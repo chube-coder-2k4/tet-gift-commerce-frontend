@@ -4,6 +4,7 @@ import { authApi } from '../services/api';
 import { orderApi, OrderResponse, OrderStatus, PageResponse } from '../services/orderApi';
 import { paymentApi, PaymentResponse } from '../services/paymentApi';
 import { useConfirmDialog } from '../components/ConfirmDialog';
+import { InvoiceButton } from '../components/InvoiceButton';
 import Pagination from '../components/Pagination';
 
 interface OrdersProps {
@@ -344,6 +345,29 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                           </div>
                         )}
 
+                        {/* Tier Discount Info */}
+                        {order.tierDiscountAmount != null && order.tierDiscountAmount > 0 && (
+                          <div className="px-5 pb-4">
+                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                              <span className="material-symbols-outlined text-lg">trending_down</span>
+                              Giảm giá theo đơn hàng
+                            </h4>
+                            <div className="flex items-center gap-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-200 dark:border-blue-800/30">
+                              <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-bold border border-blue-200 dark:border-blue-700/40">
+                                -{order.tierDiscountPercent}%
+                              </span>
+                              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                -{order.tierDiscountAmount.toLocaleString()}₫
+                              </span>
+                              {order.subtotalBeforeDiscount != null && (
+                                <span className="text-xs text-gray-400 ml-auto">
+                                  Trên đơn {order.subtotalBeforeDiscount.toLocaleString()}₫
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Discount Info */}
                         {order.discountCode && (
                           <div className="px-5 pb-4">
@@ -446,6 +470,8 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                               )}
                             </div>
                           </div>
+                          {/* Invoice Button */}
+                          <InvoiceButton orderId={order.id} orderStatus={order.status} variant="card" className="mt-3" />
                         </div>
                       </div>
                     )}

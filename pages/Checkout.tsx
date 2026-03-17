@@ -6,6 +6,7 @@ import { orderApi, OrderResponse } from '../services/orderApi';
 import { paymentApi, PaymentMethod } from '../services/paymentApi';
 import { discountApi, DiscountResponse } from '../services/discountApi';
 import { authApi } from '../services/api';
+import { InvoiceButton } from '../components/InvoiceButton';
 
 interface CheckoutProps {
   onNavigate: (screen: Screen) => void;
@@ -150,11 +151,24 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
                 <span className="font-medium text-gray-900 dark:text-white">{item.subtotal.toLocaleString()}₫</span>
               </div>
             ))}
+            {createdOrder.tierDiscountAmount != null && createdOrder.tierDiscountAmount > 0 && (
+              <div className="flex justify-between py-2 text-sm text-blue-600 dark:text-blue-400">
+                <span>Giảm theo đơn hàng ({createdOrder.tierDiscountPercent}%)</span>
+                <span className="font-semibold">-{createdOrder.tierDiscountAmount.toLocaleString()}₫</span>
+              </div>
+            )}
+            {createdOrder.discountCode && createdOrder.discountAmount != null && createdOrder.discountAmount > 0 && (
+              <div className="flex justify-between py-2 text-sm text-green-600 dark:text-green-400">
+                <span>Mã giảm giá ({createdOrder.discountCode})</span>
+                <span className="font-semibold">-{createdOrder.discountAmount.toLocaleString()}₫</span>
+              </div>
+            )}
             <div className="flex justify-between pt-4 mt-2 border-t border-gray-200 dark:border-white/10">
               <span className="font-bold text-gray-900 dark:text-white">Tổng cộng</span>
               <span className="font-bold text-primary text-xl">{createdOrder.totalAmount.toLocaleString()}₫</span>
             </div>
           </div>
+          <InvoiceButton orderId={createdOrder.id} orderStatus={createdOrder.status} variant="compact" className="justify-center mb-6" />
           <div className="flex gap-4 justify-center">
             <button onClick={() => onNavigate('home')} className="px-6 py-3 rounded-xl border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
               Về trang chủ
@@ -168,10 +182,21 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
     );
   }
 
+  // Tier discount calculation (mirrors backend logic)
+  const getTierDiscountPercent = (amount: number): number => {
+    if (amount >= 50_000_000) return 10;
+    if (amount >= 30_000_000) return 8;
+    if (amount >= 15_000_000) return 5;
+    if (amount >= 10_000_000) return 3;
+    return 0;
+  };
+
   const cartItems = cart?.items || [];
   const subtotal = cart?.totalPrice || 0;
+  const tierPercent = getTierDiscountPercent(subtotal);
+  const tierAmount = Math.round(subtotal * tierPercent / 100);
   const discountValue = discount ? discount.discountValue : 0;
-  const total = Math.max(0, subtotal - discountValue);
+  const total = Math.max(0, subtotal - tierAmount - discountValue);
   return (
     <div className="w-full max-w-[1440px] mx-auto px-4 lg:px-10 py-8">
       {/* Back Button */}
@@ -432,9 +457,18 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
                 <span>Vận chuyển</span>
                 <span className="text-gray-900 dark:text-gray-200 font-semibold">Miễn phí</span>
               </div>
+              {tierPercent > 0 && (
+                <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">trending_down</span>
+                    Giảm theo đơn ({tierPercent}%)
+                  </span>
+                  <span className="font-bold">-{tierAmount.toLocaleString()}₫</span>
+                </div>
+              )}
               {discount && (
                 <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                  <span>Giảm giá</span>
+                  <span>Mã giảm giá</span>
                   <span className="font-bold">-{discountValue.toLocaleString()}₫</span>
                 </div>
               )}

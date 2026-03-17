@@ -98,15 +98,25 @@ export const chatbotApi = {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let streamDone = false;
 
     try {
       while (true) {
-        const { done, value } = await reader.read();
+        let readResult;
+        try {
+          readResult = await reader.read();
+        } catch (readError) {
+          // Connection closed by server after [DONE] — this is normal, not an error
+          if (streamDone) break;
+          throw readError; // Real error — re-throw
+        }
+
+        const { done, value } = readResult;
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
 
-        // Process complete SSE events (separated by double newlines or single newlines)
+        // Process complete SSE events
         const lines = buffer.split('\n');
         buffer = '';
 
@@ -120,27 +130,38 @@ export const chatbotApi = {
           }
 
           if (!line.startsWith('data:')) continue;
-          const data = line.slice(5).trim();
-          if (!data) continue;
+          // Get everything after "data:" — this is the raw SSE content
+          const rawData = line.slice(5);
 
-          if (data.startsWith('[SESSION]')) {
-            callbacks.onSession(data.slice(9));
-          } else if (data.startsWith('[SUGGESTIONS]')) {
+          // For special markers, we trim to match cleanly
+          const trimmed = rawData.trim();
+
+          if (!trimmed) continue;
+
+          if (trimmed.startsWith('[SESSION]')) {
+            callbacks.onSession(trimmed.slice(9).trim());
+          } else if (trimmed.startsWith('[SUGGESTIONS]')) {
             try {
-              const suggestions = JSON.parse(data.slice(13));
+              const suggestions = JSON.parse(trimmed.slice(13));
               callbacks.onSuggestions(suggestions);
             } catch {
               // Invalid JSON, skip
             }
-          } else if (data === '[DONE]') {
+          } else if (trimmed === '[DONE]') {
+            streamDone = true;
             callbacks.onDone();
-          } else if (data.startsWith('[ERROR]')) {
-            callbacks.onError(data.slice(7));
+          } else if (trimmed.startsWith('[ERROR]')) {
+            callbacks.onError(trimmed.slice(7));
           } else {
-            // Regular token
-            callbacks.onToken(data);
+            // Regular token — keep rawData as-is, including leading space!
+            // Backend sends "data: token" where the space = word separator
+            // e.g. "data: bạn" → rawData=" bạn" → concat → "Chào bạn"
+            callbacks.onToken(rawData);
           }
         }
+
+        // Stop reading after [DONE] — server will close connection next
+        if (streamDone) break;
       }
     } finally {
       reader.releaseLock();

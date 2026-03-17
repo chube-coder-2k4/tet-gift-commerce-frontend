@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { chatbotApi, ChatSuggestion, ChatHistoryItem, RateLimitError } from '../services/chatbotApi';
+import { ApiError } from '../services/api';
 import { productApi, ProductResponse } from '../services/productApi';
 import { bundleApi, BundleResponse } from '../services/bundleApi';
 
@@ -9,8 +10,8 @@ interface Message {
   text: string;
   timestamp: Date;
   suggestions?: ChatSuggestion[];
-  isError?: boolean;        // true when success=false or [ERROR]
-  retryPayload?: string;    // original user message for retry
+  isError?: boolean;
+  retryPayload?: string;
 }
 
 interface ChatWidgetProps {
@@ -96,7 +97,7 @@ function formatPrice(price: string | number) {
   return Number(price).toLocaleString('vi-VN') + 'đ';
 }
 
-// Catalog item for local fallback matching
+// Catalog item for matching product names in text
 interface CatalogItem {
   id: number;
   type: 'PRODUCT' | 'BUNDLE';
@@ -106,16 +107,20 @@ interface CatalogItem {
   imageUrl: string | null;
 }
 
+// Extract product suggestions from AI text by matching against local catalog
 function extractSuggestionsFromText(text: string, catalog: CatalogItem[]): ChatSuggestion[] {
   if (catalog.length === 0) return [];
+  
   const found: ChatSuggestion[] = [];
   const seenIds = new Set<string>();
   const lowerText = text.toLowerCase();
+  
   const sorted = [...catalog].sort((a, b) => b.name.length - a.name.length);
   
   for (const item of sorted) {
     const key = `${item.type}-${item.id}`;
     if (seenIds.has(key)) continue;
+    
     if (lowerText.includes(item.name.toLowerCase())) {
       seenIds.add(key);
       found.push({
@@ -128,6 +133,7 @@ function extractSuggestionsFromText(text: string, catalog: CatalogItem[]): ChatS
       });
     }
   }
+  
   return found;
 }
 
@@ -142,9 +148,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
     }
   ]);
   const [inputText, setInputText] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamingText, setStreamingText] = useState('');
-  const [streamingMsgId, setStreamingMsgId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(() => localStorage.getItem(SESSION_KEY));
   const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -152,13 +156,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
   const catalogRef = useRef<CatalogItem[]>([]);
   const catalogLoaded = useRef(false);
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+  };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingText, scrollToBottom]);
+  }, [messages]);
 
   // Load chat history when opening widget with existing session
   useEffect(() => {
@@ -209,12 +213,10 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
     }
   }, [isOpen]);
 
-  // Send message with SSE streaming
   const handleSendMessage = async (retryMessage?: string) => {
     const messageText = retryMessage || inputText.trim();
-    if (!messageText || isStreaming) return;
+    if (!messageText || isLoading) return;
 
-    // Clear rate limit message
     setRateLimitMsg(null);
 
     // Add user message (skip if retrying)
@@ -229,68 +231,49 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
       setInputText('');
     }
 
-    // Setup streaming state
-    const botMsgId = Date.now() + 1;
-    setStreamingMsgId(botMsgId);
-    setStreamingText('');
-    setIsStreaming(true);
-
-    let accumulated = '';
-    let suggestions: ChatSuggestion[] | undefined;
+    setIsLoading(true);
 
     try {
-      await chatbotApi.chatStream(
-        {
-          message: messageText,
-          sessionId: sessionId || undefined,
-        },
-        {
-          onSession: (newSessionId: string) => {
-            setSessionId(newSessionId);
-            localStorage.setItem(SESSION_KEY, newSessionId);
-          },
-          onToken: (token: string) => {
-            accumulated += token;
-            setStreamingText(accumulated);
-          },
-          onSuggestions: (sug: ChatSuggestion[]) => {
-            suggestions = sug;
-          },
-          onDone: () => {
-            // Auto-extract suggestions from text if backend didn't provide any
-            if (!suggestions || suggestions.length === 0) {
-              const autoSuggestions = extractSuggestionsFromText(accumulated, catalogRef.current);
-              if (autoSuggestions.length > 0) {
-                suggestions = autoSuggestions;
-              }
-            }
-          },
-          onError: (errorMsg: string) => {
-            accumulated = errorMsg || 'Xin lỗi, hệ thống AI đang bận. Vui lòng thử lại sau.';
-          },
+      const res = await chatbotApi.chat({
+        message: messageText,
+        sessionId: sessionId || undefined,
+      });
+
+      if (res.data) {
+        // Store sessionId
+        if (res.data.sessionId && res.data.sessionId !== sessionId) {
+          setSessionId(res.data.sessionId);
+          localStorage.setItem(SESSION_KEY, res.data.sessionId);
         }
-      );
 
-      // Check if it was an error response (no accumulated text = something went wrong)
-      const isError = accumulated.includes('Xin lỗi') && accumulated.includes('thử lại');
+        // Auto-extract suggestions from text if backend didn't provide any
+        let suggestions = res.data.suggestions?.length > 0 ? res.data.suggestions : undefined;
+        if (!suggestions || suggestions.length === 0) {
+          const autoSuggestions = extractSuggestionsFromText(res.data.message, catalogRef.current);
+          if (autoSuggestions.length > 0) {
+            suggestions = autoSuggestions;
+          }
+        }
 
-      // Finalize: add completed message
-      const botMsg: Message = {
-        id: botMsgId,
-        sender: 'bot',
-        text: accumulated || 'Xin lỗi, không nhận được phản hồi từ AI.',
-        timestamp: new Date(),
-        suggestions,
-        isError: isError || !accumulated,
-        retryPayload: isError || !accumulated ? messageText : undefined,
-      };
-      setMessages(prev => [...prev, botMsg]);
+        // Check if it's a fallback/error response (success: false)
+        const isFallback = res.data.success === false;
 
+        const botMsg: Message = {
+          id: Date.now() + 1,
+          sender: 'bot',
+          text: res.data.message,
+          timestamp: new Date(res.data.timestamp),
+          suggestions,
+          isError: isFallback,
+          retryPayload: isFallback ? messageText : undefined,
+        };
+        setMessages(prev => [...prev, botMsg]);
+      }
     } catch (err) {
       let errorText = 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.';
       let showRetry = true;
 
-      if (err instanceof RateLimitError) {
+      if (err instanceof RateLimitError || (err instanceof ApiError && err.status === 429)) {
         errorText = err.message;
         setRateLimitMsg(err.message);
         showRetry = false;
@@ -298,25 +281,26 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
         errorText = err.message;
       }
 
-      const botMsg: Message = {
-        id: botMsgId,
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
         sender: 'bot',
         text: errorText,
         timestamp: new Date(),
         isError: showRetry,
         retryPayload: showRetry ? messageText : undefined,
-      };
-      setMessages(prev => [...prev, botMsg]);
+      }]);
     } finally {
-      setIsStreaming(false);
-      setStreamingMsgId(null);
-      setStreamingText('');
+      setIsLoading(false);
     }
   };
 
   const handleRetry = (retryPayload: string) => {
-    // Remove the error message
-    setMessages(prev => prev.filter(m => m.retryPayload !== retryPayload || !m.isError));
+    // Remove the last error message then retry
+    setMessages(prev => {
+      const lastErrorIdx = prev.findLastIndex(m => m.isError && m.retryPayload === retryPayload);
+      if (lastErrorIdx >= 0) return prev.filter((_, i) => i !== lastErrorIdx);
+      return prev;
+    });
     handleSendMessage(retryPayload);
   };
 
@@ -341,8 +325,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
               <div>
                 <h3 className="font-bold text-lg">AI TetGifts</h3>
                 <p className="text-xs text-white/80 flex items-center gap-1">
-                  <span className={`size-2 rounded-full ${isStreaming ? 'bg-yellow-400 animate-pulse' : 'bg-green-400 animate-pulse'}`}></span>
-                  {isStreaming ? 'Đang trả lời...' : 'Trợ lý AI đang hoạt động'}
+                  <span className="size-2 bg-green-400 rounded-full animate-pulse"></span>
+                  Trợ lý AI đang hoạt động
                 </p>
               </div>
             </div>
@@ -386,7 +370,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                       <p className="text-xs text-gray-400 dark:text-gray-500">
                         {message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                       </p>
-                      {/* Retry button for error messages */}
                       {message.isError && message.retryPayload && (
                         <button
                           onClick={() => handleRetry(message.retryPayload!)}
@@ -439,27 +422,17 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                 )}
               </div>
             ))}
-
-            {/* Streaming indicator — live text appearing */}
-            {isStreaming && (
+            {/* Typing indicator */}
+            {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-[75%]">
-                  <div className="bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm border border-gray-200 dark:border-[#3a3330]/60 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm dark:shadow-lg">
-                    {streamingText ? (
-                      <p className="text-sm leading-relaxed text-gray-900 dark:text-gray-200">
-                        {streamingText}
-                        <span className="inline-block w-1.5 h-4 bg-primary/70 dark:bg-[#daa520] ml-0.5 animate-blink align-middle rounded-sm"></span>
-                      </p>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1.5">
-                          <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                          <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                          <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                        </div>
-                        <span className="text-xs text-gray-400">Đang suy nghĩ...</span>
-                      </div>
-                    )}
+                <div className="bg-white dark:bg-surface-dark/80 border border-gray-200 dark:border-[#3a3330]/60 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
+                    <span className="text-xs text-gray-400">Đang suy nghĩ...</span>
                   </div>
                 </div>
               </div>
@@ -475,20 +448,20 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={isStreaming ? 'Đang trả lời...' : 'Hỏi AI về sản phẩm, giá cả, tồn kho...'}
+                placeholder="Hỏi AI về sản phẩm, giá cả, tồn kho..."
                 className="flex-1 bg-gray-100 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#b8860b]/20 transition-all"
-                disabled={isStreaming}
+                disabled={isLoading}
               />
               <button
                 onClick={() => handleSendMessage()}
-                disabled={!inputText.trim() || isStreaming}
+                disabled={!inputText.trim() || isLoading}
                 className="size-10 bg-gradient-to-r from-primary to-red-600 dark:from-[#8b2332] dark:to-[#6b1a28] hover:from-red-600 hover:to-red-700 dark:hover:from-[#a02a3c] dark:hover:to-[#8b2332] text-white rounded-xl flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
-                <span className="material-symbols-outlined">{isStreaming ? 'pending' : 'send'}</span>
+                <span className="material-symbols-outlined">send</span>
               </button>
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
-              AI tư vấn dựa trên dữ liệu sản phẩm thực tế • Streaming ⚡
+              AI tư vấn dựa trên dữ liệu sản phẩm thực tế
             </p>
           </div>
         </div>
@@ -541,13 +514,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
         }
         .animate-chat-ping {
           animation: chat-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
-        .animate-blink {
-          animation: blink 0.8s ease-in-out infinite;
         }
       `}</style>
     </>
