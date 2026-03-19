@@ -135,3 +135,339 @@ body {
 .animate-sparkle {
   animation: sparkle 2s ease-in-out infinite;
 }
+
+/* ============================= */
+/* ADMIN TET THEME STYLES        */
+/* ============================= */
+
+/* Admin page background */
+.admin-tet-theme {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background-color: #FDF6EC !important;
+}
+
+/* ---- Sidebar ---- */
+.admin-tet-sidebar {
+  background: #1A0A05 !important;
+  border-right: none !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-tet-sidebar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Ccircle cx='40' cy='160' r='5' fill='%23FFD700' opacity='0.08'/%3E%3Ccircle cx='40' cy='160' r='2' fill='%23FFD700' opacity='0.15'/%3E%3Ccircle cx='80' cy='140' r='4' fill='%23FFD700' opacity='0.06'/%3E%3Ccircle cx='80' cy='140' r='1.5' fill='%23FFD700' opacity='0.12'/%3E%3Ccircle cx='120' cy='170' r='6' fill='%23FFD700' opacity='0.05'/%3E%3Ccircle cx='120' cy='170' r='2.5' fill='%23FFD700' opacity='0.1'/%3E%3Ccircle cx='160' cy='150' r='4.5' fill='%23D4230A' opacity='0.06'/%3E%3Ccircle cx='160' cy='150' r='2' fill='%23D4230A' opacity='0.1'/%3E%3Ccircle cx='30' cy='120' r='3' fill='%23D4230A' opacity='0.05'/%3E%3Ccircle cx='100' cy='190' r='5.5' fill='%23F5A623' opacity='0.05'/%3E%3Ccircle cx='100' cy='190' r='2' fill='%23F5A623' opacity='0.1'/%3E%3Cpath d='M50 180 Q55 170 60 180 Q55 175 50 180Z' fill='%23FFD700' opacity='0.1'/%3E%3Cpath d='M130 160 Q135 150 140 160 Q135 155 130 160Z' fill='%23FFD700' opacity='0.08'/%3E%3Cpath d='M70 195 Q75 185 80 195 Q75 190 70 195Z' fill='%23F5A623' opacity='0.08'/%3E%3Cpath d='M150 185 Q155 175 160 185 Q155 180 150 185Z' fill='%23D4230A' opacity='0.06'/%3E%3Cpath d='M20 175 Q25 165 30 175 Q25 170 20 175Z' fill='%23FFD700' opacity='0.07'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: cover;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.admin-tet-sidebar > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Sidebar menu items */
+.admin-tet-menu-item {
+  color: #C9A98A !important;
+  transition: background 150ms ease, color 150ms ease;
+  border-left: 3px solid transparent;
+  border-radius: 0 12px 12px 0 !important;
+}
+
+.admin-tet-menu-item:hover {
+  background: rgba(212, 35, 10, 0.15) !important;
+  color: #FFD700 !important;
+}
+
+.admin-tet-menu-item.active {
+  background: linear-gradient(90deg, #D4230A, #B01C08) !important;
+  color: #FFFFFF !important;
+  border-left: 3px solid #FFD700;
+  box-shadow: 0 4px 15px rgba(212, 35, 10, 0.35);
+}
+
+.admin-tet-menu-item .material-symbols-outlined {
+  font-size: 16px !important;
+}
+
+/* ---- Stat Cards ---- */
+.admin-stat-card {
+  background: #FFFFFF;
+  border-radius: 16px !important;
+  border: 1px solid #F5E6D0 !important;
+  transition: all 200ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-stat-card:hover {
+  box-shadow: 0 8px 24px rgba(212, 35, 10, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+}
+
+.admin-stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.admin-stat-card.accent-red::before { background: #D4230A; }
+.admin-stat-card.accent-orange::before { background: #F5A623; }
+.admin-stat-card.accent-green::before { background: #27AE60; }
+.admin-stat-card.accent-purple::before { background: #9B59B6; }
+
+.admin-stat-card .stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-stat-card.accent-red .stat-icon { background: rgba(212, 35, 10, 0.12); color: #D4230A; }
+.admin-stat-card.accent-orange .stat-icon { background: rgba(245, 166, 35, 0.12); color: #F5A623; }
+.admin-stat-card.accent-green .stat-icon { background: rgba(39, 174, 96, 0.12); color: #27AE60; }
+.admin-stat-card.accent-purple .stat-icon { background: rgba(155, 89, 182, 0.12); color: #9B59B6; }
+
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8B6355;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2D1810;
+  line-height: 1.2;
+}
+
+/* Trend badge */
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.trend-badge.up {
+  color: #27AE60;
+  background: rgba(39, 174, 96, 0.1);
+}
+
+.trend-badge.down {
+  color: #D4230A;
+  background: rgba(212, 35, 10, 0.1);
+}
+
+/* Count-up Animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: countUp 0.6s ease-out forwards;
+}
+
+/* Stagger delays */
+.animate-delay-1 { animation-delay: 0.1s; }
+.animate-delay-2 { animation-delay: 0.2s; }
+.animate-delay-3 { animation-delay: 0.3s; }
+.animate-delay-4 { animation-delay: 0.4s; }
+
+/* ---- Chart Styles ---- */
+.admin-chart-container {
+  background: #FFFFFF;
+  border: 1px solid #F5E6D0;
+  border-radius: 16px;
+}
+
+.admin-period-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8B6355;
+  transition: all 150ms ease;
+}
+
+.admin-period-tab:hover {
+  color: #D4230A;
+  background: rgba(212, 35, 10, 0.06);
+}
+
+.admin-period-tab.active {
+  background: #D4230A !important;
+  color: #FFFFFF !important;
+}
+
+/* Custom Tet Tooltip */
+.tet-chart-tooltip {
+  background: #FFFFFF;
+  border: 1px solid #F5E6D0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(45, 24, 16, 0.1);
+  padding: 10px 14px;
+}
+
+/* ---- Top Products ---- */
+.admin-product-row {
+  transition: background 150ms ease;
+}
+
+.admin-product-row:hover {
+  background: #FFF5EE !important;
+}
+
+.rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #F5A623, #D4230A);
+  flex-shrink: 0;
+}
+
+.product-progress-bar {
+  height: 3px;
+  background: #F5E6D0;
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.product-progress-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #D4230A, #F5A623);
+  transition: width 0.8s ease-out;
+}
+
+/* ---- Top Customers ---- */
+.customer-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #D4230A, #F5A623);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.customer-order-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(255, 215, 0, 0.15);
+  color: #F5A623;
+}
+
+/* ---- Quick Action Cards ---- */
+.admin-quick-card {
+  border-radius: 16px !important;
+  border: 1px solid #F5E6D0 !important;
+  background: #FFFFFF !important;
+  transition: all 200ms ease;
+}
+
+.admin-quick-card:hover {
+  box-shadow: 0 12px 28px rgba(212, 35, 10, 0.08), 0 4px 10px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+  border-color: rgba(212, 35, 10, 0.3) !important;
+}
+
+.admin-quick-card .quick-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Skeleton Loading ---- */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.tet-skeleton {
+  background: linear-gradient(90deg, #F5E6D0 25%, #FDF6EC 50%, #F5E6D0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+  border-radius: 16px;
+}
+
+/* ---- Top Bar ---- */
+.admin-tet-topbar {
+  background: #FFFFFF !important;
+  border-bottom: 1px solid #F5E6D0 !important;
+}
+
+.admin-tet-topbar h1 {
+  color: #2D1810 !important;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 700;
+}
+
+/* ---- Brand badge ---- */
+.admin-brand-badge {
+  background: linear-gradient(135deg, rgba(212,35,10,0.08), rgba(255,215,0,0.1));
+  border: 1px solid rgba(212,35,10,0.12);
+  color: #D4230A;
+  font-weight: 600;
+}
+
+/* ---- Section headings ---- */
+.admin-tet-theme h2,
+.admin-tet-theme h3 {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  color: #2D1810;
+}
+
+/* ---- AI Sync Card ---- */
+.admin-sync-card {
+  background: #FFFFFF !important;
+  border: 1px solid #F5E6D0 !important;
+  border-radius: 16px !important;
+}
+
+.admin-sync-btn {
+  background: linear-gradient(135deg, #D4230A, #B01C08) !important;
+  border: none;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(212, 35, 10, 0.25);
+}
+
+.admin-sync-btn:hover {
+  box-shadow: 0 6px 18px rgba(212, 35, 10, 0.35);
+}

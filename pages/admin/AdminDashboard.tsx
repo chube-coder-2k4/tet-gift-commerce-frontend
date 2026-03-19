@@ -29,6 +29,18 @@ const MENU_ITEMS: { key: AdminTab; label: string; icon: string }[] = [
   { key: 'blogs', label: 'Blog', icon: 'article' },
 ];
 
+// Quick action card color mappings for Tết theme
+const QUICK_CARD_COLORS: Record<string, { from: string; to: string }> = {
+  users: { from: '#D4230A', to: '#B01C08' },
+  roles: { from: '#9B59B6', to: '#7D3C98' },
+  categories: { from: '#27AE60', to: '#1E8449' },
+  products: { from: '#F5A623', to: '#E8961D' },
+  bundles: { from: '#D4230A', to: '#F5A623' },
+  orders: { from: '#2980B9', to: '#1F618D' },
+  discounts: { from: '#E74C3C', to: '#C0392B' },
+  blogs: { from: '#8E44AD', to: '#6C3483' },
+};
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -48,20 +60,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex-1 flex min-h-screen bg-gray-50 dark:bg-background-dark">
+    <div className="admin-tet-theme flex-1 flex min-h-screen">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} shrink-0 bg-white dark:bg-card-dark border-r border-gray-200 dark:border-white/5 transition-all duration-300 flex flex-col`}>
+      <aside className={`admin-tet-sidebar ${sidebarOpen ? 'w-64' : 'w-16'} shrink-0 transition-all duration-300 flex flex-col`}>
         {/* Logo & Toggle */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-white/5">
+        <div className="h-16 flex items-center justify-between px-4" style={{ borderBottom: '1px solid rgba(201,169,138,0.15)' }}>
           {sidebarOpen && (
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-2xl">shield_person</span>
-              <span className="text-lg font-black text-gray-900 dark:text-white">Admin</span>
+              <span className="text-2xl">🏮</span>
+              <span className="text-lg font-black" style={{ color: '#FFD700' }}>Admin</span>
             </div>
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-gray-400 transition-colors"
+            className="p-1.5 rounded-lg transition-colors"
+            style={{ color: '#C9A98A' }}
           >
             <span className="material-symbols-outlined text-xl">{sidebarOpen ? 'menu_open' : 'menu'}</span>
           </button>
@@ -73,42 +86,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
             <button
               key={item.key}
               onClick={() => setActiveTab(item.key)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                activeTab === item.key
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
+              className={`admin-tet-menu-item w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium ${
+                activeTab === item.key ? 'active' : ''
               }`}
               title={item.label}
             >
-              <span className="material-symbols-outlined text-xl">{item.icon}</span>
+              <span className="material-symbols-outlined">{item.icon}</span>
               {sidebarOpen && <span>{item.label}</span>}
             </button>
           ))}
         </nav>
 
         {/* Back to store */}
-        <div className="p-3 border-t border-gray-200 dark:border-white/5">
+        <div className="p-3" style={{ borderTop: '1px solid rgba(201,169,138,0.15)' }}>
           <button
             onClick={() => onNavigate('home')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary transition-all`}
+            className="admin-tet-menu-item w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium"
           >
-            <span className="material-symbols-outlined text-xl">storefront</span>
+            <span className="material-symbols-outlined">storefront</span>
             {sidebarOpen && <span>Về cửa hàng</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto" style={{ background: '#FDF6EC' }}>
         {/* Top Bar */}
-        <div className="h-16 bg-white dark:bg-card-dark border-b border-gray-200 dark:border-white/5 flex items-center justify-between px-6 sticky top-0 z-10">
+        <div className="admin-tet-topbar h-16 flex items-center justify-between px-6 sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+            <h1 className="text-lg font-bold">
               {MENU_ITEMS.find(m => m.key === activeTab)?.label || 'Tổng quan'}
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-surface-dark px-3 py-1.5 rounded-full">
+            <span className="admin-brand-badge text-xs font-medium px-3 py-1.5 rounded-full">
               🎁 Tet Gift Commerce
             </span>
           </div>
@@ -151,22 +162,24 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) =>
     }
   };
 
-  const cards: { key: AdminTab; title: string; icon: string; color: string; desc: string }[] = [
-    { key: 'users', title: 'Người dùng', icon: 'group', color: 'from-blue-500 to-blue-600', desc: 'Quản lý tài khoản người dùng' },
-    { key: 'roles', title: 'Vai trò', icon: 'admin_panel_settings', color: 'from-purple-500 to-purple-600', desc: 'Quản lý phân quyền' },
-    { key: 'categories', title: 'Danh mục', icon: 'category', color: 'from-emerald-500 to-emerald-600', desc: 'Quản lý danh mục sản phẩm' },
-    { key: 'products', title: 'Sản phẩm', icon: 'inventory_2', color: 'from-amber-500 to-amber-600', desc: 'Quản lý kho sản phẩm' },
-    { key: 'bundles', title: 'Combo', icon: 'redeem', color: 'from-pink-500 to-pink-600', desc: 'Quản lý combo quà Tết' },
-    { key: 'orders', title: 'Đơn hàng', icon: 'receipt_long', color: 'from-cyan-500 to-cyan-600', desc: 'Quản lý đơn hàng & trạng thái' },
-    { key: 'discounts', title: 'Giảm giá', icon: 'confirmation_number', color: 'from-red-500 to-red-600', desc: 'Quản lý mã khuyến mãi' },
-    { key: 'blogs', title: 'Blog', icon: 'article', color: 'from-indigo-500 to-indigo-600', desc: 'Quản lý bài viết & chủ đề' },
+  const cards: { key: AdminTab; title: string; icon: string; desc: string }[] = [
+    { key: 'users', title: 'Người dùng', icon: 'group', desc: 'Quản lý tài khoản người dùng' },
+    { key: 'roles', title: 'Vai trò', icon: 'admin_panel_settings', desc: 'Quản lý phân quyền' },
+    { key: 'categories', title: 'Danh mục', icon: 'category', desc: 'Quản lý danh mục sản phẩm' },
+    { key: 'products', title: 'Sản phẩm', icon: 'inventory_2', desc: 'Quản lý kho sản phẩm' },
+    { key: 'bundles', title: 'Combo', icon: 'redeem', desc: 'Quản lý combo quà Tết' },
+    { key: 'orders', title: 'Đơn hàng', icon: 'receipt_long', desc: 'Quản lý đơn hàng & trạng thái' },
+    { key: 'discounts', title: 'Giảm giá', icon: 'confirmation_number', desc: 'Quản lý mã khuyến mãi' },
+    { key: 'blogs', title: 'Blog', icon: 'article', desc: 'Quản lý bài viết & chủ đề' },
   ];
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Chào mừng đến Trang quản trị</h2>
-        <p className="text-gray-500 dark:text-gray-400">Quản lý toàn bộ dữ liệu cửa hàng Quà Tết từ đây.</p>
+        <h2 className="text-2xl font-black mb-2" style={{ color: '#2D1810' }}>
+          🏮 Chào mừng đến Trang quản trị
+        </h2>
+        <p style={{ color: '#8B6355' }}>Quản lý toàn bộ dữ liệu cửa hàng Quà Tết từ đây.</p>
       </div>
 
       {/* Revenue Charts, Top Products & Top Customers */}
@@ -174,43 +187,52 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) =>
 
       {/* Quick Access Cards */}
       <div>
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">apps</span>
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#2D1810' }}>
+          <span className="material-symbols-outlined" style={{ color: '#D4230A' }}>apps</span>
           Quản lý nhanh
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {cards.map(card => (
-            <button
-              key={card.key}
-              onClick={() => onTabChange(card.key)}
-              className="text-left p-5 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 hover:shadow-lg hover:border-primary/30 transition-all group"
-            >
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                <span className="material-symbols-outlined text-white text-2xl">{card.icon}</span>
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{card.title}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{card.desc}</p>
-            </button>
-          ))}
+          {cards.map(card => {
+            const colors = QUICK_CARD_COLORS[card.key] || { from: '#D4230A', to: '#B01C08' };
+            return (
+              <button
+                key={card.key}
+                onClick={() => onTabChange(card.key)}
+                className="admin-quick-card text-left p-5 group"
+              >
+                <div
+                  className="quick-icon mb-4 shadow-lg group-hover:scale-110 transition-transform"
+                  style={{ background: `linear-gradient(135deg, ${colors.from}, ${colors.to})` }}
+                >
+                  <span className="material-symbols-outlined text-white text-2xl">{card.icon}</span>
+                </div>
+                <h3 className="text-lg font-bold mb-1" style={{ color: '#2D1810' }}>{card.title}</h3>
+                <p className="text-sm" style={{ color: '#8B6355' }}>{card.desc}</p>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* AI Embeddings Sync */}
-      <div className="p-5 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5">
+      <div className="admin-sync-card p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-lg">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #D4230A, #F5A623)' }}
+            >
               <span className="material-symbols-outlined text-white text-2xl">smart_toy</span>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Đồng bộ AI Chatbot</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Cập nhật embeddings cho AI tìm kiếm sản phẩm chính xác hơn</p>
+              <h3 className="text-lg font-bold" style={{ color: '#2D1810' }}>Đồng bộ AI Chatbot</h3>
+              <p className="text-sm" style={{ color: '#8B6355' }}>Cập nhật embeddings cho AI tìm kiếm sản phẩm chính xác hơn</p>
             </div>
           </div>
           <button
             onClick={handleSyncEmbeddings}
             disabled={syncLoading}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white rounded-xl font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            className="admin-sync-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span className={`material-symbols-outlined text-lg ${syncLoading ? 'animate-spin' : ''}`}>
               {syncLoading ? 'progress_activity' : 'sync'}
@@ -221,8 +243,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) =>
         {syncResult && (
           <div className={`mt-3 p-3 rounded-xl text-sm font-medium ${
             syncResult.success
-              ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/40'
-              : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/40'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
           }`}>
             <span className="material-symbols-outlined text-base align-middle mr-1">
               {syncResult.success ? 'check_circle' : 'error'}

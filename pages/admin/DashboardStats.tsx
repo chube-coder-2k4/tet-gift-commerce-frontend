@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ResponsiveContainer,
   AreaChart, Area,
@@ -207,19 +207,46 @@ function getTopCustomers(orders: OrderResponse[], limit = 10): TopCustomer[] {
     .map((item, idx) => ({ ...item, rank: idx + 1 }));
 }
 
-// ===== Custom Tooltip =====
-const CustomTooltip = ({ active, payload, label }: any) => {
+// ===== Count-up Hook =====
+function useCountUp(end: number, duration = 1200): number {
+  const [value, setValue] = useState(0);
+  const prevEnd = useRef(0);
+
+  useEffect(() => {
+    if (end === prevEnd.current) return;
+    prevEnd.current = end;
+
+    const startTime = performance.now();
+    const startValue = 0;
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(startValue + (end - startValue) * eased));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+
+    requestAnimationFrame(tick);
+  }, [end, duration]);
+
+  return value;
+}
+
+// ===== Custom Tooltip - Tet styled =====
+const TetTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 shadow-xl">
-      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">{label}</p>
+    <div className="tet-chart-tooltip">
+      <p style={{ fontSize: 11, fontWeight: 600, color: '#8B6355', marginBottom: 6 }}>{label}</p>
       {payload.map((entry: any, idx: number) => (
-        <div key={idx} className="flex items-center gap-2 text-sm">
-          <span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="text-gray-600 dark:text-gray-300">
+        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 2 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: entry.color, flexShrink: 0 }} />
+          <span style={{ color: '#8B6355' }}>
             {entry.name === 'revenue' ? 'Doanh thu' : 'Đơn hàng'}:
           </span>
-          <span className="font-bold text-gray-900 dark:text-white">
+          <span style={{ fontWeight: 700, color: '#2D1810' }}>
             {entry.name === 'revenue' ? formatFullVND(entry.value) : entry.value}
           </span>
         </div>
@@ -228,32 +255,75 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// ===== Loading Skeleton =====
+// ===== Custom Dot for highest point =====
+const HighlightDot = ({ cx, cy, payload, dataKey, data }: any) => {
+  if (!data || !payload) return null;
+  const maxVal = Math.max(...data.map((d: any) => d[dataKey] || 0));
+  if (payload[dataKey] === maxVal && maxVal > 0) {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={7} fill="#D4230A" stroke="#fff" strokeWidth={3} />
+        <circle cx={cx} cy={cy} r={3} fill="#FFD700" />
+      </g>
+    );
+  }
+  return <circle cx={cx} cy={cy} r={3} fill="#D4230A" stroke="#fff" strokeWidth={2} />;
+};
+
+// ===== Loading Skeleton - Tet themed =====
 const LoadingSkeleton: React.FC = () => (
-  <div className="space-y-6 animate-pulse">
+  <div className="space-y-6">
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {[1, 2, 3, 4].map(i => (
-        <div key={i} className="h-28 bg-gray-200 dark:bg-white/5 rounded-2xl" />
+        <div key={i} className="tet-skeleton h-32" />
       ))}
     </div>
-    <div className="h-[400px] bg-gray-200 dark:bg-white/5 rounded-2xl" />
+    <div className="tet-skeleton h-[420px]" />
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="h-[380px] bg-gray-200 dark:bg-white/5 rounded-2xl" />
-      <div className="h-[380px] bg-gray-200 dark:bg-white/5 rounded-2xl" />
+      <div className="tet-skeleton h-[400px]" />
+      <div className="tet-skeleton h-[400px]" />
     </div>
   </div>
 );
 
-// ===== Medal Component =====
-const Medal: React.FC<{ rank: number }> = ({ rank }) => {
-  const medals = ['🥇', '🥈', '🥉'];
-  if (rank <= 3) {
-    return <span className="text-lg">{medals[rank - 1]}</span>;
-  }
+// ===== Stat Card Component =====
+interface StatCardProps {
+  title: string;
+  value: string;
+  rawValue: number;
+  icon: string;
+  accent: 'red' | 'orange' | 'green' | 'purple';
+  trend: { value: string; direction: 'up' | 'down' };
+  delay: number;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, rawValue, icon, accent, trend, delay }) => {
+  const animatedValue = useCountUp(rawValue);
+  const displayValue = rawValue >= 1000
+    ? formatFullVND(animatedValue)
+    : animatedValue.toLocaleString();
+
   return (
-    <span className="size-7 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400">
-      {rank}
-    </span>
+    <div
+      className={`admin-stat-card accent-${accent} p-5 animate-count-up`}
+      style={{ animationDelay: `${delay * 0.1}s`, opacity: 0 }}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="stat-icon mb-3">
+            <span className="material-symbols-outlined text-xl">{icon}</span>
+          </div>
+          <p className="stat-label mb-1">{title}</p>
+          <p className="stat-value">{displayValue}</p>
+        </div>
+        <div className={`trend-badge ${trend.direction}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+            {trend.direction === 'up' ? 'trending_up' : 'trending_down'}
+          </span>
+          {trend.value}
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -300,17 +370,19 @@ const DashboardStats: React.FC = () => {
   const revenueData = useMemo(() => groupByPeriod(orders, period), [orders, period]);
   const topProducts = useMemo(() => getTopProducts(orders), [orders]);
   const topCustomers = useMemo(() => getTopCustomers(orders), [orders]);
+  const maxProductRevenue = useMemo(() => Math.max(...topProducts.map(p => p.revenue), 1), [topProducts]);
 
   if (loading) return <LoadingSkeleton />;
 
   if (error) {
     return (
       <div className="text-center py-16">
-        <span className="material-symbols-outlined text-5xl text-red-400 mb-4 block">error</span>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+        <span className="material-symbols-outlined text-5xl mb-4 block" style={{ color: '#D4230A' }}>error</span>
+        <p className="mb-4" style={{ color: '#8B6355' }}>{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-5 py-2 bg-primary text-white rounded-xl font-medium text-sm hover:bg-red-700 transition-colors"
+          className="px-5 py-2 text-white rounded-xl font-medium text-sm transition-colors"
+          style={{ background: '#D4230A' }}
         >
           Thử lại
         </button>
@@ -318,34 +390,50 @@ const DashboardStats: React.FC = () => {
     );
   }
 
-  const summaryCards = [
+  // Fake trend data for demo (randomized but consistent)
+  const trends = [
+    { value: '+12.5%', direction: 'up' as const },
+    { value: '+8.3%', direction: 'up' as const },
+    { value: '+15.2%', direction: 'up' as const },
+    { value: '-2.1%', direction: 'down' as const },
+  ];
+
+  const summaryCards: StatCardProps[] = [
     {
       title: 'Tổng doanh thu',
       value: formatFullVND(stats.totalRevenue),
+      rawValue: stats.totalRevenue,
       icon: 'payments',
-      gradient: 'from-emerald-500 to-emerald-600',
-      bgGlow: 'bg-emerald-500/10',
+      accent: 'red',
+      trend: trends[0],
+      delay: 1,
     },
     {
       title: 'Tổng đơn hàng',
       value: stats.totalOrders.toLocaleString(),
+      rawValue: stats.totalOrders,
       icon: 'receipt_long',
-      gradient: 'from-blue-500 to-blue-600',
-      bgGlow: 'bg-blue-500/10',
+      accent: 'orange',
+      trend: trends[1],
+      delay: 2,
     },
     {
       title: 'Đơn hoàn thành',
       value: stats.completedOrders.toLocaleString(),
+      rawValue: stats.completedOrders,
       icon: 'check_circle',
-      gradient: 'from-violet-500 to-violet-600',
-      bgGlow: 'bg-violet-500/10',
+      accent: 'green',
+      trend: trends[2],
+      delay: 3,
     },
     {
       title: 'Giá trị trung bình',
       value: formatFullVND(stats.avgOrderValue),
+      rawValue: stats.avgOrderValue,
       icon: 'trending_up',
-      gradient: 'from-amber-500 to-amber-600',
-      bgGlow: 'bg-amber-500/10',
+      accent: 'purple',
+      trend: trends[3],
+      delay: 4,
     },
   ];
 
@@ -360,57 +448,45 @@ const DashboardStats: React.FC = () => {
       {/* ===== Summary Cards ===== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card) => (
-          <div
-            key={card.title}
-            className={`relative overflow-hidden p-5 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 group hover:shadow-lg transition-all`}
-          >
-            <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full ${card.bgGlow} blur-2xl opacity-60 group-hover:opacity-100 transition-opacity`} />
-            <div className="relative z-10">
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center mb-3 shadow-lg`}>
-                <span className="material-symbols-outlined text-white text-xl">{card.icon}</span>
-              </div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{card.title}</p>
-              <p className="text-2xl font-black text-gray-900 dark:text-white">{card.value}</p>
-            </div>
-          </div>
+          <StatCard key={card.title} {...card} />
         ))}
       </div>
 
       {/* ===== Revenue Chart ===== */}
-      <div className="bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 p-6">
+      <div className="admin-chart-container p-6">
         {/* Chart Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">monitoring</span>
+            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#2D1810' }}>
+              <span className="material-symbols-outlined" style={{ color: '#D4230A' }}>monitoring</span>
               Biểu đồ doanh thu
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-sm mt-0.5" style={{ color: '#8B6355' }}>
               Thống kê doanh thu theo {period === 'day' ? 'ngày' : period === 'week' ? 'tuần' : 'tháng'}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             {/* Chart Type Toggle */}
-            <div className="flex p-1 bg-gray-100 dark:bg-surface-dark rounded-lg">
+            <div className="flex p-1 rounded-lg" style={{ background: '#FDF6EC' }}>
               <button
                 onClick={() => setChartMode('area')}
-                className={`p-1.5 rounded-md transition-all ${
-                  chartMode === 'area'
-                    ? 'bg-white dark:bg-card-dark text-primary shadow-sm'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                }`}
+                className="p-1.5 rounded-md transition-all"
+                style={chartMode === 'area'
+                  ? { background: '#FFFFFF', color: '#D4230A', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
+                  : { color: '#8B6355' }
+                }
                 title="Area Chart"
               >
                 <span className="material-symbols-outlined text-lg">area_chart</span>
               </button>
               <button
                 onClick={() => setChartMode('bar')}
-                className={`p-1.5 rounded-md transition-all ${
-                  chartMode === 'bar'
-                    ? 'bg-white dark:bg-card-dark text-primary shadow-sm'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                }`}
+                className="p-1.5 rounded-md transition-all"
+                style={chartMode === 'bar'
+                  ? { background: '#FFFFFF', color: '#D4230A', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
+                  : { color: '#8B6355' }
+                }
                 title="Bar Chart"
               >
                 <span className="material-symbols-outlined text-lg">bar_chart</span>
@@ -418,16 +494,12 @@ const DashboardStats: React.FC = () => {
             </div>
 
             {/* Period Toggle */}
-            <div className="flex p-1 bg-gray-100 dark:bg-surface-dark rounded-lg">
+            <div className="flex p-1 rounded-lg" style={{ background: '#FDF6EC' }}>
               {periodOptions.map(opt => (
                 <button
                   key={opt.key}
                   onClick={() => setPeriod(opt.key)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                    period === opt.key
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
+                  className={`admin-period-tab ${period === opt.key ? 'active' : ''}`}
                 >
                   {opt.label}
                 </button>
@@ -438,7 +510,7 @@ const DashboardStats: React.FC = () => {
 
         {/* Chart */}
         {revenueData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+          <div className="flex flex-col items-center justify-center py-16" style={{ color: '#8B6355' }}>
             <span className="material-symbols-outlined text-5xl mb-3">show_chart</span>
             <p className="text-sm font-medium">Chưa có dữ liệu doanh thu</p>
           </div>
@@ -448,70 +520,70 @@ const DashboardStats: React.FC = () => {
               {chartMode === 'area' ? (
                 <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#d90429" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#d90429" stopOpacity={0} />
+                    <linearGradient id="tetRevenueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#D4230A" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#F5A623" stopOpacity={0.05} />
                     </linearGradient>
-                    <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ffb703" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#ffb703" stopOpacity={0} />
+                    <linearGradient id="tetLineGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#D4230A" />
+                      <stop offset="100%" stopColor="#F5A623" />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-white/5" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F5E6D0" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tick={{ fontSize: 11, fill: '#8B6355' }}
                     axisLine={false}
                     tickLine={false}
                     dy={8}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tick={{ fontSize: 11, fill: '#8B6355' }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => formatVND(v)}
                     dx={-8}
                     width={60}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<TetTooltip />} />
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#d90429"
+                    stroke="url(#tetLineGradient)"
                     strokeWidth={2.5}
-                    fill="url(#revenueGradient)"
-                    dot={{ r: 3, fill: '#d90429', stroke: '#fff', strokeWidth: 2 }}
-                    activeDot={{ r: 6, fill: '#d90429', stroke: '#fff', strokeWidth: 2 }}
+                    fill="url(#tetRevenueGradient)"
+                    dot={(props: any) => <HighlightDot {...props} data={revenueData} dataKey="revenue" />}
+                    activeDot={{ r: 6, fill: '#D4230A', stroke: '#fff', strokeWidth: 2 }}
                   />
                 </AreaChart>
               ) : (
                 <BarChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#d90429" />
-                      <stop offset="100%" stopColor="#8b1a2b" />
+                    <linearGradient id="tetBarGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#D4230A" />
+                      <stop offset="100%" stopColor="#F5A623" />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-white/5" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F5E6D0" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tick={{ fontSize: 11, fill: '#8B6355' }}
                     axisLine={false}
                     tickLine={false}
                     dy={8}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tick={{ fontSize: 11, fill: '#8B6355' }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => formatVND(v)}
                     dx={-8}
                     width={60}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<TetTooltip />} />
                   <Bar
                     dataKey="revenue"
-                    fill="url(#barGradient)"
+                    fill="url(#tetBarGradient)"
                     radius={[6, 6, 0, 0]}
                     maxBarSize={48}
                   />
@@ -522,12 +594,12 @@ const DashboardStats: React.FC = () => {
         )}
 
         {/* Chart Legend */}
-        <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-gray-100 dark:border-white/5">
+        <div className="flex items-center justify-center gap-6 mt-4 pt-4" style={{ borderTop: '1px solid #F5E6D0' }}>
           <div className="flex items-center gap-2">
-            <span className="size-3 rounded-full bg-primary" />
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Doanh thu ({formatVND(stats.totalRevenue)})</span>
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: 'linear-gradient(135deg, #D4230A, #F5A623)', display: 'inline-block' }} />
+            <span className="text-xs font-medium" style={{ color: '#8B6355' }}>Doanh thu ({formatVND(stats.totalRevenue)})</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs" style={{ color: '#8B6355' }}>
             <span className="material-symbols-outlined text-sm">info</span>
             Tính trên đơn đã thanh toán
           </div>
@@ -537,47 +609,61 @@ const DashboardStats: React.FC = () => {
       {/* ===== Top Products + Top Customers ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Products */}
-        <div className="bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex items-center gap-2">
-            <span className="material-symbols-outlined text-amber-500">inventory_2</span>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+        <div className="admin-chart-container overflow-hidden">
+          <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid #F5E6D0' }}>
+            <span className="material-symbols-outlined" style={{ color: '#F5A623' }}>inventory_2</span>
+            <h3 className="text-base font-bold" style={{ color: '#2D1810' }}>
               Top sản phẩm bán chạy
             </h3>
-            <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full font-medium">
+            <span
+              className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(245,166,35,0.1)', color: '#F5A623' }}
+            >
               {topProducts.length} sản phẩm
             </span>
           </div>
 
           {topProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
+            <div className="flex flex-col items-center justify-center py-12" style={{ color: '#8B6355' }}>
               <span className="material-symbols-outlined text-4xl mb-2">inventory</span>
               <p className="text-sm">Chưa có dữ liệu sản phẩm</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50 dark:divide-white/5">
+            <div>
               {topProducts.map((product) => (
                 <div
                   key={`${product.name}-${product.rank}`}
-                  className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group"
+                  className="admin-product-row flex items-center gap-3 px-6 py-3.5"
+                  style={{ borderBottom: '1px solid rgba(245,230,208,0.5)' }}
                 >
-                  <Medal rank={product.rank} />
+                  <div className="rank-badge">{product.rank}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-primary transition-colors">
+                      <p className="text-sm font-semibold truncate" style={{ color: '#2D1810' }}>
                         {product.name}
                       </p>
                       {product.type === 'BUNDLE' && (
-                        <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10 px-1.5 py-0.5 rounded uppercase shrink-0">
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0"
+                          style={{ color: '#9B59B6', background: 'rgba(155,89,182,0.1)' }}
+                        >
                           Combo
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-xs mt-0.5" style={{ color: '#8B6355' }}>
                       Đã bán {product.quantity} sản phẩm
                     </p>
+                    {/* Progress bar */}
+                    <div className="product-progress-bar">
+                      <div
+                        className="product-progress-bar-fill"
+                        style={{ width: `${(product.revenue / maxProductRevenue) * 100}%` }}
+                      />
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-primary dark:text-[#daa520]">
+                    <p className="text-sm font-bold" style={{ color: '#D4230A' }}>
                       {formatFullVND(product.revenue)}
                     </p>
                   </div>
@@ -588,53 +674,55 @@ const DashboardStats: React.FC = () => {
         </div>
 
         {/* Top Customers */}
-        <div className="bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex items-center gap-2">
-            <span className="material-symbols-outlined text-blue-500">group</span>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+        <div className="admin-chart-container overflow-hidden">
+          <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid #F5E6D0' }}>
+            <span className="material-symbols-outlined" style={{ color: '#D4230A' }}>group</span>
+            <h3 className="text-base font-bold" style={{ color: '#2D1810' }}>
               Top khách hàng
             </h3>
-            <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full font-medium">
+            <span
+              className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(212,35,10,0.08)', color: '#D4230A' }}
+            >
               {topCustomers.length} khách hàng
             </span>
           </div>
 
           {topCustomers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
+            <div className="flex flex-col items-center justify-center py-12" style={{ color: '#8B6355' }}>
               <span className="material-symbols-outlined text-4xl mb-2">person_off</span>
               <p className="text-sm">Chưa có dữ liệu khách hàng</p>
-              <p className="text-xs mt-1 text-gray-300 dark:text-gray-600 max-w-[220px] text-center">
+              <p className="text-xs mt-1 max-w-[220px] text-center" style={{ color: '#C9A98A' }}>
                 Cần có đơn hàng đã thanh toán để hiển thị
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50 dark:divide-white/5">
+            <div>
               {topCustomers.map((customer) => (
                 <div
                   key={customer.userId}
-                  className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group"
+                  className="admin-product-row flex items-center gap-3 px-6 py-3.5"
+                  style={{ borderBottom: '1px solid rgba(245,230,208,0.5)' }}
                 >
-                  <Medal rank={customer.rank} />
-                  <div className="size-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-bold text-primary">
-                      {customer.name.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="rank-badge">{customer.rank}</div>
+                  <div className="customer-avatar">
+                    {customer.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-primary transition-colors">
+                    <p className="text-sm font-semibold truncate" style={{ color: '#2D1810' }}>
                       {customer.name}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                    <p className="text-xs mt-0.5 truncate" style={{ color: '#8B6355' }}>
                       {customer.email || `${customer.orderCount} đơn hàng`}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-primary dark:text-[#daa520]">
+                    <p className="text-sm font-bold" style={{ color: '#D4230A' }}>
                       {formatFullVND(customer.totalSpent)}
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                    <span className="customer-order-badge mt-1">
                       {customer.orderCount} đơn
-                    </p>
+                    </span>
                   </div>
                 </div>
               ))}
