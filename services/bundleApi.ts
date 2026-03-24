@@ -20,6 +20,19 @@ export interface BundleResponse {
   products: BundleProduct[];
 }
 
+export interface BundleProductRequest {
+  productId: number;
+  quantity: number;
+}
+
+export interface BundleRequest {
+  name: string;
+  price: number;
+  isCustom: boolean;
+  description?: string;
+  products: BundleProductRequest[];
+}
+
 export interface PaginationParams {
   page?: number;
   size?: number;
@@ -52,5 +65,13 @@ export const bundleApi = {
   // GET /bundles/{id}
   getById: async (id: number): Promise<ApiResponse<BundleResponse>> => {
     return fetchWithAuth<BundleResponse>(`/bundles/${id}`);
+  },
+
+  // POST /bundles
+  create: async (data: BundleRequest): Promise<ApiResponse<number>> => {
+    return fetchWithAuth<number>('/bundles', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 };

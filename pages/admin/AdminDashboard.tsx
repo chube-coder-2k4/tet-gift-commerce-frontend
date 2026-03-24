@@ -60,7 +60,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="admin-tet-theme flex-1 flex min-h-screen">
+    <div className="admin-tet-theme flex h-screen w-full overflow-hidden">
       {/* Sidebar */}
       <aside className={`admin-tet-sidebar ${sidebarOpen ? 'w-64' : 'w-16'} shrink-0 transition-all duration-300 flex flex-col`}>
         {/* Logo & Toggle */}

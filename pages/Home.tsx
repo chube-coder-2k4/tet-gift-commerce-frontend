@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { productApi, ProductResponse } from '../services/productApi';
 import { categoryApi, CategoryResponse } from '../services/categoryApi';
+import { bundleApi, BundleResponse } from '../services/bundleApi';
 import { cartApi } from '../services/cartApi';
 import { Screen } from '../types';
 import { Firewall } from '@/components/Firewall';
@@ -11,6 +12,7 @@ interface HomeProps {
   onNavigate: (screen: Screen) => void;
   onProductClick: (id: number) => void;
   onCartUpdate?: () => void;
+  onBundleClick?: (id: number) => void;
 }
 
 // Helper: lấy ảnh chính (ưu tiên field primaryImage → image → images[])
@@ -22,11 +24,14 @@ const getPrimaryImage = (product: ProductResponse): string => {
   return primary ? primary.imageUrl : product.images[0].imageUrl;
 };
 
-const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate }) => {
+const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, onBundleClick }) => {
   const [products, setProducts] = useState<ProductResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [bundles, setBundles] = useState<BundleResponse[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingBundles, setIsLoadingBundles] = useState(true);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
+  const [addingBundleToCart, setAddingBundleToCart] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,6 +51,38 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate })
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchBundles = async () => {
+      setIsLoadingBundles(true);
+      try {
+        const res = await bundleApi.getAll({ page: 0, size: 8, sortBy: 'createdAt', sortDir: 'desc' });
+        setBundles(res.data?.data || []);
+      } catch (err) {
+        console.error('Failed to fetch bundles:', err);
+      } finally {
+        setIsLoadingBundles(false);
+      }
+    };
+    fetchBundles();
+  }, []);
+
+  const handleAddBundleToCart = async (e: React.MouseEvent, bundleId: number) => {
+    e.stopPropagation();
+    if (!authApi.isAuthenticated()) {
+      onNavigate('login');
+      return;
+    }
+    setAddingBundleToCart(bundleId);
+    try {
+      await cartApi.addItem({ itemType: 'BUNDLE', bundleId, quantity: 1 });
+      onCartUpdate?.();
+    } catch (err) {
+      console.error('Failed to add bundle to cart:', err);
+    } finally {
+      setAddingBundleToCart(null);
+    }
+  };
 
   const handleAddToCart = async (e: React.MouseEvent, productId: number) => {
     e.stopPropagation();
@@ -97,7 +134,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate })
         />
       </div>
 
- {/* Hero Section */}
+      {/* Hero Section */}
       <div className="w-full relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-to-b from-primary/10 via-transparent to-transparent opacity-50 pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-8 grid lg:grid-cols-2 gap-12 items-center">
@@ -115,7 +152,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate })
               Bộ sưu tập quà Tết cao cấp, mang đậm hương vị truyền thống kết hợp sự sang trọng hiện đại. Đẳng cấp trong từng chi tiết.
             </p>
             <div className="flex flex-wrap gap-4 mt-2">
-              <button 
+              <button
                 onClick={() => onNavigate('about')}
                 className="px-8 py-3.5 rounded-full bg-primary text-white font-semibold hover:bg-red-600 transition-all shadow-glow hover:shadow-[0_0_30px_rgba(217,4,41,0.5)]"
               >
@@ -245,6 +282,66 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate })
         </div>
       </div>
 
+      {/* Combo Quà Tết Section */}
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+          <div>
+            <span className="text-primary font-bold text-xs uppercase tracking-[0.2em] mb-3 block">Best Combos</span>
+            <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">Combo Quà Tết <span className="italic font-light text-gray-500">Đặc Sắc</span></h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-lg">Những bộ combo quà Tết được tuyển chọn kỹ lưỡng — tiện lợi, sang trọng, ý nghĩa.</p>
+          </div>
+          <a onClick={() => onNavigate('shop')} className="text-sm font-medium text-gray-600 dark:text-white/70 hover:text-primary transition-colors flex items-center gap-1 group cursor-pointer shrink-0">
+            Xem tất cả <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
+          </a>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {isLoadingBundles ? (
+            <div className="col-span-full flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : bundles.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-gray-500">Chưa có combo nào</div>
+          ) : (
+            bundles.slice(0, 4).map((bundle) => (
+              <div key={bundle.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-primary/20 dark:border-[#3a3330]/60 hover:border-primary dark:hover:border-[#b8860b]/40 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 transition-all duration-300 cursor-pointer" onClick={() => onBundleClick?.(bundle.id)}>
+                <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
+                  {bundle.image ? (
+                    <img alt={bundle.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={bundle.image} />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 to-yellow-500/5 dark:from-primary/10 dark:to-yellow-500/10">
+                      <span className="material-symbols-outlined text-5xl text-primary/40">redeem</span>
+                    </div>
+                  )}
+                  <div className="absolute top-3 left-3 bg-gradient-to-r from-primary to-red-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider uppercase flex items-center gap-1 shadow-md">
+                    <span className="material-symbols-outlined text-[12px]">redeem</span>
+                    Combo
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <button
+                      onClick={(e) => handleAddBundleToCart(e, bundle.id)}
+                      disabled={addingBundleToCart === bundle.id}
+                      className="size-10 bg-white text-background-dark rounded-full flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">
+                        {addingBundleToCart === bundle.id ? 'hourglass_empty' : 'add_shopping_cart'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+                <h3 className="text-gray-900 dark:text-white font-medium text-lg mb-1 group-hover:text-primary transition-colors truncate">{bundle.name}</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-2">{bundle.description || `Bao gồm ${bundle.products.length} sản phẩm`}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-primary font-bold text-lg">{bundle.price.toLocaleString()}₫</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                    {bundle.products.length} sản phẩm
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
       {/* Special Offer Banner */}
       <div className="w-full max-w-7xl px-4 md:px-8 py-20">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-900 to-[#2d0a0a] border border-white/10 p-8 md:p-16 flex flex-col md:flex-row items-center justify-between gap-10 group">
@@ -261,7 +358,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate })
             </p>
           </div>
           <div className="z-10 relative">
-            <button 
+            <button
               onClick={() => onNavigate('shop')}
               className="bg-gradient-to-r from-primary to-red-600 text-white text-lg font-semibold py-4 px-10 rounded-full shadow-glow hover:shadow-[0_0_25px_rgba(239,35,60,0.6)] hover:scale-105 transition-all border border-white/10"
             >
