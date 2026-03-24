@@ -5,7 +5,7 @@ import {
   BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
-import { adminOrderApi, OrderResponse } from '../../services/adminApi';
+import { adminOrderApi, OrderResponse, adminStatisticApi, TopCustomerResponse } from '../../services/adminApi';
 
 // ===== Types =====
 type Period = 'day' | 'week' | 'month';
@@ -26,14 +26,6 @@ interface TopProduct {
   revenue: number;
 }
 
-interface TopCustomer {
-  rank: number;
-  userId: number;
-  name: string;
-  email: string;
-  orderCount: number;
-  totalSpent: number;
-}
 
 interface Stats {
   totalRevenue: number;
@@ -176,36 +168,7 @@ function getTopProducts(orders: OrderResponse[], limit = 10): TopProduct[] {
     .map((item, idx) => ({ ...item, rank: idx + 1 }));
 }
 
-function getTopCustomers(orders: OrderResponse[], limit = 10): TopCustomer[] {
-  const revenueOrders = orders.filter(o =>
-    REVENUE_STATUSES.includes(o.status) && o.userId
-  );
 
-  if (revenueOrders.length === 0) return [];
-
-  const map = new Map<number, { name: string; email: string; orderCount: number; totalSpent: number }>();
-
-  for (const order of revenueOrders) {
-    if (!order.userId) continue;
-    const existing = map.get(order.userId) || {
-      name: order.customerName || 'Khách hàng',
-      email: order.customerEmail || '',
-      orderCount: 0,
-      totalSpent: 0,
-    };
-    map.set(order.userId, {
-      ...existing,
-      orderCount: existing.orderCount + 1,
-      totalSpent: existing.totalSpent + order.totalAmount,
-    });
-  }
-
-  return Array.from(map.entries())
-    .map(([userId, data]) => ({ rank: 0, userId, ...data }))
-    .sort((a, b) => b.totalSpent - a.totalSpent)
-    .slice(0, limit)
-    .map((item, idx) => ({ ...item, rank: idx + 1 }));
-}
 
 // ===== Count-up Hook =====
 function useCountUp(end: number, duration = 1200): number {
@@ -330,6 +293,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, rawValue, icon, accent, tren
 // ===== Main Component =====
 const DashboardStats: React.FC = () => {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [topCustomers, setTopCustomers] = useState<TopCustomerResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>('day');
@@ -345,6 +309,15 @@ const DashboardStats: React.FC = () => {
         let page = 0;
         let totalPages = 1;
         const MAX_PAGES = 10;
+
+        try {
+          const topCustRes = await adminStatisticApi.getTopCustomers({ page: 0, size: 10 });
+          if (topCustRes?.data?.data) {
+            setTopCustomers(topCustRes.data.data);
+          }
+        } catch (err) {
+          console.error('Failed to fetch top customers:', err);
+        }
 
         while (page < totalPages && page < MAX_PAGES) {
           const res = await adminOrderApi.getAll({ page, size: 100, sortBy: 'createdAt', sortDir: 'desc' });
@@ -369,7 +342,6 @@ const DashboardStats: React.FC = () => {
   const stats = useMemo(() => computeStats(orders), [orders]);
   const revenueData = useMemo(() => groupByPeriod(orders, period), [orders, period]);
   const topProducts = useMemo(() => getTopProducts(orders), [orders]);
-  const topCustomers = useMemo(() => getTopCustomers(orders), [orders]);
   const maxProductRevenue = useMemo(() => Math.max(...topProducts.map(p => p.revenue), 1), [topProducts]);
 
   if (loading) return <LoadingSkeleton />;
@@ -698,22 +670,22 @@ const DashboardStats: React.FC = () => {
             </div>
           ) : (
             <div>
-              {topCustomers.map((customer) => (
+              {topCustomers.map((customer, idx) => (
                 <div
-                  key={customer.userId}
+                  key={customer.id}
                   className="admin-product-row flex items-center gap-3 px-6 py-3.5"
                   style={{ borderBottom: '1px solid rgba(245,230,208,0.5)' }}
                 >
-                  <div className="rank-badge">{customer.rank}</div>
+                  <div className="rank-badge">{idx + 1}</div>
                   <div className="customer-avatar">
-                    {customer.name.charAt(0).toUpperCase()}
+                    {customer.fullName ? customer.fullName.charAt(0).toUpperCase() : 'K'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate" style={{ color: '#2D1810' }}>
-                      {customer.name}
+                      {customer.fullName || 'Khách hàng'}
                     </p>
                     <p className="text-xs mt-0.5 truncate" style={{ color: '#8B6355' }}>
-                      {customer.email || `${customer.orderCount} đơn hàng`}
+                      {customer.email || `${customer.totalOrders} đơn hàng`}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -721,7 +693,7 @@ const DashboardStats: React.FC = () => {
                       {formatFullVND(customer.totalSpent)}
                     </p>
                     <span className="customer-order-badge mt-1">
-                      {customer.orderCount} đơn
+                      {customer.totalOrders} đơn
                     </span>
                   </div>
                 </div>

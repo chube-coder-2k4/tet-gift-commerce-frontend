@@ -486,3 +486,17 @@ export const adminPaymentApi = {
   getByOrderId: async (orderId: number): Promise<ApiResponse<PaymentResponse>> =>
     fetchWithAuth<PaymentResponse>(`/payments/${orderId}`),
 };
+
+// ===== Statistics (Admin) =====
+export interface TopCustomerResponse {
+  id: number;
+  fullName: string;
+  email: string;
+  totalOrders: number;
+  totalSpent: number;
+}
+
+export const adminStatisticApi = {
+  getTopCustomers: async (params?: PaginationParams): Promise<ApiResponse<PageResponse<TopCustomerResponse>>> =>
+    fetchWithAuth<PageResponse<TopCustomerResponse>>(`/statistics/top-customers${buildQuery(params)}`),
+};
