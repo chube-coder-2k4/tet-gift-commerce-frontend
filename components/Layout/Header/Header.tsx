@@ -40,11 +40,15 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentScreen, user,
       <LanternDecoration />
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between relative z-10">
-        <Logo onNavigate={onNavigate} />
+        <div className="flex-1 flex justify-start">
+          <Logo onNavigate={onNavigate} />
+        </div>
         
-        <Navigation onNavigate={onNavigate} currentScreen={currentScreen} />
+        <div className="flex-none">
+          <Navigation onNavigate={onNavigate} currentScreen={currentScreen} />
+        </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex-1 flex items-center justify-end gap-4">
           <AnimatedThemeToggler className="text-white/80 hover:text-white hover:bg-white/10 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/5" />
           <HeaderActions onNavigate={onNavigate} user={user} onLogout={onLogout} cartItemCount={cartItemCount} />
           <MobileMenu 
