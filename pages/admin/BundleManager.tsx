@@ -66,7 +66,7 @@ const BundleManager: React.FC = () => {
     setFormName(b.name);
     setFormDescription(b.description || '');
     setFormPrice(b.price);
-    setFormIsCustom(b.isCustom);
+    setFormIsCustom(b.custom);
     setBundleProducts(b.products?.map(p => ({ productId: p.productId, quantity: p.quantity })) || [{ productId: 0, quantity: 1 }]);
     setImageFile(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -95,7 +95,7 @@ const BundleManager: React.FC = () => {
     if (validProducts.length === 0) { setMsg({ type: 'error', text: 'Thêm ít nhất 1 sản phẩm' }); setTimeout(() => setMsg(null), 3000); return; }
 
     setSaving(true);
-    const payload: BundleRequest = { name: formName, description: formDescription || undefined, price: formPrice, isCustom: formIsCustom, products: validProducts };
+    const payload: BundleRequest = { name: formName, description: formDescription || undefined, price: formPrice, custom: formIsCustom, products: validProducts };
     try {
       if (editing) {
         if (imageFile) {
@@ -298,7 +298,7 @@ const BundleManager: React.FC = () => {
                       {(b.products?.length || 0) > 3 && <span className="text-xs text-gray-400">+{(b.products?.length || 0) - 3}</span>}
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-center"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${b.isCustom ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'bg-gray-100 dark:bg-white/10 text-gray-500'}`}>{b.isCustom ? 'Có' : 'Không'}</span></td>
+                  <td className="px-5 py-3 text-center"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${b.custom ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'bg-gray-100 dark:bg-white/10 text-gray-500'}`}>{b.custom ? 'Có' : 'Không'}</span></td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex gap-1 justify-end">
                       <button onClick={() => openEdit(b)} className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400"><span className="material-symbols-outlined text-lg">edit</span></button>

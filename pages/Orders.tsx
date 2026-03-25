@@ -316,14 +316,24 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                                       {item.isCustomCombo ? 'Combo tự chọn' : (item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm')} · {item.priceSnapshot.toLocaleString()}₫ × {item.quantity}
                                     </p>
                                     
-                                    {/* Render Custom Combo items if present */}
-                                    {item.isCustomCombo && (
-                                      <div className="mt-2 space-y-1 pl-2 border-l-2 border-primary/20">
-                                        {parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
-                                          <div key={idx} className="flex justify-between gap-3 text-[10px] text-gray-500 dark:text-gray-400">
-                                            <span className="truncate">{prod.name} x{prod.quantity}</span>
+                                    {/* Render Bundle/Combo items if present */}
+                                    {(item.itemType === 'BUNDLE' || item.isCustomCombo) && (
+                                      <div className="mt-2 space-y-1.5 pl-3 border-l-2 border-primary/30 py-0.5">
+                                        {item.customComboData ? (
+                                          parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
+                                            <div key={idx} className="flex justify-between gap-3 text-[10px] text-gray-600 dark:text-gray-400 leading-tight">
+                                              <span className="truncate flex items-center gap-1">
+                                                <span className="w-1 h-1 rounded-full bg-primary/40"></span>
+                                                {prod.name}
+                                              </span>
+                                              <span className="font-bold whitespace-nowrap">x{prod.quantity}</span>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="text-[10px] text-gray-400 italic">
+                                            Chi tiết sản phẩm đang được cập nhật...
                                           </div>
-                                        ))}
+                                        )}
                                       </div>
                                     )}
                                   </div>
