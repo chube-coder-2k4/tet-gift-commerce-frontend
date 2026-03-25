@@ -108,6 +108,7 @@ const CustomBundleModal: React.FC<CustomBundleModalProps> = ({ isOpen, onClose, 
       // 2. Add as custom combo to cart
       await cartApi.addItem({
         itemType: 'BUNDLE',
+        bundleId: 1, // Bắt buộc truyền theo API backend (có thể dummy nếu backend bỏ qua nhờ cờ isCustomCombo)
         quantity: 1,
         isCustomCombo: true,
         customComboData: customComboPayload
