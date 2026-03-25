@@ -4,6 +4,8 @@ import { ChatWidget } from './components/ChatWidget';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
+import BundleDetail from './pages/BundleDetail';
+import Bundles from './pages/Bundles';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Auth from './pages/Auth';
@@ -26,6 +28,8 @@ const pathToScreen: Record<string, Screen> = {
   '/home': 'home',
   '/shop': 'shop',
   '/product': 'product-detail',
+  '/bundles': 'bundles',
+  '/bundle': 'bundle-detail',
   '/cart': 'cart',
   '/checkout': 'checkout',
   '/login': 'login',
@@ -44,6 +48,8 @@ const screenToPath: Record<Screen, string> = {
   'home': '/',
   'shop': '/shop',
   'product-detail': '/product',
+  'bundles': '/bundles',
+  'bundle-detail': '/bundle',
   'cart': '/cart',
   'checkout': '/checkout',
   'login': '/login',
@@ -72,6 +78,7 @@ const App: React.FC = () => {
     return getScreenFromPath(path);
   });
   const [selectedProductId, setSelectedProductId] = useState<number>(1);
+  const [selectedBundleId, setSelectedBundleId] = useState<number>(0);
   const [selectedBlogPostId, setSelectedBlogPostId] = useState<number>(0);
   const [user, setUser] = useState<User | null>(null);
   const [cartItemCount, setCartItemCount] = useState<number>(0);
@@ -187,16 +194,25 @@ const App: React.FC = () => {
     handleNavigate('blog-detail');
   };
 
+  const handleBundleClick = (id: number) => {
+    setSelectedBundleId(id);
+    handleNavigate('bundle-detail');
+  };
+
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
-        return <Home onNavigate={handleNavigate} onProductClick={handleProductClick} onCartUpdate={handleCartUpdate} />;
+        return <Home onNavigate={handleNavigate} onProductClick={handleProductClick} onCartUpdate={handleCartUpdate} onBundleClick={handleBundleClick} />;
       case 'shop':
         return <Shop onNavigate={handleNavigate} onProductClick={handleProductClick} onCartUpdate={handleCartUpdate} />;
       case 'product-detail':
         return <ProductDetail onNavigate={handleNavigate} productId={selectedProductId} onCartUpdate={handleCartUpdate} />;
+      case 'bundles':
+        return <Bundles onNavigate={handleNavigate} onCartUpdate={handleCartUpdate} onProductClick={handleProductClick} onBundleClick={handleBundleClick} />;
+      case 'bundle-detail':
+        return <BundleDetail onNavigate={handleNavigate} bundleId={selectedBundleId} onCartUpdate={handleCartUpdate} onProductClick={handleProductClick} />;
       case 'cart':
-        return <Cart onNavigate={handleNavigate} onCartUpdate={handleCartUpdate} />;
+        return <Cart onNavigate={handleNavigate} onCartUpdate={handleCartUpdate} onBundleClick={handleBundleClick} />;
       case 'checkout':
         return <Checkout onNavigate={handleNavigate} onCartUpdate={handleCartUpdate} />;
       case 'login':
@@ -218,7 +234,7 @@ const App: React.FC = () => {
       case 'admin':
         return <AdminDashboard onNavigate={handleNavigate} />;
       default:
-        return <Home onNavigate={handleNavigate} onProductClick={handleProductClick} onCartUpdate={handleCartUpdate} />;
+        return <Home onNavigate={handleNavigate} onProductClick={handleProductClick} onCartUpdate={handleCartUpdate} onBundleClick={handleBundleClick} />;
     }
   };
 

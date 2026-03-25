@@ -1,7 +1,7 @@
 // Admin API Service — All CRUD endpoints for admin panel
 import { fetchWithAuth, ApiResponse, UserResponse, tokenStorage } from './api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.quanghuycoder.id.vn/api/v1';
 
 // ===== Shared =====
 export interface PageResponse<T> {
@@ -137,6 +137,7 @@ export interface ProductResponse {
   description: string;
   price: number;
   stock: number;
+  primaryImage?: string;
   image?: string;
   categoryName: string;
   categoryId: number;
@@ -157,12 +158,14 @@ export const adminProductApi = {
   create: async (data: ProductRequest): Promise<ApiResponse<number>> =>
     fetchWithAuth<number>('/products/register', { method: 'POST', body: JSON.stringify(data) }),
 
-  // Multipart create (with file upload)
-  createWithImage: async (data: ProductRequest, imageFile?: File): Promise<ApiResponse<number>> => {
+  // Multipart create (with file upload — multi images)
+  createWithImages: async (data: ProductRequest, imageFiles?: File[]): Promise<ApiResponse<number>> => {
     const formData = new FormData();
     formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (imageFile) {
-      formData.append('image', imageFile);
+    if (imageFiles && imageFiles.length > 0) {
+      imageFiles.forEach(file => {
+        formData.append('images', file);
+      });
     }
     const accessToken = tokenStorage.getAccessToken();
     const response = await fetch(`${API_BASE_URL}/products/register`, {
@@ -181,12 +184,14 @@ export const adminProductApi = {
   update: async (id: number, data: ProductRequest): Promise<ApiResponse<number>> =>
     fetchWithAuth<number>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
-  // Multipart update (with file upload)
-  updateWithImage: async (id: number, data: ProductRequest, imageFile?: File): Promise<ApiResponse<number>> => {
+  // Multipart update (with file upload — multi images)
+  updateWithImages: async (id: number, data: ProductRequest, imageFiles?: File[]): Promise<ApiResponse<number>> => {
     const formData = new FormData();
     formData.append('request', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (imageFile) {
-      formData.append('image', imageFile);
+    if (imageFiles && imageFiles.length > 0) {
+      imageFiles.forEach(file => {
+        formData.append('images', file);
+      });
     }
     const accessToken = tokenStorage.getAccessToken();
     const response = await fetch(`${API_BASE_URL}/products/${id}`, {
@@ -301,6 +306,9 @@ export interface OrderResponse {
   id: number;
   status: OrderStatus;
   totalAmount: number;
+  subtotalBeforeDiscount?: number;
+  tierDiscountPercent?: number;
+  tierDiscountAmount?: number;
   customerName?: string;
   customerEmail?: string;
   receiverName?: string;
@@ -319,7 +327,7 @@ export interface OrderResponse {
 
 export const adminOrderApi = {
   getAll: async (params?: PaginationParams): Promise<ApiResponse<PageResponse<OrderResponse>>> =>
-    fetchWithAuth<PageResponse<OrderResponse>>(`/orders/all${buildQuery(params)}`),
+    fetchWithAuth<PageResponse<OrderResponse>>(`/orders${buildQuery(params)}`),
 
   getById: async (id: number): Promise<ApiResponse<OrderResponse>> =>
     fetchWithAuth<OrderResponse>(`/orders/${id}`),
@@ -479,4 +487,18 @@ export interface PaymentResponse {
 export const adminPaymentApi = {
   getByOrderId: async (orderId: number): Promise<ApiResponse<PaymentResponse>> =>
     fetchWithAuth<PaymentResponse>(`/payments/${orderId}`),
+};
+
+// ===== Statistics (Admin) =====
+export interface TopCustomerResponse {
+  id: number;
+  fullName: string;
+  email: string;
+  totalOrders: number;
+  totalSpent: number;
+}
+
+export const adminStatisticApi = {
+  getTopCustomers: async (params?: PaginationParams): Promise<ApiResponse<PageResponse<TopCustomerResponse>>> =>
+    fetchWithAuth<PageResponse<TopCustomerResponse>>(`/statistics/top-customers${buildQuery(params)}`),
 };

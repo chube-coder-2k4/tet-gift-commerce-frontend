@@ -16,6 +16,7 @@ export interface ProductResponse {
   description: string;
   price: number;
   stock: number;
+  primaryImage?: string;
   image?: string;
   categoryName: string;
   categoryId: number;

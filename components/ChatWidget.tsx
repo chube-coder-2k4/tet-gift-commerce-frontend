@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { chatbotApi, ChatSuggestion, ChatHistoryItem } from '../services/chatbotApi';
+import { chatbotApi, ChatSuggestion, ChatHistoryItem, RateLimitError } from '../services/chatbotApi';
+import { ApiError } from '../services/api';
 import { productApi, ProductResponse } from '../services/productApi';
 import { bundleApi, BundleResponse } from '../services/bundleApi';
 
@@ -9,6 +10,8 @@ interface Message {
   text: string;
   timestamp: Date;
   suggestions?: ChatSuggestion[];
+  isError?: boolean;
+  retryPayload?: string;
 }
 
 interface ChatWidgetProps {
@@ -23,13 +26,11 @@ function renderMarkdown(
   suggestions?: ChatSuggestion[],
   onProductClick?: (id: number) => void
 ) {
-  // First, handle **bold**
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   
   const processedParts = parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       const innerText = part.slice(2, -2);
-      // Check if bold text matches a product name
       const matchedSuggestion = suggestions?.find(
         s => s.name.toLowerCase() === innerText.toLowerCase()
       );
@@ -49,9 +50,7 @@ function renderMarkdown(
       return <strong key={i}>{innerText}</strong>;
     }
 
-    // For non-bold parts, check if any product name appears as plain text
     if (suggestions && suggestions.length > 0 && onProductClick) {
-      // Build regex from suggestion names, sorted longest first to avoid partial matches
       const names = suggestions.map(s => s.name).sort((a, b) => b.length - a.length);
       const escapedNames = names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
       const regex = new RegExp(`(${escapedNames.join('|')})`, 'gi');
@@ -74,7 +73,6 @@ function renderMarkdown(
             </button>
           );
         }
-        // Handle line breaks in non-matched segments
         return seg.split('\n').map((line, k, arr) => (
           <React.Fragment key={`${i}-${j}-${k}`}>
             {line}
@@ -84,7 +82,6 @@ function renderMarkdown(
       });
     }
 
-    // Fallback: just handle line breaks
     return part.split('\n').map((line, j, arr) => (
       <React.Fragment key={`${i}-${j}`}>
         {line}
@@ -118,14 +115,12 @@ function extractSuggestionsFromText(text: string, catalog: CatalogItem[]): ChatS
   const seenIds = new Set<string>();
   const lowerText = text.toLowerCase();
   
-  // Sort by name length descending for longest match first
   const sorted = [...catalog].sort((a, b) => b.name.length - a.name.length);
   
   for (const item of sorted) {
     const key = `${item.type}-${item.id}`;
     if (seenIds.has(key)) continue;
     
-    // Check if product name appears in text (case-insensitive)
     if (lowerText.includes(item.name.toLowerCase())) {
       seenIds.add(key);
       found.push({
@@ -155,6 +150,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(() => localStorage.getItem(SESSION_KEY));
+  const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const catalogRef = useRef<CatalogItem[]>([]);
@@ -202,7 +198,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
           name: p.name,
           price: p.price,
           stock: p.stock,
-          imageUrl: p.images?.find(img => img.isPrimary)?.imageUrl || p.images?.[0]?.imageUrl || null,
+          imageUrl: p.primaryImage || p.image || p.images?.find(img => img.isPrimary)?.imageUrl || p.images?.[0]?.imageUrl || null,
         }));
         const bundles: CatalogItem[] = (bundleRes.data?.data || []).map((b: BundleResponse) => ({
           id: b.id,
@@ -217,19 +213,24 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
     }
   }, [isOpen]);
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
+  const handleSendMessage = async (retryMessage?: string) => {
+    const messageText = retryMessage || inputText.trim();
+    if (!messageText || isLoading) return;
 
-    const userMsg: Message = {
-      id: Date.now(),
-      sender: 'user',
-      text: inputText,
-      timestamp: new Date()
-    };
+    setRateLimitMsg(null);
 
-    setMessages(prev => [...prev, userMsg]);
-    const messageText = inputText;
-    setInputText('');
+    // Add user message (skip if retrying)
+    if (!retryMessage) {
+      const userMsg: Message = {
+        id: Date.now(),
+        sender: 'user',
+        text: messageText,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMsg]);
+      setInputText('');
+    }
+
     setIsLoading(true);
 
     try {
@@ -254,25 +255,53 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
           }
         }
 
+        // Check if it's a fallback/error response (success: false)
+        const isFallback = res.data.success === false;
+
         const botMsg: Message = {
           id: Date.now() + 1,
           sender: 'bot',
           text: res.data.message,
           timestamp: new Date(res.data.timestamp),
           suggestions,
+          isError: isFallback,
+          retryPayload: isFallback ? messageText : undefined,
         };
         setMessages(prev => [...prev, botMsg]);
       }
-    } catch {
+    } catch (err) {
+      let errorText = 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.';
+      let showRetry = true;
+
+      if (err instanceof RateLimitError || (err instanceof ApiError && err.status === 429)) {
+        errorText = err.message;
+        setRateLimitMsg(err.message);
+        showRetry = false;
+      } else if (err instanceof Error) {
+        errorText = err.message;
+      }
+
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         sender: 'bot',
-        text: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.',
+        text: errorText,
         timestamp: new Date(),
+        isError: showRetry,
+        retryPayload: showRetry ? messageText : undefined,
       }]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRetry = (retryPayload: string) => {
+    // Remove the last error message then retry
+    setMessages(prev => {
+      const lastErrorIdx = prev.findLastIndex(m => m.isError && m.retryPayload === retryPayload);
+      if (lastErrorIdx >= 0) return prev.filter((_, i) => i !== lastErrorIdx);
+      return prev;
+    });
+    handleSendMessage(retryPayload);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -309,6 +338,17 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
             </button>
           </div>
 
+          {/* Rate Limit Warning */}
+          {rateLimitMsg && (
+            <div className="mx-3 mt-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl flex items-start gap-2">
+              <span className="material-symbols-outlined text-amber-500 text-lg shrink-0 mt-0.5">schedule</span>
+              <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">{rateLimitMsg}</p>
+              <button onClick={() => setRateLimitMsg(null)} className="shrink-0 text-amber-500 hover:text-amber-700">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+          )}
+
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-transparent">
             {messages.map((message) => (
@@ -319,17 +359,30 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                       className={`rounded-2xl px-4 py-3 ${
                         message.sender === 'user'
                           ? 'bg-gradient-to-r from-primary to-red-600 dark:from-[#8b2332] dark:to-[#6b1a28] text-white rounded-br-sm'
-                          : 'bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-[#3a3330]/60 rounded-bl-sm shadow-sm dark:shadow-lg'
+                          : message.isError
+                            ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800/40 rounded-bl-sm'
+                            : 'bg-white dark:bg-surface-dark/80 dark:backdrop-blur-sm text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-[#3a3330]/60 rounded-bl-sm shadow-sm dark:shadow-lg'
                       }`}
                     >
                       <p className="text-sm leading-relaxed">{renderMarkdown(message.text, message.suggestions, onProductClick)}</p>
                     </div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 px-1">
-                      {message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1 px-1">
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        {message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {message.isError && message.retryPayload && (
+                        <button
+                          onClick={() => handleRetry(message.retryPayload!)}
+                          className="text-xs font-semibold text-primary dark:text-[#daa520] hover:underline flex items-center gap-0.5"
+                        >
+                          <span className="material-symbols-outlined text-sm">refresh</span>
+                          Thử lại
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-                {/* Product Suggestions */}
+                {/* Product/Bundle Suggestions */}
                 {message.suggestions && message.suggestions.length > 0 && (
                   <div className="mt-2 space-y-2 ml-2">
                     {message.suggestions.map((s) => (
@@ -348,12 +401,17 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate group-hover:text-primary transition-colors">{s.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate group-hover:text-primary transition-colors">{s.name}</p>
+                            {s.type === 'BUNDLE' && (
+                              <span className="shrink-0 px-1.5 py-0.5 bg-accent/15 text-accent text-[9px] font-bold rounded uppercase">Combo</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 text-xs">
                             <span className="font-bold text-primary dark:text-[#daa520]">{formatPrice(s.price)}</span>
                             <span className="text-gray-400">•</span>
-                            <span className={s.stock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
-                              {s.stock > 0 ? `Còn ${s.stock}` : 'Hết hàng'}
+                            <span className={s.stock && s.stock > 0 ? 'text-green-600 dark:text-green-400' : s.stock === null ? 'text-gray-400' : 'text-red-500'}>
+                              {s.stock === null ? 'Combo' : s.stock > 0 ? `Còn ${s.stock}` : 'Hết hàng'}
                             </span>
                           </div>
                         </div>
@@ -368,10 +426,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-white dark:bg-surface-dark/80 border border-gray-200 dark:border-[#3a3330]/60 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-                  <div className="flex gap-1.5">
-                    <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="size-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
+                    <span className="text-xs text-gray-400">Đang suy nghĩ...</span>
                   </div>
                 </div>
               </div>
@@ -392,7 +453,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
                 disabled={isLoading}
               />
               <button
-                onClick={handleSendMessage}
+                onClick={() => handleSendMessage()}
                 disabled={!inputText.trim() || isLoading}
                 className="size-10 bg-gradient-to-r from-primary to-red-600 dark:from-[#8b2332] dark:to-[#6b1a28] hover:from-red-600 hover:to-red-700 dark:hover:from-[#a02a3c] dark:hover:to-[#8b2332] text-white rounded-xl flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >

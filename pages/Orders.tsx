@@ -4,6 +4,7 @@ import { authApi } from '../services/api';
 import { orderApi, OrderResponse, OrderStatus, PageResponse } from '../services/orderApi';
 import { paymentApi, PaymentResponse } from '../services/paymentApi';
 import { useConfirmDialog } from '../components/ConfirmDialog';
+import { InvoiceButton } from '../components/InvoiceButton';
 import Pagination from '../components/Pagination';
 
 interface OrdersProps {
@@ -120,6 +121,16 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
       return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     } catch {
       return dateStr;
+    }
+  };
+
+  // Helper to parse custom combo data
+  const parseCustomCombo = (data: string | undefined) => {
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
     }
   };
 
@@ -299,11 +310,22 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                                       {item.itemType === 'BUNDLE' ? 'redeem' : 'shopping_bag'}
                                     </span>
                                   </div>
-                                  <div className="min-w-0">
+                                  <div className="min-w-0 flex-1">
                                     <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{item.itemName}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                      {item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm'} · {item.priceSnapshot.toLocaleString()}₫ × {item.quantity}
+                                      {item.isCustomCombo ? 'Combo tự chọn' : (item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm')} · {item.priceSnapshot.toLocaleString()}₫ × {item.quantity}
                                     </p>
+                                    
+                                    {/* Render Custom Combo items if present */}
+                                    {item.isCustomCombo && (
+                                      <div className="mt-2 space-y-1 pl-2 border-l-2 border-primary/20">
+                                        {parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
+                                          <div key={idx} className="flex justify-between gap-3 text-[10px] text-gray-500 dark:text-gray-400">
+                                            <span className="truncate">{prod.name} x{prod.quantity}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                                 <p className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">{item.subtotal.toLocaleString()}₫</p>
@@ -340,6 +362,29 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                                   </div>
                                 )}
                               </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Tier Discount Info */}
+                        {order.tierDiscountAmount != null && order.tierDiscountAmount > 0 && (
+                          <div className="px-5 pb-4">
+                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                              <span className="material-symbols-outlined text-lg">trending_down</span>
+                              Giảm giá theo đơn hàng
+                            </h4>
+                            <div className="flex items-center gap-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-200 dark:border-blue-800/30">
+                              <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-bold border border-blue-200 dark:border-blue-700/40">
+                                -{order.tierDiscountPercent}%
+                              </span>
+                              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                -{order.tierDiscountAmount.toLocaleString()}₫
+                              </span>
+                              {order.subtotalBeforeDiscount != null && (
+                                <span className="text-xs text-gray-400 ml-auto">
+                                  Trên đơn {order.subtotalBeforeDiscount.toLocaleString()}₫
+                                </span>
+                              )}
                             </div>
                           </div>
                         )}
@@ -446,6 +491,8 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                               )}
                             </div>
                           </div>
+                          {/* Invoice Button */}
+                          <InvoiceButton orderId={order.id} orderStatus={order.status} variant="card" className="mt-3" />
                         </div>
                       </div>
                     )}

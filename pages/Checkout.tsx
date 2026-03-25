@@ -6,6 +6,7 @@ import { orderApi, OrderResponse } from '../services/orderApi';
 import { paymentApi, PaymentMethod } from '../services/paymentApi';
 import { discountApi, DiscountResponse } from '../services/discountApi';
 import { authApi } from '../services/api';
+import { InvoiceButton } from '../components/InvoiceButton';
 
 interface CheckoutProps {
   onNavigate: (screen: Screen) => void;
@@ -59,6 +60,16 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
       if (saved) setDiscount(JSON.parse(saved));
     } catch {}
   }, []);
+
+  // Helper to parse custom combo data
+  const parseCustomCombo = (data: string | undefined) => {
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  };
 
   const handleRemoveDiscount = () => {
     setDiscount(null);
@@ -145,16 +156,40 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
           <div className="bg-gray-50 dark:bg-surface-dark rounded-xl p-6 mb-8 text-left">
             <h3 className="font-bold text-gray-900 dark:text-white mb-4">Chi tiết đơn hàng</h3>
             {createdOrder.items.map(item => (
-              <div key={item.id} className="flex justify-between py-2 border-b border-gray-100 dark:border-white/5 last:border-0">
-                <span className="text-gray-600 dark:text-gray-300">{item.itemName} x{item.quantity}</span>
-                <span className="font-medium text-gray-900 dark:text-white">{item.subtotal.toLocaleString()}₫</span>
+              <div key={item.id} className="py-2 border-b border-gray-100 dark:border-white/5 last:border-0">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">{item.itemName} x{item.quantity}</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{item.subtotal.toLocaleString()}₫</span>
+                </div>
+                {item.isCustomCombo && (
+                  <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 pl-2 border-l border-primary/30">
+                    {parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
+                      <span key={idx} className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                        {prod.name} x{prod.quantity}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
+            {createdOrder.tierDiscountAmount != null && createdOrder.tierDiscountAmount > 0 && (
+              <div className="flex justify-between py-2 text-sm text-blue-600 dark:text-blue-400">
+                <span>Giảm theo đơn hàng ({createdOrder.tierDiscountPercent}%)</span>
+                <span className="font-semibold">-{createdOrder.tierDiscountAmount.toLocaleString()}₫</span>
+              </div>
+            )}
+            {createdOrder.discountCode && createdOrder.discountAmount != null && createdOrder.discountAmount > 0 && (
+              <div className="flex justify-between py-2 text-sm text-green-600 dark:text-green-400">
+                <span>Mã giảm giá ({createdOrder.discountCode})</span>
+                <span className="font-semibold">-{createdOrder.discountAmount.toLocaleString()}₫</span>
+              </div>
+            )}
             <div className="flex justify-between pt-4 mt-2 border-t border-gray-200 dark:border-white/10">
               <span className="font-bold text-gray-900 dark:text-white">Tổng cộng</span>
               <span className="font-bold text-primary text-xl">{createdOrder.totalAmount.toLocaleString()}₫</span>
             </div>
           </div>
+          <InvoiceButton orderId={createdOrder.id} orderStatus={createdOrder.status} variant="compact" className="justify-center mb-6" />
           <div className="flex gap-4 justify-center">
             <button onClick={() => onNavigate('home')} className="px-6 py-3 rounded-xl border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
               Về trang chủ
@@ -168,10 +203,21 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
     );
   }
 
+  // Tier discount calculation (mirrors backend logic)
+  const getTierDiscountPercent = (amount: number): number => {
+    if (amount >= 50_000_000) return 10;
+    if (amount >= 30_000_000) return 8;
+    if (amount >= 15_000_000) return 5;
+    if (amount >= 10_000_000) return 3;
+    return 0;
+  };
+
   const cartItems = cart?.items || [];
   const subtotal = cart?.totalPrice || 0;
-  const actualDiscountValue = discount ? (discount.actualDiscountAmount || discount.discountValue) : 0;
-  const total = Math.max(0, subtotal - actualDiscountValue);
+  const tierPercent = getTierDiscountPercent(subtotal);
+  const tierAmount = Math.round(subtotal * tierPercent / 100);
+  const discountValue = discount ? discount.discountValue : 0;
+  const total = Math.max(0, subtotal - tierAmount - discountValue);
   return (
     <div className="w-full max-w-[1440px] mx-auto px-4 lg:px-10 py-8">
       {/* Back Button */}
@@ -391,10 +437,28 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
                     <span className="material-symbols-outlined text-2xl text-gray-400">{item.itemType === 'BUNDLE' ? 'inventory_2' : 'shopping_bag'}</span>
                     <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white shadow ring-2 ring-white dark:ring-card-dark z-10">{item.quantity}</span>
                   </div>
-                  <div className="flex flex-1 flex-col justify-center gap-0.5">
+                  <div className="flex flex-1 flex-col justify-center gap-0.5 min-w-0">
                     <h4 className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">{item.itemName}</h4>
-                    <p className="text-xs text-gray-500">{item.itemPrice.toLocaleString()}₫ x {item.quantity}</p>
-                    <p className="text-sm font-bold text-primary">{item.subtotal.toLocaleString()}₫</p>
+                    <p className="text-[10px] text-gray-500 font-medium">
+                      {item.isCustomCombo ? 'Combo tự chọn' : (item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm')}
+                    </p>
+                    
+                    {item.isCustomCombo && (
+                      <div className="mt-1 mb-1 space-y-0.5">
+                        {parseCustomCombo(item.customComboData)?.items?.slice(0, 3).map((prod: any, idx: number) => (
+                          <p key={idx} className="text-[9px] text-gray-400 truncate leading-none italic">
+                            - {prod.name} x{prod.quantity}
+                          </p>
+                        ))}
+                        {(parseCustomCombo(item.customComboData)?.items?.length || 0) > 3 && (
+                          <p className="text-[9px] text-gray-400 leading-none">...</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    <p className="text-[11px] font-bold text-primary mt-1">
+                      {item.itemPrice.toLocaleString()}₫ x {item.quantity} = {item.subtotal.toLocaleString()}₫
+                    </p>
                   </div>
                 </div>
               ))}
@@ -406,21 +470,8 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
                 <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-200 dark:border-green-800/30">
                   <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-    <span className="text-sm font-bold text-green-700 dark:text-green-400">
-      {discount.code}
-    </span>
-                      {/* Hiển thị Badge loại giảm giá để người dùng dễ hiểu */}
-                      <span className="text-[10px] px-1.5 py-0.5 bg-green-200 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded border border-green-300">
-      {discount.discountType === 'PERCENTAGE' ? 'Giảm %' : 'Giảm trực tiếp'}
-    </span>
-                    </div>
-
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-    Tiết kiệm: <span className="font-semibold text-gray-700">-{discount.actualDiscountAmount?.toLocaleString()}₫</span>
-                      {/* Chỉ hiện % nếu là loại Percentage, nếu không thì ẩn đi hoặc hiện text khác */}
-                      {discount.discountType === 'PERCENTAGE' && ` (áp dụng mức giảm ${discount.discountValue}%)`}
-  </span>
+                    <span className="text-sm font-bold text-green-700 dark:text-green-400">{discount.code}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">-{discount.discountValue.toLocaleString()}₫</span>
                   </div>
                   <button onClick={handleRemoveDiscount} className="p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors" title="Xóa mã">
                     <span className="material-symbols-outlined text-lg">close</span>
@@ -445,11 +496,20 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
                 <span>Vận chuyển</span>
                 <span className="text-gray-900 dark:text-gray-200 font-semibold">Miễn phí</span>
               </div>
+              {tierPercent > 0 && (
+                <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">trending_down</span>
+                    Giảm theo đơn ({tierPercent}%)
+                  </span>
+                  <span className="font-bold">-{tierAmount.toLocaleString()}₫</span>
+                </div>
+              )}
               {discount && (
-                  <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                    <span>Giảm giá</span>
-                    <span className="font-bold">-{actualDiscountValue.toLocaleString()}₫</span>
-                  </div>
+                <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                  <span>Mã giảm giá</span>
+                  <span className="font-bold">-{discountValue.toLocaleString()}₫</span>
+                </div>
               )}
               <div className="pt-4 border-t border-dashed border-gray-200 dark:border-gray-700 mt-4">
                 <div className="flex justify-between items-end mb-1">

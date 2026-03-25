@@ -17,20 +17,22 @@ export const Navigation: React.FC<NavigationProps> = ({ onNavigate, currentScree
       >
         Giới thiệu
       </a>
-      {[
-        { label: 'Hộp quà', category: 'Hộp quà' },
-        { label: 'Giỏ quà', category: 'Giỏ quà' },
-        { label: 'Túi quà', category: 'Túi quà' },
-        { label: 'Rượu Tết', category: 'Rượu Tết' },
-      ].map((item) => (
-        <a 
-          key={item.label} 
-          onClick={() => onNavigate('shop')}
-          className="text-sm font-medium transition-colors cursor-pointer nav-link relative text-white/90 dark:text-gray-300 hover:text-gold dark:hover:text-white"
-        >
-          {item.label}
-        </a>
-      ))}
+      <a 
+        onClick={() => onNavigate('bundles')}
+        className={`text-sm font-medium transition-colors cursor-pointer nav-link relative
+          ${currentScreen === 'bundles' ? 'text-gold dark:text-primary' : 'text-white/90 dark:text-gray-300 hover:text-gold dark:hover:text-white'}
+        `}
+      >
+        Combo Tết
+      </a>
+      <a 
+        onClick={() => onNavigate('shop')}
+        className={`text-sm font-medium transition-colors cursor-pointer nav-link relative
+          ${currentScreen === 'shop' ? 'text-gold dark:text-primary' : 'text-white/90 dark:text-gray-300 hover:text-gold dark:hover:text-white'}
+        `}
+      >
+        Quà Tết
+      </a>
       <a 
         onClick={() => onNavigate('blog')}
         className={`text-sm font-medium transition-colors cursor-pointer nav-link relative

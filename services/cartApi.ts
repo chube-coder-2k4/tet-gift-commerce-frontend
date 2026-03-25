@@ -10,6 +10,8 @@ export interface CartItem {
   itemPrice: number;
   quantity: number;
   subtotal: number;
+  isCustomCombo?: boolean;
+  customComboData?: string;
 }
 
 export interface CartResponse {
@@ -24,6 +26,8 @@ export interface AddToCartRequest {
   productId?: number;
   bundleId?: number;
   quantity: number;
+  isCustomCombo?: boolean;
+  customComboData?: string;
 }
 
 // Cart API (auth required)

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminOrderApi, adminPaymentApi, OrderResponse, OrderStatus, PaymentResponse, PageResponse } from '../../services/adminApi';
 import { useConfirmDialog } from '../../components/ConfirmDialog';
+import { InvoiceButton } from '../../components/InvoiceButton';
 import Pagination from '../../components/Pagination';
 
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
@@ -209,6 +210,29 @@ const OrderManager: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Tier Discount Info */}
+                  {order.tierDiscountAmount != null && order.tierDiscountAmount > 0 && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-200 dark:border-blue-800/30">
+                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm">trending_down</span>
+                        Giảm theo đơn hàng
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-bold border border-blue-200 dark:border-blue-700/40">
+                          -{order.tierDiscountPercent}%
+                        </span>
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          -{formatCurrency(order.tierDiscountAmount)}
+                        </span>
+                        {order.subtotalBeforeDiscount != null && (
+                          <span className="text-xs text-gray-400 ml-auto">
+                            Subtotal: {formatCurrency(order.subtotalBeforeDiscount)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Discount Info */}
                   {order.discountCode && (
                     <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-800/30">
@@ -251,6 +275,9 @@ const OrderManager: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Invoice */}
+                  <InvoiceButton orderId={order.id} orderStatus={order.status} variant="card" />
 
                   {/* Actions */}
                   <div className="flex items-center gap-3 pt-2">

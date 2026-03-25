@@ -3,13 +3,15 @@ import { cartApi, CartResponse } from '../services/cartApi';
 import { discountApi, DiscountResponse } from '../services/discountApi';
 import { authApi } from '../services/api';
 import { Screen } from '../types';
+import CustomBundleModal from '../components/CustomBundleModal';
 
 interface CartProps {
   onNavigate: (screen: Screen) => void;
   onCartUpdate?: () => void;
+  onBundleClick?: (id: number) => void;
 }
 
-const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate }) => {
+const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) => {
   const [cart, setCart] = useState<CartResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingItem, setUpdatingItem] = useState<number | null>(null);
@@ -19,6 +21,17 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate }) => {
   const [discount, setDiscount] = useState<DiscountResponse | null>(null);
   const [discountError, setDiscountError] = useState('');
   const [validatingDiscount, setValidatingDiscount] = useState(false);
+  const [isBundleModalOpen, setIsBundleModalOpen] = useState(false);
+
+  // Helper to parse custom combo data
+  const parseCustomCombo = (data: string | undefined) => {
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  };
 
   // Load saved discount from localStorage on mount
   useEffect(() => {
@@ -170,16 +183,34 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate }) => {
         <span className="mx-2">/</span>
         <span className="text-gray-900 dark:text-white">Giỏ hàng</span>
       </nav>
-      <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8">Giỏ hàng <span className="text-gray-500 font-sans text-lg font-normal ml-2">({totalItems} sản phẩm)</span></h1>
+      
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">
+          Giỏ hàng <span className="text-gray-500 font-sans text-lg font-normal ml-2">({totalItems} sản phẩm)</span>
+        </h1>
+        <button 
+          onClick={() => setIsBundleModalOpen(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-bold rounded-xl shadow-lg shadow-yellow-500/30 transition-all transform hover:-translate-y-0.5"
+        >
+          <span className="material-symbols-outlined">redeem</span>
+          Tạo Combo Tự Chọn
+        </button>
+      </div>
       
       {cartItems.length === 0 ? (
         <div className="text-center py-16">
           <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">shopping_cart</span>
           <h2 className="text-2xl font-serif text-gray-900 dark:text-white mb-2">Giỏ hàng trống</h2>
           <p className="text-gray-500 mb-6">Hãy thêm sản phẩm vào giỏ hàng để tiếp tục mua sắm</p>
-          <button onClick={() => onNavigate('shop')} className="px-8 py-3 rounded-full bg-primary text-white font-semibold hover:bg-red-600 transition-all">
-            Khám phá sản phẩm
-          </button>
+          <div className="flex flex-wrap justify-center gap-4">
+            <button onClick={() => onNavigate('shop')} className="px-8 py-3 rounded-full bg-primary text-white font-semibold hover:bg-red-600 transition-all">
+              Khám phá sản phẩm
+            </button>
+            <button onClick={() => setIsBundleModalOpen(true)} className="px-8 py-3 rounded-full bg-yellow-500 text-white font-semibold hover:bg-yellow-600 transition-all flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px]">redeem</span>
+              Tạo Combo Tự Chọn
+            </button>
+          </div>
         </div>
       ) : (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
@@ -200,8 +231,30 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate }) => {
                   </div>
                   <div className="flex flex-col h-full justify-between py-1">
                     <div>
-                      <h3 className="font-bold text-gray-900 dark:text-white text-lg font-serif mb-1">{item.itemName}</h3>
-                      <p className="text-xs text-gray-500 mb-2">Loại: {item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm'}</p>
+                      <h3
+                        className={`font-bold text-gray-900 dark:text-white text-lg font-serif mb-1 ${(item.itemType === 'BUNDLE' && !item.isCustomCombo) ? 'hover:text-primary cursor-pointer' : ''}`}
+                        onClick={() => { if (item.itemType === 'BUNDLE' && !item.isCustomCombo) onBundleClick?.(item.itemId); }}
+                      >{item.itemName}</h3>
+                      <p className="text-xs text-gray-500 mb-2">Loại: {item.isCustomCombo ? 'Combo tự chọn' : (item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm')}</p>
+                      
+                      {/* Render Custom Combo items if present */}
+                      {item.isCustomCombo && (
+                        <div className="mt-2 mb-3 bg-gray-50 dark:bg-black/20 p-2.5 rounded-lg border border-gray-200 dark:border-white/5 max-w-[240px]">
+                          <p className="text-[10px] uppercase font-bold text-primary dark:text-accent tracking-wider mb-1.5 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">list_alt</span>
+                            Chi tiết Combo
+                          </p>
+                          <div className="space-y-1">
+                            {parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
+                              <div key={idx} className="flex justify-between gap-3 text-[11px] text-gray-600 dark:text-gray-400">
+                                <span className="truncate">{prod.name} <span className="text-gray-400 dark:text-gray-500 font-mono">x{prod.quantity}</span></span>
+                                <span className="shrink-0 font-medium font-mono text-[10px]">{(prod.price * prod.quantity).toLocaleString()}₫</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-500/10 px-2 py-0.5 rounded w-fit border border-green-200 dark:border-green-500/20">
                         <span className="material-symbols-outlined text-[14px]">check</span>
                         Còn hàng
@@ -379,6 +432,16 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate }) => {
         </div>
       </div>
       )}
+
+      {/* Custom Bundle Modal Option */}
+      <CustomBundleModal 
+        isOpen={isBundleModalOpen} 
+        onClose={() => setIsBundleModalOpen(false)} 
+        onSuccess={() => {
+          fetchCart();
+          onCartUpdate?.();
+        }}
+      />
     </div>
   );
 };

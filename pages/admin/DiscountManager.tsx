@@ -27,16 +27,7 @@ const DiscountManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<DiscountResponse | null>(null);
-
-  const [form, setForm] = useState<DiscountRequest>({
-    code: '',
-    discountType: 'FIXED',
-    discountValue: 0,
-    minOrderAmount: 0,
-    maxDiscountAmount: 0,
-    startDate: '',
-    endDate: ''
-  });
+  const [form, setForm] = useState<DiscountRequest>({ code: '', discountValue: 0, minOrderAmount: 0, usageLimit: 0, startDate: '', endDate: '' });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -54,7 +45,7 @@ const DiscountManager: React.FC = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const resetForm = () => { setForm({ code: '', discountValue: 0, startDate: '', endDate: '' }); setEditing(null); setShowForm(false); };
+  const resetForm = () => { setForm({ code: '', discountValue: 0, minOrderAmount: 0, usageLimit: 0, startDate: '', endDate: '' }); setEditing(null); setShowForm(false); };
 
   const openCreate = () => { resetForm(); setShowForm(true); };
 
@@ -62,9 +53,9 @@ const DiscountManager: React.FC = () => {
     setEditing(d);
     setForm({
       code: d.code,
-      discountType: d.discountType || 'FIXED',
       discountValue: d.discountValue,
-      maxDiscountAmount: d.maxDiscountAmount || 0,
+      minOrderAmount: d.minOrderAmount || 0,
+      usageLimit: d.usageLimit || 0,
       startDate: toInputDateTime(d.startDate),
       endDate: toInputDateTime(d.endDate),
     });
@@ -78,6 +69,8 @@ const DiscountManager: React.FC = () => {
     setSaving(true);
     const payload: DiscountRequest = {
       ...form,
+      minOrderAmount: form.minOrderAmount && form.minOrderAmount > 0 ? form.minOrderAmount : undefined,
+      usageLimit: form.usageLimit && form.usageLimit > 0 ? form.usageLimit : undefined,
       startDate: toLocalDateTime(form.startDate),
       endDate: toLocalDateTime(form.endDate),
     };
@@ -160,71 +153,26 @@ const DiscountManager: React.FC = () => {
           <div className="bg-white dark:bg-card-dark rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200 dark:border-white/10" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{editing ? 'Chỉnh sửa' : 'Thêm mã giảm giá'}</h3>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mã giảm giá *</label>
-                <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="VD: TET2025" className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none uppercase font-mono" />
-              </div>
-
-              {/* Loại giảm giá (NEW) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Loại giảm giá</label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-white/5 rounded-xl">
-                  <button
-                      onClick={() => setForm({...form, discountType: 'FIXED'})}
-                      className={`py-2 text-sm font-bold rounded-lg transition-all ${form.discountType === 'FIXED' ? 'bg-white dark:bg-surface-dark shadow-sm text-primary' : 'text-gray-500'}`}
-                  >Tiền mặt (đ)</button>
-                  <button
-                      onClick={() => setForm({...form, discountType: 'PERCENTAGE'})}
-                      className={`py-2 text-sm font-bold rounded-lg transition-all ${form.discountType === 'PERCENTAGE' ? 'bg-white dark:bg-surface-dark shadow-sm text-primary' : 'text-gray-500'}`}
-                  >Phần trăm (%)</button>
-                </div>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
-                {/* Ô 1: GIÁ TRỊ GIẢM THỰC TẾ */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Giá trị giảm ({form.discountType === 'FIXED' ? 'đ' : '%'}) *
-                  </label>
-                  <input
-                      type="number"
-                      value={form.discountValue}
-                      onChange={e => setForm({ ...form, discountValue: +e.target.value })}
-                      placeholder="VD: 50000 hoặc 20"
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mã giảm giá *</label>
+                  <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="VD: TET2025" className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none uppercase font-mono" />
                 </div>
-
-                {/* Ô 2: ĐIỀU KIỆN ĐƠN TỐI THIỂU (Đây là phần bạn muốn sửa) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Đơn tối thiểu (VNĐ) *
-                  </label>
-                  <input
-                      type="number"
-                      value={form.minOrderAmount}
-                      onChange={e => setForm({ ...form, minOrderAmount: +e.target.value })}
-                      placeholder="VD: 200000"
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Giá trị giảm (VNĐ) *</label>
+                  <input type="number" min="0" value={form.discountValue} onChange={e => setForm({ ...form, discountValue: +e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
                 </div>
               </div>
-
-              {/* Ô 3: GIẢM TỐI ĐA (Chỉ hiện khi chọn loại %) */}
-              {form.discountType === 'PERCENTAGE' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Mức giảm tối đa (VNĐ)
-                    </label>
-                    <input
-                        type="number"
-                        value={form.maxDiscountAmount}
-                        onChange={e => setForm({ ...form, maxDiscountAmount: +e.target.value })}
-                        placeholder="VD: 80000"
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary outline-none"
-                    />
-                  </div>
-              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Đơn tối thiểu (VNĐ)</label>
+                  <input type="number" min="0" value={form.minOrderAmount || ''} onChange={e => setForm({ ...form, minOrderAmount: +e.target.value })} placeholder="VD: 500000" className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Giới hạn sử dụng</label>
+                  <input type="number" min="0" value={form.usageLimit || ''} onChange={e => setForm({ ...form, usageLimit: +e.target.value })} placeholder="VD: 100" className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ngày giờ bắt đầu</label>
@@ -253,49 +201,32 @@ const DiscountManager: React.FC = () => {
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">STT</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Mã</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Giá trị</th>
+                <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Đ.Kiện & Giới hạn</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Thời gian</th>
                 <th className="text-center px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Trạng thái</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Thao tác</th>
               </tr>
             </thead>
             <tbody>
-            {loading ? (
+              {loading ? (
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
-            ) : discounts.length === 0 ? (
+              ) : discounts.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400">Không có mã giảm giá</td></tr>
-            ) : discounts.map((d, idx) => (
+              ) : discounts.map((d, idx) => (
                 <tr key={d.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                   <td className="px-5 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{idx + 1}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex flex-col">
-          <span className="font-mono font-bold text-sm px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg w-fit">
-            {d.code}
-          </span>
-                      {/* Thêm nhãn nhỏ bên dưới mã để Admin dễ phân biệt loại */}
-                      <span className="text-[10px] mt-1 text-gray-400 uppercase tracking-tighter">
-            {d.discountType === 'PERCENTAGE' ? 'Phần trăm' : 'Tiền mặt'}
-          </span>
-                    </div>
+                  <td className="px-5 py-3"><span className="font-mono font-bold text-sm px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg">{d.code}</span></td>
+                  <td className="px-5 py-3 text-right text-sm font-bold text-primary">{formatCurrency(d.discountValue)}</td>
+                  <td className="px-5 py-3 text-right text-sm text-gray-600 dark:text-gray-400">
+                    {d.minOrderAmount && d.minOrderAmount > 0 && <div className="text-xs mb-1">Đơn từ: <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(d.minOrderAmount)}</span></div>}
+                    {d.usageLimit && d.usageLimit > 0 ? (
+                      <div className="text-xs">
+                        Đã dùng: <span className="font-semibold text-gray-900 dark:text-white">{d.usageCount || 0}/{d.usageLimit}</span>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500">KGH sử dụng</div>
+                    )}
                   </td>
-
-                  {/* CHỖ SỬA CHÍNH: Hiển thị đơn vị dựa trên discountType */}
-                  <td className="px-5 py-3 text-right">
-                    <div className="flex flex-col items-end">
-          <span className="text-sm font-bold text-primary">
-            {d.discountType === 'PERCENTAGE'
-                ? `${d.discountValue}%`
-                : formatCurrency(d.discountValue)
-            }
-          </span>
-                      {/* Hiển thị thêm mức giảm tối đa nếu là loại % */}
-                      {d.discountType === 'PERCENTAGE' && d.maxDiscountAmount > 0 && (
-                          <span className="text-[10px] text-gray-400 italic">
-              Tối đa {formatCurrency(d.maxDiscountAmount)}
-            </span>
-                      )}
-                    </div>
-                  </td>
-
                   <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400">
                     <div>{formatDateTime(d.startDate)}</div>
                     <div className="text-xs text-gray-400 dark:text-gray-500">→ {formatDateTime(d.endDate)}</div>
@@ -308,7 +239,7 @@ const DiscountManager: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-            ))}
+              ))}
             </tbody>
           </table>
         </div>

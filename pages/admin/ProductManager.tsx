@@ -15,9 +15,8 @@ const ProductManager: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ProductResponse | null>(null);
   const [form, setForm] = useState<ProductRequest>({ name: '', description: '', price: 0, stock: 0, categoryId: 0 });
-  const [imageUrls, setImageUrls] = useState<string[]>(['']);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -48,10 +47,10 @@ const ProductManager: React.FC = () => {
 
   const resetForm = () => {
     setForm({ name: '', description: '', price: 0, stock: 0, categoryId: categories[0]?.id || 0 });
-    setImageUrls(['']);
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
+    // Cleanup preview URLs
+    imagePreviews.forEach(url => URL.revokeObjectURL(url));
+    setImageFiles([]);
+    setImagePreviews([]);
     setEditing(null);
     setShowForm(false);
   };
@@ -73,26 +72,28 @@ const ProductManager: React.FC = () => {
       manufactureDate: p.manufactureDate || undefined,
       expDate: p.expDate || undefined,
     });
-    setImageUrls(p.images?.map(i => i.imageUrl) || ['']);
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
+    // Cleanup old previews
+    imagePreviews.forEach(url => URL.revokeObjectURL(url));
+    setImageFiles([]);
+    setImagePreviews([]);
     setShowForm(true);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      if (imagePreview) URL.revokeObjectURL(imagePreview);
-      setImagePreview(URL.createObjectURL(file));
-    }
+  const handleFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    const files: File[] = Array.from(fileList);
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setImageFiles(prev => [...prev, ...files]);
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+    // Reset input so same files can be re-selected
+    e.target.value = '';
   };
 
-  const removeSelectedFile = () => {
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
+  const removeFile = (idx: number) => {
+    URL.revokeObjectURL(imagePreviews[idx]);
+    setImageFiles(prev => prev.filter((_, i) => i !== idx));
+    setImagePreviews(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async () => {
@@ -101,27 +102,20 @@ const ProductManager: React.FC = () => {
     if (!form.categoryId) { setMsg({ type: 'error', text: 'Chọn danh mục' }); setTimeout(() => setMsg(null), 3000); return; }
 
     setSaving(true);
-    // Build image metadata from URLs (for JSON mode)
-    const images = imageUrls.filter(u => u.trim()).map((u, i) => ({
-      imageUrl: u,
-      imageType: i === 0 ? 'MAIN' : 'SUB',
-      publicId: '',
-      isPrimary: i === 0,
-    }));
-    const payload: ProductRequest = { ...form, images: images.length > 0 ? images : undefined };
+    const payload: ProductRequest = { ...form };
 
     try {
       if (editing) {
-        // Has file → multipart; no file → JSON
-        if (imageFile) {
-          await adminProductApi.updateWithImage(editing.id, payload, imageFile);
+        // Has files → multipart; no files → JSON
+        if (imageFiles.length > 0) {
+          await adminProductApi.updateWithImages(editing.id, payload, imageFiles);
         } else {
           await adminProductApi.update(editing.id, payload);
         }
         setMsg({ type: 'success', text: 'Cập nhật thành công!' });
       } else {
-        if (imageFile) {
-          await adminProductApi.createWithImage(payload, imageFile);
+        if (imageFiles.length > 0) {
+          await adminProductApi.createWithImages(payload, imageFiles);
         } else {
           await adminProductApi.create(payload);
         }
@@ -156,15 +150,6 @@ const ProductManager: React.FC = () => {
     }
     setTimeout(() => setMsg(null), 3000);
   };
-
-  const updateImageUrl = (idx: number, val: string) => {
-    const copy = [...imageUrls];
-    copy[idx] = val;
-    setImageUrls(copy);
-  };
-
-  const addImageUrl = () => setImageUrls([...imageUrls, '']);
-  const removeImageUrl = (idx: number) => setImageUrls(imageUrls.filter((_, i) => i !== idx));
 
   const getCategoryName = (id: number) => categories.find(c => c.id === id)?.name || 'N/A';
 
@@ -228,48 +213,71 @@ const ProductManager: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hình ảnh sản phẩm</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Hình ảnh sản phẩm
+                  <span className="text-xs font-normal text-gray-400 ml-2">(Ảnh đầu tiên = PRIMARY, còn lại = COVER)</span>
+                </label>
 
-                {/* File Upload */}
-                <div className="mb-3">
-                  {imagePreview ? (
-                    <div className="relative group">
-                      <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-xl border border-gray-200 dark:border-white/10" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity flex items-center justify-center">
-                        <button onClick={removeSelectedFile} className="px-3 py-1.5 bg-white/90 text-red-600 rounded-lg text-sm font-bold flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm">close</span>Xóa ảnh
-                        </button>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                        <span className="material-symbols-outlined text-sm text-green-500">check_circle</span>
-                        <span className="truncate">{imageFile?.name}</span>
-                        <span>({((imageFile?.size || 0) / 1024).toFixed(0)} KB)</span>
-                      </div>
+                {/* Existing images when editing */}
+                {editing && editing.images && editing.images.length > 0 && imageFiles.length === 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">photo_library</span>
+                      Ảnh hiện tại ({editing.images.length} ảnh) — Upload ảnh mới sẽ thay thế tất cả
+                    </p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {editing.images.map((img, i) => (
+                        <div key={img.id} className="relative group">
+                          <img src={img.imageUrl} alt={`Image ${i + 1}`} className="w-full aspect-square object-cover rounded-lg border border-gray-200 dark:border-white/10" />
+                          {img.isPrimary && (
+                            <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-primary text-white text-[9px] font-bold rounded shadow">PRIMARY</span>
+                          )}
+                          {!img.isPrimary && (
+                            <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-gray-700/70 text-white text-[9px] font-bold rounded">COVER</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group">
-                      <span className="material-symbols-outlined text-3xl text-gray-400 group-hover:text-primary transition-colors">cloud_upload</span>
-                      <span className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">Chọn ảnh để upload</span>
-                      <span className="text-xs text-gray-400">JPG, PNG, WebP — Tối đa 5MB</span>
-                      <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
-                    </label>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                {/* URL Input (alternative) */}
-                <div className="pt-3 border-t border-dashed border-gray-200 dark:border-white/10">
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">link</span>
-                    Hoặc nhập URL ảnh có sẵn
-                  </p>
-                  {imageUrls.map((url, i) => (
-                    <div key={i} className="flex gap-2 mb-2">
-                      <input value={url} onChange={e => updateImageUrl(i, e.target.value)} placeholder="https://..." className="flex-1 px-4 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
-                      {imageUrls.length > 1 && <button onClick={() => removeImageUrl(i)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"><span className="material-symbols-outlined text-lg">close</span></button>}
+                {/* New file uploads */}
+                {imagePreviews.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-500 mb-2">Ảnh mới sẽ upload ({imagePreviews.length} ảnh)</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {imagePreviews.map((preview, i) => (
+                        <div key={i} className="relative group">
+                          <img src={preview} alt={`Preview ${i + 1}`} className="w-full aspect-square object-cover rounded-lg border border-gray-200 dark:border-white/10" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity flex items-center justify-center">
+                            <button onClick={() => removeFile(i)} className="p-1 bg-white/90 text-red-600 rounded-md">
+                              <span className="material-symbols-outlined text-sm">close</span>
+                            </button>
+                          </div>
+                          {i === 0 && (
+                            <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-primary text-white text-[9px] font-bold rounded shadow">PRIMARY</span>
+                          )}
+                          {i > 0 && (
+                            <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-gray-700/70 text-white text-[9px] font-bold rounded">COVER</span>
+                          )}
+                          <div className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/60 text-white text-[8px] rounded">
+                            {(imageFiles[i]?.size ? (imageFiles[i].size / 1024).toFixed(0) : '?')} KB
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  <button onClick={addImageUrl} className="text-sm text-primary font-medium hover:underline">+ Thêm URL ảnh</button>
-                </div>
+                  </div>
+                )}
+
+                {/* Upload button */}
+                <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group">
+                  <span className="material-symbols-outlined text-3xl text-gray-400 group-hover:text-primary transition-colors">cloud_upload</span>
+                  <span className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">
+                    {imagePreviews.length > 0 ? 'Thêm ảnh' : 'Chọn ảnh để upload'}
+                  </span>
+                  <span className="text-xs text-gray-400">JPG, PNG, WebP — Chọn nhiều file cùng lúc — Ảnh đầu = PRIMARY</span>
+                  <input type="file" accept="image/*" multiple onChange={handleFilesSelect} className="hidden" />
+                </label>
               </div>
               <div className="flex gap-3 pt-2">
                 <button onClick={resetForm} className="flex-1 py-2.5 rounded-xl border border-gray-300 dark:border-white/20 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-white/5">Hủy</button>
@@ -289,21 +297,22 @@ const ProductManager: React.FC = () => {
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Sản phẩm</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Danh mục</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Giá</th>
+                <th className="text-center px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Ảnh</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tồn kho</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
+                <tr><td colSpan={6} className="text-center py-12 text-gray-400"><span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span></td></tr>
               ) : products.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-12 text-gray-400">Không có sản phẩm</td></tr>
+                <tr><td colSpan={6} className="text-center py-12 text-gray-400">Không có sản phẩm</td></tr>
               ) : products.map(p => (
                 <tr key={p.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      {(p.image || p.images?.[0]?.imageUrl) ? (
-                        <img src={p.image || p.images[0].imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-gray-200 dark:border-white/10" />
+                      {(p.primaryImage || p.image || p.images?.[0]?.imageUrl) ? (
+                        <img src={p.primaryImage || p.image || p.images[0].imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-gray-200 dark:border-white/10" />
                       ) : (
                         <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center"><span className="material-symbols-outlined text-gray-400">image</span></div>
                       )}
@@ -314,6 +323,11 @@ const ProductManager: React.FC = () => {
                   </td>
                   <td className="px-5 py-3"><span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">{getCategoryName(p.categoryId)}</span></td>
                   <td className="px-5 py-3 text-right text-sm font-bold text-primary">{formatCurrency(p.price)}</td>
+                  <td className="px-5 py-3 text-center">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                      {p.images?.length || 0} ảnh
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-right"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${p.stock > 10 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : p.stock > 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>{p.stock}</span></td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex gap-1 justify-end">

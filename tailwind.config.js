@@ -9,7 +9,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        "primary": "#d90429",
+        "primary": "#D4230A",
         "primary-glow": "#ef233c",
         "accent": "#ffb703",
         "gold": "#FFD700",
@@ -26,11 +26,22 @@ export default {
         "text-secondary": "#b8a898",
         "text-light-main": "#2D1810",
         "text-light-secondary": "#6B4423",
+        // Tet theme specific
+        "tet-red": "#D4230A",
+        "tet-red-dark": "#B01C08",
+        "tet-yellow": "#F5A623",
+        "tet-gold": "#FFD700",
+        "tet-bg": "#FDF6EC",
+        "tet-sidebar": "#1A0A05",
+        "tet-card-border": "#F5E6D0",
+        "tet-text": "#2D1810",
+        "tet-text-muted": "#8B6355",
       },
       fontFamily: {
         "display": ["Plus Jakarta Sans", "sans-serif"],
         "body": ["Noto Sans", "sans-serif"],
         "serif": ["Playfair Display", "serif"],
+        "vietnam": ['"Be Vietnam Pro"', "sans-serif"],
       },
       boxShadow: {
         'glow': '0 0 20px rgba(217, 4, 41, 0.3)',
