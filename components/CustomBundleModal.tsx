@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { productApi, ProductResponse } from '../services/productApi';
-import { bundleApi } from '../services/bundleApi';
 import { cartApi } from '../services/cartApi';
 
 interface CustomBundleModalProps {
@@ -90,28 +89,34 @@ const CustomBundleModal: React.FC<CustomBundleModalProps> = ({ isOpen, onClose, 
     setSubmitting(true);
     setError('');
     try {
-      // 1. Create Bundle
-      const bundleRes = await bundleApi.create({
+      // New logic: Direct add to cart as Custom Combo, no need bundleApi.create
+      const customComboPayload = JSON.stringify({
         name: bundleName.trim(),
-        price: currentTotal,
-        isCustom: false,
-        description: 'Combo thiết kế theo ý khách hàng',
-        products: selectedItems,
+        totalPrice: currentTotal,
+        items: selectedItems.map(item => {
+          const p = products.find(prod => prod.id === item.productId);
+          return {
+            productId: item.productId,
+            name: p?.name || 'Unknown',
+            price: p?.price || 0,
+            quantity: item.quantity,
+            image: p?.primaryImage || ''
+          };
+        })
       });
 
-      const newBundleId = bundleRes.data;
-
-      // 2. Add bundle to cart
+      // 2. Add as custom combo to cart
       await cartApi.addItem({
         itemType: 'BUNDLE',
-        bundleId: newBundleId,
         quantity: 1,
+        isCustomCombo: true,
+        customComboData: customComboPayload
       });
 
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err?.message || 'Có lỗi xảy ra khi tạo mã giảm giá. Vui lòng thử lại.');
+      setError(err?.message || 'Có lỗi xảy ra khi thêm combo vào giỏ hàng. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }

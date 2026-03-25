@@ -137,6 +137,9 @@ export async function fetchWithAuth<T>(
   const data = await response.json();
 
   if (!response.ok) {
+    if (response.status === 409) {
+      throw new ApiError('Dữ liệu đang được cập nhật bởi thao tác khác, vui lòng thử lại.', 409);
+    }
     throw new ApiError(data.message || 'An error occurred', response.status);
   }
 

@@ -327,7 +327,7 @@ export interface OrderResponse {
 
 export const adminOrderApi = {
   getAll: async (params?: PaginationParams): Promise<ApiResponse<PageResponse<OrderResponse>>> =>
-    fetchWithAuth<PageResponse<OrderResponse>>(`/orders/all${buildQuery(params)}`),
+    fetchWithAuth<PageResponse<OrderResponse>>(`/orders${buildQuery(params)}`),
 
   getById: async (id: number): Promise<ApiResponse<OrderResponse>> =>
     fetchWithAuth<OrderResponse>(`/orders/${id}`),

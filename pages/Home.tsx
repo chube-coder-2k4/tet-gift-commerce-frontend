@@ -290,7 +290,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
             <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">Combo Quà Tết <span className="italic font-light text-gray-500">Đặc Sắc</span></h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-lg">Những bộ combo quà Tết được tuyển chọn kỹ lưỡng — tiện lợi, sang trọng, ý nghĩa.</p>
           </div>
-          <a onClick={() => onNavigate('shop')} className="text-sm font-medium text-gray-600 dark:text-white/70 hover:text-primary transition-colors flex items-center gap-1 group cursor-pointer shrink-0">
+          <a onClick={() => onNavigate('bundles')} className="text-sm font-medium text-gray-600 dark:text-white/70 hover:text-primary transition-colors flex items-center gap-1 group cursor-pointer shrink-0">
             Xem tất cả <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
           </a>
         </div>

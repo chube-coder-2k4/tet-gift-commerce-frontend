@@ -23,6 +23,16 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [isBundleModalOpen, setIsBundleModalOpen] = useState(false);
 
+  // Helper to parse custom combo data
+  const parseCustomCombo = (data: string | undefined) => {
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  };
+
   // Load saved discount from localStorage on mount
   useEffect(() => {
     try {
@@ -217,10 +227,29 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
                   <div className="flex flex-col h-full justify-between py-1">
                     <div>
                       <h3
-                        className={`font-bold text-gray-900 dark:text-white text-lg font-serif mb-1 ${item.itemType === 'BUNDLE' ? 'hover:text-primary cursor-pointer' : ''}`}
-                        onClick={() => { if (item.itemType === 'BUNDLE') onBundleClick?.(item.itemId); }}
+                        className={`font-bold text-gray-900 dark:text-white text-lg font-serif mb-1 ${(item.itemType === 'BUNDLE' && !item.isCustomCombo) ? 'hover:text-primary cursor-pointer' : ''}`}
+                        onClick={() => { if (item.itemType === 'BUNDLE' && !item.isCustomCombo) onBundleClick?.(item.itemId); }}
                       >{item.itemName}</h3>
-                      <p className="text-xs text-gray-500 mb-2">Loại: {item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm'}</p>
+                      <p className="text-xs text-gray-500 mb-2">Loại: {item.isCustomCombo ? 'Combo tự chọn' : (item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm')}</p>
+                      
+                      {/* Render Custom Combo items if present */}
+                      {item.isCustomCombo && (
+                        <div className="mt-2 mb-3 bg-gray-50 dark:bg-black/20 p-2.5 rounded-lg border border-gray-200 dark:border-white/5 max-w-[240px]">
+                          <p className="text-[10px] uppercase font-bold text-primary dark:text-accent tracking-wider mb-1.5 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">list_alt</span>
+                            Chi tiết Combo
+                          </p>
+                          <div className="space-y-1">
+                            {parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
+                              <div key={idx} className="flex justify-between gap-3 text-[11px] text-gray-600 dark:text-gray-400">
+                                <span className="truncate">{prod.name} <span className="text-gray-400 dark:text-gray-500 font-mono">x{prod.quantity}</span></span>
+                                <span className="shrink-0 font-medium font-mono text-[10px]">{(prod.price * prod.quantity).toLocaleString()}₫</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-500/10 px-2 py-0.5 rounded w-fit border border-green-200 dark:border-green-500/20">
                         <span className="material-symbols-outlined text-[14px]">check</span>
                         Còn hàng

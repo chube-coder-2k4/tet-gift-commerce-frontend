@@ -17,6 +17,14 @@ export const Navigation: React.FC<NavigationProps> = ({ onNavigate, currentScree
       >
         Giới thiệu
       </a>
+      <a 
+        onClick={() => onNavigate('bundles')}
+        className={`text-sm font-medium transition-colors cursor-pointer nav-link relative
+          ${currentScreen === 'bundles' ? 'text-gold dark:text-primary' : 'text-white/90 dark:text-gray-300 hover:text-gold dark:hover:text-white'}
+        `}
+      >
+        Combo
+      </a>
       {[
         { label: 'Hộp quà', category: 'Hộp quà' },
         { label: 'Giỏ quà', category: 'Giỏ quà' },

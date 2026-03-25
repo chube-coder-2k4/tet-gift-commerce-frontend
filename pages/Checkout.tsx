@@ -61,6 +61,16 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
     } catch {}
   }, []);
 
+  // Helper to parse custom combo data
+  const parseCustomCombo = (data: string | undefined) => {
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  };
+
   const handleRemoveDiscount = () => {
     setDiscount(null);
     localStorage.removeItem('appliedDiscount');
@@ -146,9 +156,20 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
           <div className="bg-gray-50 dark:bg-surface-dark rounded-xl p-6 mb-8 text-left">
             <h3 className="font-bold text-gray-900 dark:text-white mb-4">Chi tiết đơn hàng</h3>
             {createdOrder.items.map(item => (
-              <div key={item.id} className="flex justify-between py-2 border-b border-gray-100 dark:border-white/5 last:border-0">
-                <span className="text-gray-600 dark:text-gray-300">{item.itemName} x{item.quantity}</span>
-                <span className="font-medium text-gray-900 dark:text-white">{item.subtotal.toLocaleString()}₫</span>
+              <div key={item.id} className="py-2 border-b border-gray-100 dark:border-white/5 last:border-0">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">{item.itemName} x{item.quantity}</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{item.subtotal.toLocaleString()}₫</span>
+                </div>
+                {item.isCustomCombo && (
+                  <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 pl-2 border-l border-primary/30">
+                    {parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
+                      <span key={idx} className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                        {prod.name} x{prod.quantity}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {createdOrder.tierDiscountAmount != null && createdOrder.tierDiscountAmount > 0 && (
@@ -416,10 +437,28 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
                     <span className="material-symbols-outlined text-2xl text-gray-400">{item.itemType === 'BUNDLE' ? 'inventory_2' : 'shopping_bag'}</span>
                     <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white shadow ring-2 ring-white dark:ring-card-dark z-10">{item.quantity}</span>
                   </div>
-                  <div className="flex flex-1 flex-col justify-center gap-0.5">
+                  <div className="flex flex-1 flex-col justify-center gap-0.5 min-w-0">
                     <h4 className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">{item.itemName}</h4>
-                    <p className="text-xs text-gray-500">{item.itemPrice.toLocaleString()}₫ x {item.quantity}</p>
-                    <p className="text-sm font-bold text-primary">{item.subtotal.toLocaleString()}₫</p>
+                    <p className="text-[10px] text-gray-500 font-medium">
+                      {item.isCustomCombo ? 'Combo tự chọn' : (item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm')}
+                    </p>
+                    
+                    {item.isCustomCombo && (
+                      <div className="mt-1 mb-1 space-y-0.5">
+                        {parseCustomCombo(item.customComboData)?.items?.slice(0, 3).map((prod: any, idx: number) => (
+                          <p key={idx} className="text-[9px] text-gray-400 truncate leading-none italic">
+                            - {prod.name} x{prod.quantity}
+                          </p>
+                        ))}
+                        {(parseCustomCombo(item.customComboData)?.items?.length || 0) > 3 && (
+                          <p className="text-[9px] text-gray-400 leading-none">...</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    <p className="text-[11px] font-bold text-primary mt-1">
+                      {item.itemPrice.toLocaleString()}₫ x {item.quantity} = {item.subtotal.toLocaleString()}₫
+                    </p>
                   </div>
                 </div>
               ))}

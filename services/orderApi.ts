@@ -17,6 +17,8 @@ export interface OrderItem {
   priceSnapshot: number;
   quantity: number;
   subtotal: number;
+  isCustomCombo?: boolean;
+  customComboData?: string;
 }
 
 export interface OrderResponse {
@@ -68,9 +70,9 @@ export const orderApi = {
     });
   },
 
-  // GET /orders?page=0&size=10 — Đơn hàng của tôi
+  // GET /orders/my-orders?page=0&size=10 — Đơn hàng của tôi
   getMyOrders: async (page = 0, size = 10): Promise<ApiResponse<PageResponse<OrderResponse>>> => {
-    return fetchWithAuth<PageResponse<OrderResponse>>(`/orders?page=${page}&size=${size}`);
+    return fetchWithAuth<PageResponse<OrderResponse>>(`/orders/my-orders?page=${page}&size=${size}`);
   },
 
   // GET /orders/{id} — Chi tiết đơn hàng

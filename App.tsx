@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import BundleDetail from './pages/BundleDetail';
+import Bundles from './pages/Bundles';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Auth from './pages/Auth';
@@ -27,6 +28,7 @@ const pathToScreen: Record<string, Screen> = {
   '/home': 'home',
   '/shop': 'shop',
   '/product': 'product-detail',
+  '/bundles': 'bundles',
   '/bundle': 'bundle-detail',
   '/cart': 'cart',
   '/checkout': 'checkout',
@@ -46,6 +48,7 @@ const screenToPath: Record<Screen, string> = {
   'home': '/',
   'shop': '/shop',
   'product-detail': '/product',
+  'bundles': '/bundles',
   'bundle-detail': '/bundle',
   'cart': '/cart',
   'checkout': '/checkout',
@@ -204,6 +207,8 @@ const App: React.FC = () => {
         return <Shop onNavigate={handleNavigate} onProductClick={handleProductClick} onCartUpdate={handleCartUpdate} />;
       case 'product-detail':
         return <ProductDetail onNavigate={handleNavigate} productId={selectedProductId} onCartUpdate={handleCartUpdate} />;
+      case 'bundles':
+        return <Bundles onNavigate={handleNavigate} onCartUpdate={handleCartUpdate} onProductClick={handleProductClick} onBundleClick={handleBundleClick} />;
       case 'bundle-detail':
         return <BundleDetail onNavigate={handleNavigate} bundleId={selectedBundleId} onCartUpdate={handleCartUpdate} onProductClick={handleProductClick} />;
       case 'cart':

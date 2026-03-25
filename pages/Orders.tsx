@@ -124,6 +124,16 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
     }
   };
 
+  // Helper to parse custom combo data
+  const parseCustomCombo = (data: string | undefined) => {
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  };
+
   if (!authApi.isAuthenticated()) return null;
 
   return (
@@ -300,11 +310,22 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                                       {item.itemType === 'BUNDLE' ? 'redeem' : 'shopping_bag'}
                                     </span>
                                   </div>
-                                  <div className="min-w-0">
+                                  <div className="min-w-0 flex-1">
                                     <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{item.itemName}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                      {item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm'} · {item.priceSnapshot.toLocaleString()}₫ × {item.quantity}
+                                      {item.isCustomCombo ? 'Combo tự chọn' : (item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm')} · {item.priceSnapshot.toLocaleString()}₫ × {item.quantity}
                                     </p>
+                                    
+                                    {/* Render Custom Combo items if present */}
+                                    {item.isCustomCombo && (
+                                      <div className="mt-2 space-y-1 pl-2 border-l-2 border-primary/20">
+                                        {parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
+                                          <div key={idx} className="flex justify-between gap-3 text-[10px] text-gray-500 dark:text-gray-400">
+                                            <span className="truncate">{prod.name} x{prod.quantity}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                                 <p className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">{item.subtotal.toLocaleString()}₫</p>
