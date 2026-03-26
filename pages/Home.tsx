@@ -332,7 +332,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
                 <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-2">{bundle.description || `Bao gồm ${bundle.products.length} sản phẩm`}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-primary font-bold text-lg">{bundle.price.toLocaleString()}₫</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gold dark:bg-white text-primary dark:text-background-dark hover:bg-accent dark:hover:bg-gray-200">
                     {bundle.products.length} sản phẩm
                   </span>
                 </div>

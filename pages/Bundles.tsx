@@ -64,7 +64,7 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
   return (
     <div className="w-full bg-background-light dark:bg-background-dark min-h-screen py-8 lg:py-12">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6 border-b border-gray-200 dark:border-white/10 pb-6">
           <div>
@@ -80,9 +80,9 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
               Khám phá các bộ Combo được tuyển chọn kỹ lưỡng, mang đậm ý nghĩa văn hóa và sự tinh tế dành cho dịp Tết này. ({totalItems} bộ)
             </p>
           </div>
-          <button 
+          <button
             onClick={() => setIsCustomModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-bold rounded-xl shadow-lg shadow-yellow-500/30 transition-all transform hover:-translate-y-0.5 shrink-0"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold to-primary hover:from-primary hover:to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all transform hover:-translate-y-0.5 shrink-0"
           >
             <span className="material-symbols-outlined text-[22px]">redeem</span>
             Tạo Combo Tự Chọn
@@ -113,7 +113,7 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
                         <span className="material-symbols-outlined text-6xl text-primary/30">redeem</span>
                       </div>
                     )}
-                    
+
                     {/* Badge */}
                     <div className="absolute top-3 left-3 bg-gradient-to-r from-primary to-red-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-full tracking-wider uppercase flex items-center gap-1.5 shadow-md">
                       <span className="material-symbols-outlined text-[14px]">redeem</span>
@@ -133,7 +133,7 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="flex-1 flex flex-col">
                     <h3 className="text-gray-900 dark:text-white font-bold text-xl mb-2 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
                       {bundle.name}
@@ -143,7 +143,7 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
                     </p>
                     <div className="flex border-t border-gray-100 dark:border-white/10 pt-4 items-center justify-between mt-auto">
                       <span className="text-primary font-black text-2xl">{bundle.price.toLocaleString()}₫</span>
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-700/50">
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-gold dark:bg-white text-primary dark:text-background-dark hover:bg-accent dark:hover:bg-gray-200 border">
                         {bundle.products.length} món
                       </span>
                     </div>
@@ -151,7 +151,7 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
                 </div>
               ))}
             </div>
-            
+
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="mt-12">
@@ -162,7 +162,7 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
         )}
       </div>
 
-      <CustomBundleModal 
+      <CustomBundleModal
         isOpen={isCustomModalOpen}
         onClose={() => setIsCustomModalOpen(false)}
         onSuccess={() => {
