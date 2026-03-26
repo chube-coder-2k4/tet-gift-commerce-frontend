@@ -343,10 +343,6 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
     )}
   </div>
 )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                                 <p className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">{item.subtotal.toLocaleString()}₫</p>
