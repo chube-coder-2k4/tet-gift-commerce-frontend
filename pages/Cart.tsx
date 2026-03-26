@@ -106,13 +106,18 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
 
   const handleValidateDiscount = async () => {
     if (!discountCode.trim()) return;
+
+    const totalPrice = cart?.totalPrice || 0;
+
     setValidatingDiscount(true);
     setDiscountError('');
     try {
-      const res = await discountApi.validate(discountCode.trim());
+      const res = await discountApi.validate(discountCode.trim(), totalPrice);
       if (res.data) {
         setDiscount(res.data);
         setDiscountError('');
+
+        console.log("Số tiền được giảm:", res.data.actualDiscountAmount);
         // Save to localStorage for Checkout
         localStorage.setItem('appliedDiscount', JSON.stringify(res.data));
       } else {
@@ -338,8 +343,9 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
                     <span className="material-symbols-outlined text-[16px]">confirmation_number</span>
                     Giảm giá
                   </span>
-                  <span className="text-green-600 dark:text-green-400 font-bold">-{discount.discountValue.toLocaleString()}₫</span>
-                </div>
+                  <span className="text-green-600 dark:text-green-400 font-bold">
+  -{discount.actualDiscountAmount?.toLocaleString() || discount.discountValue.toLocaleString()}₫
+</span>                </div>
               )}
             </div>
             
@@ -370,8 +376,21 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
                 <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-200 dark:border-green-800/30">
                   <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
                   <div className="flex-1">
-                    <span className="text-sm font-bold text-green-700 dark:text-green-400">{discount.code}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">-{discount.discountValue.toLocaleString()}₫</span>
+                    <div className="flex items-center gap-2">
+    <span className="text-sm font-bold text-green-700 dark:text-green-400">
+      {discount.code}
+    </span>
+                      {/* Hiển thị Badge loại giảm giá để người dùng dễ hiểu */}
+                      <span className="text-[10px] px-1.5 py-0.5 bg-green-200 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded border border-green-300">
+      {discount.discountType === 'PERCENTAGE' ? 'Giảm %' : 'Giảm trực tiếp'}
+    </span>
+                    </div>
+
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+    Tiết kiệm: <span className="font-semibold text-gray-700">-{discount.actualDiscountAmount?.toLocaleString()}₫</span>
+                      {/* Chỉ hiện % nếu là loại Percentage, nếu không thì ẩn đi hoặc hiện text khác */}
+                      {discount.discountType === 'PERCENTAGE' && ` (áp dụng mức giảm ${discount.discountValue}%)`}
+  </span>
                   </div>
                   <button onClick={handleRemoveDiscount} className="p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors" title="Xóa mã">
                     <span className="material-symbols-outlined text-lg">close</span>
@@ -384,8 +403,9 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
               <div className="flex justify-between items-end">
                 <span className="text-gray-900 dark:text-white font-bold text-lg">Tổng cộng</span>
                 <div className="text-right">
-                  <span className="text-3xl font-serif font-bold text-primary dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-accent dark:to-yellow-200">{Math.max(0, totalPrice - (discount?.discountValue || 0)).toLocaleString()}₫</span>
-                  <p className="text-xs text-gray-500 mt-1">(Đã bao gồm VAT)</p>
+<span className="text-3xl font-serif font-bold text-primary ...">
+  {Math.max(0, totalPrice - (discount?.actualDiscountAmount || 0)).toLocaleString()}₫
+</span>                  <p className="text-xs text-gray-500 mt-1">(Đã bao gồm VAT)</p>
                 </div>
               </div>
             </div>

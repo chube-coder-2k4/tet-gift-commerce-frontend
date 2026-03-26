@@ -11,6 +11,9 @@ interface OrdersProps {
   onNavigate: (screen: Screen) => void;
 }
 
+const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+
+
 // Status configuration
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: string; bg: string }> = {
   CREATED: { label: 'Đã tạo', color: 'text-blue-700 dark:text-blue-400', icon: 'edit_note', bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' },
@@ -315,23 +318,31 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                                     <p className="text-xs text-gray-500 dark:text-gray-400">
                                       {item.isCustomCombo ? 'Combo tự chọn' : (item.itemType === 'BUNDLE' ? 'Combo' : 'Sản phẩm')} · {item.priceSnapshot.toLocaleString()}₫ × {item.quantity}
                                     </p>
-                                    
-                                    {/* Render Bundle/Combo items if present */}
-                                    {(item.itemType === 'BUNDLE' || item.isCustomCombo) && (
-                                      <div className="mt-2 space-y-1.5 pl-3 border-l-2 border-primary/30 py-0.5">
-                                        {item.customComboData ? (
-                                          parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
-                                            <div key={idx} className="flex justify-between gap-3 text-[10px] text-gray-600 dark:text-gray-400 leading-tight">
-                                              <span className="truncate flex items-center gap-1">
-                                                <span className="w-1 h-1 rounded-full bg-primary/40"></span>
-                                                {prod.name}
-                                              </span>
-                                              <span className="font-bold whitespace-nowrap">x{prod.quantity}</span>
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="text-[10px] text-gray-400 italic">
-                                            Chi tiết sản phẩm đang được cập nhật...
+{/* Render Bundle/Combo items if present */}
+{(item.itemType === 'BUNDLE' || item.isCustomCombo) && (
+  <div className="mt-2 space-y-1.5 pl-3 border-l-2 border-primary/30 py-0.5">
+    {item.customComboData ? (
+      parseCustomCombo(item.customComboData)?.items?.map((prod: any, idx: number) => (
+        <div
+          key={idx}
+          className="flex justify-between gap-3 text-[10px] text-gray-600 dark:text-gray-400 leading-tight"
+        >
+          <span className="truncate flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-primary/40"></span>
+            {prod.name}
+          </span>
+          <span className="font-bold whitespace-nowrap">
+            x{prod.quantity}
+          </span>
+        </div>
+      ))
+    ) : (
+      <div className="text-[10px] text-gray-400 italic">
+        Chi tiết sản phẩm đang được cập nhật...
+      </div>
+    )}
+  </div>
+)}
                                           </div>
                                         )}
                                       </div>
@@ -399,25 +410,54 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                           </div>
                         )}
 
-                        {/* Discount Info */}
-                        {order.discountCode && (
-                          <div className="px-5 pb-4">
-                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                              <span className="material-symbols-outlined text-lg">sell</span>
-                              Mã giảm giá
-                            </h4>
-                            <div className="flex items-center gap-4 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-800/30">
-                              <span className="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-bold font-mono tracking-wider border border-emerald-200 dark:border-emerald-700/40">
-                                {order.discountCode}
-                              </span>
-                              {order.discountAmount != null && order.discountAmount > 0 && (
-                                <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                                  -{order.discountAmount.toLocaleString()}₫
+                        {/* Total luôn hiện ở các đơn */}
+                        {(order.totalAmount + (order.discountAmount || 0) + (order.tierDiscountAmount || 0)) && (
+                            <div className="px-5 pb-4">
+                              <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-lg">payments</span>
+                                Giá tạm tính (chưa áp mã giảm giá)
+                              </h4>
+                              <div className="flex items-center gap-4 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-800/30">
+                                <span className="font-bold text-gray-900 dark:text-white">
+                                     {(order.totalAmount + (order.discountAmount || 0) + (order.tierDiscountAmount || 0)).toLocaleString()}₫
                                 </span>
-                              )}
+                              </div>
                             </div>
-                          </div>
                         )}
+
+                        {/* Discount Info chỉ hiện khi đơn có áp mã giảm giá */}
+                         {order.discountCode && (
+                              <div className="px-5 pb-4">
+                                  <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-3 flex items-center gap-1.5">
+                                      <span className="material-symbols-outlined text-sm">sell</span>
+                                      Thông tin ưu đãi
+                                  </h4>
+
+
+                                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-800/30">
+                                      <div className="flex justify-between items-center mb-2 pb-2 border-b border-emerald-100 dark:border-emerald-800/50">
+                                          <span className="text-xs text-gray-600 dark:text-gray-400">Giá tạm tính:</span>
+                                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 line-through decoration-gray-400">
+                                                 {formatCurrency(order.totalAmount + (order.discountAmount || 0))}
+                                          </span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                              <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-bold font-mono tracking-wider border border-emerald-200 dark:border-emerald-700/40">
+                                                 {order.discountCode}
+                                              </span>
+                                          </div>
+
+                                          {order.discountAmount != null && order.discountAmount > 0 && (
+                                              <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                                                -{formatCurrency(order.discountAmount)}
+                                              </span>
+                                          )}
+                                      </div>
+                                  </div>
+                              </div>
+                          )}
 
                         {/* Payment Info */}
                         {payment && (

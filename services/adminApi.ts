@@ -365,6 +365,8 @@ export interface DiscountResponse {
   minOrderAmount?: number;
   usageLimit?: number;
   usageCount?: number;
+  discountType: string;
+  maxDiscountAmount: number;
   startDate: string;
   endDate: string;
   isActive: boolean;
