@@ -219,9 +219,17 @@ export interface BundleProductRequest {
 export interface BundleRequest {
   name: string;
   price: number;
-  isCustom: boolean;
+  custom: boolean;
   description?: string;
   products: BundleProductRequest[];
+}
+
+export interface ProductMinimalImage {
+  id: number;
+  imageUrl: string;
+  imageType: string;
+  publicId: string;
+  primary: boolean;
 }
 
 export interface BundleProductResponse {
@@ -230,6 +238,7 @@ export interface BundleProductResponse {
   productName: string;
   productPrice: number;
   quantity: number;
+  images: ProductMinimalImage[];
 }
 
 export interface BundleResponse {
@@ -238,8 +247,8 @@ export interface BundleResponse {
   description?: string;
   price: number;
   image?: string;
-  isCustom: boolean;
-  isActive: boolean;
+  custom: boolean;
+  active: boolean;
   products: BundleProductResponse[];
 }
 
