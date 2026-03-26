@@ -177,6 +177,12 @@ const PaymentResult: React.FC<PaymentResultProps> = ({ onNavigate }) => {
                   <span className="text-sm text-gray-500 dark:text-gray-400">Mã đơn hàng</span>
                   <span className="text-sm font-bold text-primary">#{order.id}</span>
                 </div>
+                {order.orderCode && (
+                  <div className="flex justify-between items-center py-2.5 border-b border-gray-100 dark:border-white/5">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Mã tra cứu</span>
+                    <span className="text-sm font-bold text-primary tracking-wide">{order.orderCode}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center py-2.5 border-b border-gray-100 dark:border-white/5">
                   <span className="text-sm text-gray-500 dark:text-gray-400">Số lượng</span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">{order.items.length} sản phẩm</span>

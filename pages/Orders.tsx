@@ -6,6 +6,7 @@ import { paymentApi, PaymentResponse } from '../services/paymentApi';
 import { useConfirmDialog } from '../components/ConfirmDialog';
 import { InvoiceButton } from '../components/InvoiceButton';
 import Pagination from '../components/Pagination';
+import { OrderTimeline } from '../components/OrderTimeline';
 
 interface OrdersProps {
   onNavigate: (screen: Screen) => void;
@@ -281,6 +282,11 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                               {formatDate(order.createdAt)} · {order.items.length} sản phẩm
                             </p>
+                            {order.orderCode && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Mã tra cứu: <span className="font-semibold text-primary tracking-wide">{order.orderCode}</span>
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -298,6 +304,9 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                     {/* Expanded Detail */}
                     {isExpanded && (
                       <div className="border-t border-gray-100 dark:border-white/5">
+                        <div className="p-5 pb-0">
+                          <OrderTimeline status={order.status} />
+                        </div>
                         {/* Items */}
                         <div className="p-5">
                           <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">

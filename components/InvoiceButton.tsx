@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { invoiceApi, InvoiceResponse } from '../services/invoiceApi';
 
 interface InvoiceButtonProps {
@@ -25,6 +25,28 @@ export const InvoiceButton: React.FC<InvoiceButtonProps> = ({
   // Only show for orders with successful payment
   const validStatuses = ['PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED'];
   if (!validStatuses.includes(orderStatus)) return null;
+
+  // Preload existing invoice so "Tải PDF" can show immediately when available.
+  useEffect(() => {
+    let isMounted = true;
+
+    const preloadInvoice = async () => {
+      try {
+        const res = await invoiceApi.getByOrderId(orderId);
+        if (isMounted && res.data) {
+          setInvoice(res.data);
+        }
+      } catch {
+        // Invoice may not exist yet, keep silent until user clicks View.
+      }
+    };
+
+    preloadInvoice();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [orderId]);
 
   const handleViewInvoice = async () => {
     setLoading(true);
