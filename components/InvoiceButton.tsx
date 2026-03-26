@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { invoiceApi, InvoiceResponse } from '../services/invoiceApi';
 
 interface InvoiceButtonProps {
@@ -26,6 +26,28 @@ export const InvoiceButton: React.FC<InvoiceButtonProps> = ({
   const validStatuses = ['PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED'];
   if (!validStatuses.includes(orderStatus)) return null;
 
+  // Preload existing invoice so "Tải PDF" can show immediately when available.
+  useEffect(() => {
+    let isMounted = true;
+
+    const preloadInvoice = async () => {
+      try {
+        const res = await invoiceApi.getByOrderId(orderId);
+        if (isMounted && res.data) {
+          setInvoice(res.data);
+        }
+      } catch {
+        // Invoice may not exist yet, keep silent until user clicks View.
+      }
+    };
+
+    preloadInvoice();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [orderId]);
+
   const handleViewInvoice = async () => {
     setLoading(true);
     setError('');
@@ -46,13 +68,8 @@ export const InvoiceButton: React.FC<InvoiceButtonProps> = ({
         }
       }
 
-      // Open PDF URL directly (Cloudinary URL)
-      if (inv?.pdfUrl) {
-        window.open(inv.pdfUrl, '_blank');
-      } else {
-        // Fallback: download via API
-        await invoiceApi.downloadPdf(orderId);
-      }
+      // Always go through backend download endpoint to avoid Cloudinary frame/CORS issues.
+      await invoiceApi.downloadPdf(orderId);
     } catch (err: any) {
       setError(err?.message || 'Không thể tạo hóa đơn');
       setTimeout(() => setError(''), 5000);
@@ -98,20 +115,10 @@ export const InvoiceButton: React.FC<InvoiceButtonProps> = ({
               className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-sm">
-                {loading ? 'progress_activity' : 'visibility'}
+                {loading ? 'progress_activity' : (invoice ? 'download' : 'receipt_long')}
               </span>
-              {loading ? 'Đang tạo...' : 'Xem'}
+              {loading ? (invoice ? 'Đang tải...' : 'Đang tạo...') : (invoice ? 'Tải PDF' : 'Tạo & tải')}
             </button>
-            {invoice?.pdfUrl && (
-              <button
-                onClick={handleDownload}
-                disabled={loading}
-                className="px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-sm">download</span>
-                Tải PDF
-              </button>
-            )}
           </div>
         </div>
         {error && (
@@ -135,7 +142,7 @@ export const InvoiceButton: React.FC<InvoiceButtonProps> = ({
           <span className="material-symbols-outlined text-lg">
             {loading ? 'progress_activity' : 'receipt_long'}
           </span>
-          {loading ? 'Đang tạo...' : 'Xem hóa đơn'}
+          {loading ? (invoice ? 'Đang tải...' : 'Đang tạo...') : (invoice ? 'Tải hóa đơn' : 'Tạo & tải hóa đơn')}
         </button>
         {error && <span className="text-xs text-red-500">{error}</span>}
       </div>
@@ -153,7 +160,7 @@ export const InvoiceButton: React.FC<InvoiceButtonProps> = ({
         <span className="material-symbols-outlined text-lg">
           {loading ? 'progress_activity' : 'receipt_long'}
         </span>
-        {loading ? 'Đang tạo hóa đơn...' : 'Xem hóa đơn'}
+        {loading ? (invoice ? 'Đang tải hóa đơn...' : 'Đang tạo hóa đơn...') : (invoice ? 'Tải hóa đơn' : 'Tạo & tải hóa đơn')}
       </button>
       {error && (
         <p className="text-xs text-red-500 mt-1">{error}</p>

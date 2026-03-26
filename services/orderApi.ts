@@ -23,6 +23,7 @@ export interface OrderItem {
 
 export interface OrderResponse {
   id: number;
+  orderCode?: string;
   status: OrderStatus;
   totalAmount: number;
   subtotalBeforeDiscount?: number;
@@ -90,6 +91,11 @@ export const orderApi = {
   // GET /orders/{id} — Chi tiết đơn hàng
   getById: async (id: number): Promise<ApiResponse<OrderResponse>> => {
     return fetchWithAuth<OrderResponse>(`/orders/${id}`);
+  },
+
+  // GET /orders/track/{orderCode} — Tra cứu đơn hàng công khai theo mã
+  trackByCode: async (orderCode: string): Promise<ApiResponse<OrderResponse>> => {
+    return fetchWithAuth<OrderResponse>(`/orders/track/${encodeURIComponent(orderCode)}`);
   },
 
   // PUT /orders/{id}/cancel — Hủy đơn hàng

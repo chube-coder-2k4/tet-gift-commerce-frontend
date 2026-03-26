@@ -41,6 +41,14 @@ export const Navigation: React.FC<NavigationProps> = ({ onNavigate, currentScree
       >
         Tin tức
       </a>
+      <a
+        onClick={() => onNavigate('track-order')}
+        className={`text-sm font-medium transition-colors cursor-pointer nav-link relative
+          ${currentScreen === 'track-order' ? 'text-gold dark:text-primary' : 'text-white/90 dark:text-gray-300 hover:text-gold dark:hover:text-white'}
+        `}
+      >
+        Tra cứu đơn
+      </a>
     </nav>
   );
 };
