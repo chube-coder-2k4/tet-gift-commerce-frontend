@@ -300,7 +300,7 @@ export const adminBundleApi = {
 };
 
 // ===== Order (Admin) =====
-export type OrderStatus = 'CREATED' | 'WAITING_PAYMENT' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
+export type OrderStatus = 'CREATED' | 'WAITING_PAYMENT' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED' | 'CANCELLED_PENDING_REFUND' | 'CANCELLED_REFUNDED';
 
 export interface OrderItem {
   id: number;
@@ -330,6 +330,10 @@ export interface OrderResponse {
   vatTaxCode?: string;
   vatPhone?: string;
   vatAddress?: string;
+  refundBankName?: string;
+  refundBankAccount?: string;
+  refundAccountHolder?: string;
+  refundConfirmedAt?: string;
   items: OrderItem[];
   createdAt: string;
 }
@@ -496,6 +500,38 @@ export interface PaymentResponse {
 export const adminPaymentApi = {
   getByOrderId: async (orderId: number): Promise<ApiResponse<PaymentResponse>> =>
     fetchWithAuth<PaymentResponse>(`/payments/${orderId}`),
+};
+
+// ===== Refund (Admin) =====
+export const adminRefundApi = {
+  getAll: async (page = 0, size = 10): Promise<ApiResponse<PageResponse<OrderResponse>>> =>
+    fetchWithAuth<PageResponse<OrderResponse>>(`/refunds?page=${page}&size=${size}`),
+
+  confirm: async (id: number): Promise<ApiResponse<OrderResponse>> =>
+    fetchWithAuth<OrderResponse>(`/refunds/${id}/confirm`, { method: 'PUT' }),
+
+  exportReport: async (startDate: string, endDate: string, format: 'xlsx' | 'csv' = 'xlsx'): Promise<void> => {
+    const accessToken = tokenStorage.getAccessToken();
+    const response = await fetch(
+      `${API_BASE_URL}/refunds/export?startDate=${startDate}&endDate=${endDate}&format=${format}`,
+      {
+        headers: {
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ message: 'Export failed' }));
+      throw new Error(err.message || 'Export failed');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `refund_orders_${startDate}_${endDate}.${format}`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 // ===== Statistics (Admin) =====
