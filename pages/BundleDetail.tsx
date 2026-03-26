@@ -11,9 +11,79 @@ interface BundleDetailProps {
   onProductClick?: (id: number) => void;
 }
 
+interface BundleProductItemProps {
+  product: any;
+  idx: number;
+  onProductClick?: (id: number) => void;
+  onImageSelect?: (imageUrl: string) => void;
+}
+
+const BundleProductItem: React.FC<BundleProductItemProps> = ({ product, idx, onProductClick, onImageSelect }) => {
+  const [activeImage, setActiveImage] = useState(
+    product.images?.find((img: any) => img.primary)?.imageUrl || product.images?.[0]?.imageUrl || ''
+  );
+
+  return (
+    <div
+      className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-[#3a3330]/40 hover:border-primary/30 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all group cursor-pointer"
+      onClick={() => onProductClick?.(product.productId)}
+    >
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-yellow-500/10 flex items-center justify-center shrink-0">
+        <span className="text-sm font-bold text-primary">{idx + 1}</span>
+      </div>
+      <div className="flex flex-col gap-2 shrink-0">
+        <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-surface-dark overflow-hidden flex items-center justify-center border border-gray-200 dark:border-white/10">
+          {activeImage ? (
+            <img 
+              src={activeImage} 
+              alt={product.productName} 
+              className="w-full h-full object-cover" 
+            />
+          ) : (
+            <span className="material-symbols-outlined text-2xl text-gray-400">shopping_bag</span>
+          )}
+        </div>
+        {product.images && product.images.length > 1 && (
+          <div className="flex gap-1 overflow-x-auto no-scrollbar max-w-[80px]">
+            {product.images.map((img: any, i: number) => (
+              <div 
+                key={i} 
+                className={`w-6 h-6 rounded-md overflow-hidden border shrink-0 transition-all ${activeImage === img.imageUrl ? 'border-primary' : 'border-gray-200 dark:border-white/5 opacity-60 hover:opacity-100'}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveImage(img.imageUrl);
+                  onImageSelect?.(img.imageUrl);
+                }}
+              >
+                <img src={img.imageUrl} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-base font-semibold text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
+          {product.productName}
+        </h4>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          {product.productPrice.toLocaleString()}₫ × {product.quantity}
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="text-base font-bold text-primary">
+          {(product.productPrice * product.quantity).toLocaleString()}₫
+        </p>
+        <p className="text-xs text-gray-500 mt-0.5">SL: {product.quantity}</p>
+      </div>
+      <span className="material-symbols-outlined text-gray-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0">chevron_right</span>
+    </div>
+  );
+};
+
 const BundleDetail: React.FC<BundleDetailProps> = ({ onNavigate, bundleId, onCartUpdate, onProductClick }) => {
   const [bundle, setBundle] = useState<BundleResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartMessage, setCartMessage] = useState<string | null>(null);
@@ -82,6 +152,16 @@ const BundleDetail: React.FC<BundleDetailProps> = ({ onNavigate, bundleId, onCar
   const totalProductsValue = bundle.products.reduce((sum, p) => sum + p.productPrice * p.quantity, 0);
   const savings = totalProductsValue - bundle.price;
 
+  // Combine bundle image with product images for the slider
+  const allImages = [
+    ...(bundle.image ? [{ url: bundle.image, label: 'Combo' }] : []),
+    ...bundle.products.flatMap(p => 
+      p.images.map(img => ({ url: img.imageUrl, label: p.productName }))
+    )
+  ];
+
+  const currentImage = allImages[selectedImageIdx]?.url || bundle.image || '';
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-12">
       {/* Back Button */}
@@ -105,8 +185,8 @@ const BundleDetail: React.FC<BundleDetailProps> = ({ onNavigate, bundleId, onCar
         {/* Image */}
         <div className="lg:col-span-7 flex flex-col gap-4">
           <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark border border-gray-200 dark:border-[#3a3330]/60 group shadow-sm dark:shadow-lg">
-            {bundle.image ? (
-              <img alt={bundle.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={bundle.image} />
+            {currentImage ? (
+              <img alt={bundle.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={currentImage} />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 to-yellow-500/5">
                 <span className="material-symbols-outlined text-8xl text-primary/30">redeem</span>
@@ -118,13 +198,29 @@ const BundleDetail: React.FC<BundleDetailProps> = ({ onNavigate, bundleId, onCar
                 <span className="material-symbols-outlined text-[14px]">redeem</span>
                 Combo
               </span>
-              {bundle.isCustom && (
+              {bundle.custom && (
                 <span className="bg-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-full tracking-wider uppercase shadow-md">
                   Tự chọn
                 </span>
               )}
             </div>
           </div>
+
+          {/* Thumbnails */}
+          {allImages.length > 1 && (
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+              {allImages.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedImageIdx(i)}
+                  className={`aspect-square rounded-xl border overflow-hidden transition-all ${i === selectedImageIdx ? 'border-primary ring-2 ring-primary/30 scale-95' : 'border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30'}`}
+                  title={img.label}
+                >
+                  <img alt={img.label} className="w-full h-full object-cover" src={img.url} />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Info */}
@@ -252,33 +348,12 @@ const BundleDetail: React.FC<BundleDetailProps> = ({ onNavigate, bundleId, onCar
 
           <div className="space-y-4">
             {bundle.products.map((product, idx) => (
-              <div
-                key={product.id}
-                className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-[#3a3330]/40 hover:border-primary/30 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all group cursor-pointer"
-                onClick={() => onProductClick?.(product.productId)}
-              >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-yellow-500/10 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-primary">{idx + 1}</span>
-                </div>
-                <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-surface-dark overflow-hidden flex items-center justify-center shrink-0 border border-gray-200 dark:border-white/10">
-                  <span className="material-symbols-outlined text-2xl text-gray-400">shopping_bag</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-base font-semibold text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
-                    {product.productName}
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                    {product.productPrice.toLocaleString()}₫ × {product.quantity}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-base font-bold text-primary">
-                    {(product.productPrice * product.quantity).toLocaleString()}₫
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">SL: {product.quantity}</p>
-                </div>
-                <span className="material-symbols-outlined text-gray-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0">chevron_right</span>
-              </div>
+              <BundleProductItem 
+                key={product.id} 
+                product={product} 
+                idx={idx} 
+                onProductClick={onProductClick}
+              />
             ))}
           </div>
 
