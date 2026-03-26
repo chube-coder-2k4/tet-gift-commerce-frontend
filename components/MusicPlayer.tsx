@@ -1,25 +1,61 @@
-// src/components/MusicPlayer.tsx
 import React, { useEffect, useRef, useState } from 'react';
+import { settingApi } from '../services/settingApi';
 
 const MusicPlayer: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [musicUrl, setMusicUrl] = useState('https://res.cloudinary.com/dxkvlbzzu/video/upload/v1770445890/tetSound_e3uwo6.webm');
 
   useEffect(() => {
-    const audio = new Audio('https://res.cloudinary.com/dxkvlbzzu/video/upload/v1770445890/tetSound_e3uwo6.webm');
+    const fetchMusic = async () => {
+      try {
+        const res = await settingApi.getByKey('SYSTEM_MUSIC_URL');
+        if (res.data?.settingValue) {
+          setMusicUrl(res.data.settingValue);
+        }
+      } catch (err) {
+        console.error('Failed to fetch system music:', err);
+      }
+    };
+    fetchMusic();
+  }, []);
+
+  useEffect(() => {
+    const audio = new Audio(musicUrl);
     audio.loop = true;
-    audio.volume = 0.5;
+    audio.volume = 1.0;
+    audio.crossOrigin = "anonymous";
     audioRef.current = audio;
 
     return () => {
       audio.pause();
       audioRef.current = null;
     };
-  }, []);
+  }, [musicUrl]);
 
   const toggleMusic = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!audioRef.current) return;
+
+    // Boost volume using Web Audio API if not already set up
+    if (!gainNodeRef.current && isPlaying === false) {
+      try {
+        const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+        const audioCtx = new AudioContextClass();
+        const source = audioCtx.createMediaElementSource(audioRef.current);
+        const gainNode = audioCtx.createGain();
+        
+        // Boost factor: 1.5 (can go higher but might distort)
+        gainNode.gain.value = 1.5; 
+        
+        source.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        gainNodeRef.current = gainNode;
+      } catch (err) {
+        console.error('Không thể khởi tạo Web Audio API:', err);
+      }
+    }
 
     if (isPlaying) {
       audioRef.current.pause();
