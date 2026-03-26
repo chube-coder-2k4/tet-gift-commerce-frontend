@@ -14,6 +14,7 @@ export interface DiscountResponse {
   discountType: 'FIXED' | 'PERCENTAGE';
   maxDiscountAmount?: number;
   actualDiscountAmount?: number; // Số tiền giảm thực tế (ví dụ: 80000)
+  discountAmount?: number; // Backend có thể trả tên field này thay cho actualDiscountAmount
   displayValue?: string;        // Chuỗi hiển thị (ví dụ: "25%")
 }
 

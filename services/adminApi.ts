@@ -313,6 +313,7 @@ export interface OrderItem {
 
 export interface OrderResponse {
   id: number;
+  orderCode?: string;
   status: OrderStatus;
   totalAmount: number;
   subtotalBeforeDiscount?: number;

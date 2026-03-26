@@ -2,13 +2,42 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { productApi, ProductResponse } from '../services/productApi';
 import { cartApi } from '../services/cartApi';
 
+export interface CustomComboSelection {
+  productId: number;
+  quantity: number;
+}
+
+export interface CustomComboPayload {
+  name: string;
+  totalPrice: number;
+  items: {
+    productId: number;
+    name: string;
+    price: number;
+    quantity: number;
+    image: string;
+  }[];
+}
+
 interface CustomBundleModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialSelectedItems?: CustomComboSelection[];
+  initialBundleName?: string;
+  submitLabel?: string;
+  onSubmitCustomCombo?: (payload: CustomComboPayload) => Promise<void> | void;
 }
 
-const CustomBundleModal: React.FC<CustomBundleModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const CustomBundleModal: React.FC<CustomBundleModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialSelectedItems,
+  initialBundleName,
+  submitLabel,
+  onSubmitCustomCombo,
+}) => {
   const [products, setProducts] = useState<ProductResponse[]>([]);
   const [selectedItems, setSelectedItems] = useState<{ productId: number; quantity: number }[]>([]);
   const [bundleName, setBundleName] = useState('Combo tự chọn của tôi');
@@ -19,11 +48,11 @@ const CustomBundleModal: React.FC<CustomBundleModalProps> = ({ isOpen, onClose, 
   useEffect(() => {
     if (isOpen) {
       loadProducts();
-      setSelectedItems([]);
-      setBundleName('Combo tự chọn của tôi');
+      setSelectedItems(initialSelectedItems && initialSelectedItems.length > 0 ? initialSelectedItems : []);
+      setBundleName(initialBundleName || 'Combo tự chọn của tôi');
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, initialBundleName, initialSelectedItems]);
 
   const loadProducts = async () => {
     setLoadingProducts(true);
@@ -89,8 +118,7 @@ const CustomBundleModal: React.FC<CustomBundleModalProps> = ({ isOpen, onClose, 
     setSubmitting(true);
     setError('');
     try {
-      // New logic: Direct add to cart as Custom Combo, no need bundleApi.create
-      const customComboPayload = JSON.stringify({
+      const payload: CustomComboPayload = {
         name: bundleName.trim(),
         totalPrice: currentTotal,
         items: selectedItems.map(item => {
@@ -100,19 +128,23 @@ const CustomBundleModal: React.FC<CustomBundleModalProps> = ({ isOpen, onClose, 
             name: p?.name || 'Unknown',
             price: p?.price || 0,
             quantity: item.quantity,
-            image: p?.primaryImage || ''
+            image: p?.primaryImage || p?.image || ''
           };
         })
-      });
+      };
 
-      // 2. Add as custom combo to cart
-      await cartApi.addItem({
-        itemType: 'BUNDLE',
-        bundleId: 1, // Bắt buộc truyền theo API backend (có thể dummy nếu backend bỏ qua nhờ cờ isCustomCombo)
-        quantity: 1,
-        isCustomCombo: true,
-        customComboData: customComboPayload
-      });
+      if (onSubmitCustomCombo) {
+        await onSubmitCustomCombo(payload);
+      } else {
+        // Default behavior: Add as custom combo to cart
+        await cartApi.addItem({
+          itemType: 'BUNDLE',
+          bundleId: 1,
+          quantity: 1,
+          isCustomCombo: true,
+          customComboData: JSON.stringify(payload)
+        });
+      }
 
       onSuccess();
       onClose();
@@ -296,7 +328,7 @@ const CustomBundleModal: React.FC<CustomBundleModalProps> = ({ isOpen, onClose, 
                 ) : (
                   <>
                     <span className="material-symbols-outlined">add_shopping_cart</span>
-                    Thêm vào giỏ hàng
+                    {submitLabel || 'Thêm vào giỏ hàng'}
                   </>
                 )}
               </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { productApi, ProductResponse } from '../services/productApi';
 import { categoryApi, CategoryResponse } from '../services/categoryApi';
 import { cartApi } from '../services/cartApi';
@@ -10,6 +10,14 @@ interface ShopProps {
   onNavigate: (screen: Screen) => void;
   onProductClick: (id: number) => void;
   onCartUpdate?: () => void;
+}
+
+interface CustomComboItem {
+  productId: number;
+  name: string;
+  price: number;
+  image: string;
+  quantity: number;
 }
 
 // Helper: lấy ảnh chính (ưu tiên field primaryImage → image → images[])
@@ -34,6 +42,22 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
+  const [comboItems, setComboItems] = useState<CustomComboItem[]>([]);
+  const [draggingOverDropZone, setDraggingOverDropZone] = useState(false);
+  const [submittingCombo, setSubmittingCombo] = useState(false);
+  const [comboNotice, setComboNotice] = useState('');
+  const [comboPanelOpen, setComboPanelOpen] = useState(true);
+  const [floatingPosition, setFloatingPosition] = useState<{ x: number; y: number } | null>(null);
+  const [draggingFloating, setDraggingFloating] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const pillRef = useRef<HTMLButtonElement | null>(null);
+  const productListTopRef = useRef<HTMLDivElement | null>(null);
+  const dragMetaRef = useRef({
+    offsetX: 0,
+    offsetY: 0,
+    width: 320,
+    height: 120,
+  });
 
   // Fetch categories on mount
   useEffect(() => {
@@ -119,11 +143,217 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
     }
   };
 
+  const addProductToCombo = (product: ProductResponse) => {
+    if (product.stock <= 0) return;
+    const image = getPrimaryImage(product);
+
+    setComboItems((prev) => {
+      const existing = prev.find((it) => it.productId === product.id);
+      if (existing) {
+        return prev.map((it) =>
+          it.productId === product.id ? { ...it, quantity: it.quantity + 1 } : it
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          name: product.name,
+          price: product.price,
+          image,
+          quantity: 1,
+        },
+      ];
+    });
+  };
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, productId: number) => {
+    e.dataTransfer.setData('text/plain', String(productId));
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
+  const handleDropToCombo = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDraggingOverDropZone(false);
+    setComboPanelOpen(true);
+
+    const rawId = e.dataTransfer.getData('text/plain');
+    const productId = Number(rawId);
+    if (!productId) return;
+
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    addProductToCombo(product);
+  };
+
+  const updateComboQuantity = (productId: number, delta: 1 | -1) => {
+    setComboItems((prev) =>
+      prev
+        .map((it) =>
+          it.productId === productId ? { ...it, quantity: Math.max(0, it.quantity + delta) } : it
+        )
+        .filter((it) => it.quantity > 0)
+    );
+  };
+
+  const comboTotal = useMemo(
+    () => comboItems.reduce((sum, it) => sum + it.price * it.quantity, 0),
+    [comboItems]
+  );
+
+  const comboCount = useMemo(
+    () => comboItems.reduce((sum, it) => sum + it.quantity, 0),
+    [comboItems]
+  );
+
+  const handleAddComboToCart = async () => {
+    if (comboItems.length === 0) return;
+    if (!authApi.isAuthenticated()) {
+      onNavigate('login');
+      return;
+    }
+
+    setSubmittingCombo(true);
+    setComboNotice('');
+    try {
+      const customComboPayload = JSON.stringify({
+        name: 'Combo kéo thả của tôi',
+        totalPrice: comboTotal,
+        items: comboItems.map((it) => ({
+          productId: it.productId,
+          name: it.name,
+          price: it.price,
+          quantity: it.quantity,
+          image: it.image,
+        })),
+      });
+
+      await cartApi.addItem({
+        itemType: 'BUNDLE',
+        bundleId: 1,
+        quantity: 1,
+        isCustomCombo: true,
+        customComboData: customComboPayload,
+      });
+
+      setComboItems([]);
+      setComboNotice('Đã thêm combo kéo thả vào giỏ hàng.');
+      onCartUpdate?.();
+      setTimeout(() => setComboNotice(''), 2500);
+    } catch (err: any) {
+      setComboNotice(err?.message || 'Không thể thêm combo vào giỏ hàng.');
+    } finally {
+      setSubmittingCombo(false);
+    }
+  };
+
+  const startFloatingDrag = (e: React.MouseEvent, source: 'panel' | 'pill') => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const element = source === 'panel' ? panelRef.current : pillRef.current;
+    if (!element) return;
+
+    const rect = element.getBoundingClientRect();
+    dragMetaRef.current = {
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+
+    setFloatingPosition({ x: rect.left, y: rect.top });
+    setDraggingFloating(true);
+  };
+
+  useEffect(() => {
+    if (!draggingFloating) return;
+
+    const onMove = (e: MouseEvent) => {
+      const { offsetX, offsetY, width, height } = dragMetaRef.current;
+      const minX = 8;
+      const minY = 8;
+      const maxX = Math.max(minX, window.innerWidth - width - 8);
+      const maxY = Math.max(minY, window.innerHeight - height - 8);
+
+      const nextX = Math.min(maxX, Math.max(minX, e.clientX - offsetX));
+      const nextY = Math.min(maxY, Math.max(minY, e.clientY - offsetY));
+      setFloatingPosition({ x: nextX, y: nextY });
+    };
+
+    const onUp = () => setDraggingFloating(false);
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [draggingFloating]);
+
+  useEffect(() => {
+    if (!floatingPosition) return;
+
+    const clampToViewport = () => {
+      const activeElement = comboPanelOpen ? panelRef.current : pillRef.current;
+      if (!activeElement) return;
+
+      const rect = activeElement.getBoundingClientRect();
+      const minX = 8;
+      const minY = 8;
+      const maxX = Math.max(minX, window.innerWidth - rect.width - 8);
+      const maxY = Math.max(minY, window.innerHeight - rect.height - 8);
+
+      setFloatingPosition((prev) => {
+        if (!prev) return prev;
+        const clampedX = Math.min(maxX, Math.max(minX, prev.x));
+        const clampedY = Math.min(maxY, Math.max(minY, prev.y));
+
+        if (clampedX === prev.x && clampedY === prev.y) {
+          return prev;
+        }
+
+        return { x: clampedX, y: clampedY };
+      });
+    };
+
+    const rafId = window.requestAnimationFrame(clampToViewport);
+    window.addEventListener('resize', clampToViewport);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', clampToViewport);
+    };
+  }, [floatingPosition, comboPanelOpen]);
+
+  const floatingStyle = floatingPosition
+    ? {
+        left: `${floatingPosition.x}px`,
+        top: `${floatingPosition.y}px`,
+        right: 'auto',
+        bottom: 'auto',
+      }
+    : undefined;
+
   const handleClearFilters = () => {
     setSearchQuery('');
     setSelectedCategories([]);
     setPriceRange([0, 10000000]);
   };
+
+  const handlePageChange = (nextPage: number) => {
+    if (nextPage === page) return;
+    setPage(nextPage);
+
+    window.requestAnimationFrame(() => {
+      productListTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const showInitialLoading = isLoading && products.length === 0;
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-12">
       {/* Back Button */}
@@ -268,6 +498,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
         </aside>
         
         <div className="flex-1">
+          <div ref={productListTopRef} />
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-6">Bộ Sưu Tập <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-red-400 to-accent italic">Quà Tết 2026</span></h1>
             <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-gradient-to-r dark:from-surface-dark dark:to-card-dark p-4 rounded-xl border border-gray-200 dark:border-[#3a3330]/60 shadow-sm dark:shadow-lg">
@@ -298,7 +529,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
             </div>
           </div>
 
-          {isLoading ? (
+          {showInitialLoading ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <span className="material-symbols-outlined text-5xl text-primary animate-spin block mb-4">progress_activity</span>
@@ -314,10 +545,22 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
               </div>
             </div>
           ) : (
-            <>
+            <div className="relative">
+              {isLoading && (
+                <div className="absolute right-0 -top-10 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs text-gray-600 shadow-sm dark:bg-card-dark/90 dark:text-gray-300">
+                  <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                  Đang tải trang...
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
-                  <div key={product.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-gray-200 dark:border-[#3a3330]/60 hover:border-primary/30 dark:hover:border-[#b8860b]/40 transition-all duration-300 hover:shadow-lg dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 flex flex-col h-full cursor-pointer" onClick={() => onProductClick(product.id)}>
+                  <div
+                    key={product.id}
+                    draggable={product.stock > 0}
+                    onDragStart={(e) => handleDragStart(e, product.id)}
+                    className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-gray-200 dark:border-[#3a3330]/60 hover:border-primary/30 dark:hover:border-[#b8860b]/40 transition-all duration-300 hover:shadow-lg dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 flex flex-col h-full cursor-pointer"
+                    onClick={() => onProductClick(product.id)}
+                  >
                     <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
                       {getPrimaryImage(product) ? (
                         <img alt={product.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={getPrimaryImage(product)} />
@@ -349,6 +592,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
                       )}
                     </div>
                     <div className="mt-auto">
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">Kéo thả sản phẩm vào góc phải để tạo combo</p>
                       <p className="text-xs text-accent font-medium uppercase tracking-wide mb-1">{product.categoryName}</p>
                       <h3 className="text-gray-900 dark:text-white font-medium text-lg mb-1 group-hover:text-primary transition-colors truncate">{product.name}</h3>
                       <p className="text-gray-500 dark:text-gray-400 text-xs mb-3 line-clamp-2">{product.description}</p>
@@ -365,12 +609,136 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} variant="numbered" className="mt-10" />
+                <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} variant="numbered" className="mt-10" />
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Drag & Drop Combo Builder */}
+      <div
+        ref={panelRef}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDraggingOverDropZone(true);
+          if (!comboPanelOpen) setComboPanelOpen(true);
+        }}
+        onDragLeave={() => setDraggingOverDropZone(false)}
+        onDrop={handleDropToCombo}
+        style={floatingStyle}
+        className={`fixed bottom-24 right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border shadow-2xl backdrop-blur-sm transition-all duration-200 ${
+          draggingOverDropZone
+            ? 'border-primary bg-white ring-4 ring-primary/20 dark:bg-card-dark scale-[1.01]'
+            : 'border-gray-200 bg-white/95 dark:border-white/10 dark:bg-card-dark/95'
+        } ${comboPanelOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+      >
+        <div className="p-4 border-b border-gray-100 dark:border-white/10 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">redeem</span>
+              Tạo Combo Theo Ý Muốn
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Kéo sản phẩm vào đây để tạo combo nhanh</p>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onMouseDown={(e) => startFloatingDrag(e, 'panel')}
+              className="inline-flex size-7 items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:text-primary hover:border-primary/40 dark:border-white/10 dark:text-gray-300 cursor-move"
+              title="Di chuyển"
+            >
+              <span className="material-symbols-outlined text-base">drag_indicator</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setComboPanelOpen(false)}
+              className="inline-flex size-7 items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:text-primary hover:border-primary/40 dark:border-white/10 dark:text-gray-300"
+              title="Thu gọn"
+            >
+              <span className="material-symbols-outlined text-base">close</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-2 max-h-52 overflow-y-auto">
+          {comboItems.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-300 dark:border-white/20 p-4 text-center text-xs text-gray-500 dark:text-gray-400">
+              Thả sản phẩm vào đây
+            </div>
+          ) : (
+            comboItems.map((it) => (
+              <div key={it.productId} className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-white/10 p-2">
+                <div className="size-10 rounded-md overflow-hidden bg-gray-100 dark:bg-surface-dark shrink-0">
+                  {it.image ? (
+                    <img src={it.image} alt={it.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="material-symbols-outlined text-gray-400 text-xl h-full w-full flex items-center justify-center">inventory_2</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{it.name}</p>
+                  <p className="text-[11px] text-primary font-bold">{(it.price * it.quantity).toLocaleString()}₫</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => updateComboQuantity(it.productId, -1)} className="size-6 rounded bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300">-</button>
+                  <span className="w-5 text-center text-xs font-bold text-gray-900 dark:text-white">{it.quantity}</span>
+                  <button onClick={() => updateComboQuantity(it.productId, 1)} className="size-6 rounded bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300">+</button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="p-4 border-t border-gray-100 dark:border-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-gray-500 dark:text-gray-400">{comboCount} sản phẩm</span>
+            <span className="text-base font-black text-primary">{comboTotal.toLocaleString()}₫</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setComboItems([])}
+              disabled={comboItems.length === 0 || submittingCombo}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-white/20 text-xs font-semibold text-gray-600 dark:text-gray-300 disabled:opacity-50"
+            >
+              Xóa
+            </button>
+            <button
+              onClick={handleAddComboToCart}
+              disabled={comboItems.length === 0 || submittingCombo}
+              className="flex-1 px-3 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {submittingCombo ? 'Đang thêm...' : 'Thêm combo vào giỏ'}
+            </button>
+          </div>
+          {comboNotice && (
+            <p className={`mt-2 text-xs ${comboNotice.includes('Đã thêm') ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+              {comboNotice}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {!comboPanelOpen && (
+        <button
+          ref={pillRef}
+          type="button"
+          onClick={() => setComboPanelOpen(true)}
+          style={floatingStyle}
+          className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-white/95 dark:bg-card-dark/95 px-4 py-2 shadow-xl backdrop-blur-sm"
+        >
+          <span
+            onMouseDown={(e) => startFloatingDrag(e, 'pill')}
+            className="material-symbols-outlined text-gray-400 text-base cursor-move"
+            title="Di chuyển"
+          >
+            drag_indicator
+          </span>
+          <span className="material-symbols-outlined text-primary text-lg">redeem</span>
+          <span className="text-xs font-bold text-gray-800 dark:text-gray-100">Combo: {comboCount}</span>
+          <span className="text-xs font-bold text-primary">{comboTotal.toLocaleString()}₫</span>
+        </button>
+      )}
     </div>
   );
 };

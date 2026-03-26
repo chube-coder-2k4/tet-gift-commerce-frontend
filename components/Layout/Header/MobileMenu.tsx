@@ -12,6 +12,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onToggle, onNavi
     if (item === 'Tin tức') onNavigate('blog');
     else if (item === 'Giới thiệu') onNavigate('about');
     else if (item === 'Combo Tết') onNavigate('bundles');
+    else if (item === 'Tra cứu đơn') onNavigate('track-order');
     else onNavigate('shop');
     onToggle();
   };
@@ -28,7 +29,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onToggle, onNavi
       
       {isOpen && (
         <div className="lg:hidden absolute top-full left-0 w-full bg-white dark:bg-surface-dark border-b border-primary/20 dark:border-white/10 shadow-xl p-4 flex flex-col gap-4 animate-fade-in">
-          {['Giới thiệu', 'Combo Tết', 'Quà Tết', 'Tin tức'].map((item) => (
+          {['Giới thiệu', 'Combo Tết', 'Quà Tết', 'Tin tức', 'Tra cứu đơn'].map((item) => (
             <a 
               key={item} 
               onClick={() => handleNavigation(item)}

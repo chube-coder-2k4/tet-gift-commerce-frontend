@@ -14,13 +14,6 @@ export const HeaderActions: React.FC<HeaderActionsProps> = ({ onNavigate, user, 
   return (
     <>
       <button 
-        className="hidden md:flex items-center justify-center size-9 text-white/90 dark:text-gray-300 hover:text-gold dark:hover:text-white transition-colors"
-        aria-label="Search"
-      >
-        <span className="material-symbols-outlined text-[22px]">search</span>
-      </button>
-      
-      <button 
         onClick={() => onNavigate('cart')}
         className="hidden sm:flex items-center justify-center size-9 text-white/90 dark:text-gray-300 hover:text-gold dark:hover:text-white transition-colors relative"
         aria-label="Shopping cart"

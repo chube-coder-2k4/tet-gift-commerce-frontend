@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { cartApi, CartResponse } from '../services/cartApi';
 import { discountApi, DiscountResponse } from '../services/discountApi';
 import { authApi } from '../services/api';
+import { productApi } from '../services/productApi';
+import { bundleApi } from '../services/bundleApi';
 import { Screen } from '../types';
-import CustomBundleModal from '../components/CustomBundleModal';
+import CustomBundleModal, { CustomComboPayload, CustomComboSelection } from '../components/CustomBundleModal';
 
 interface CartProps {
   onNavigate: (screen: Screen) => void;
@@ -22,6 +24,35 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
   const [discountError, setDiscountError] = useState('');
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [isBundleModalOpen, setIsBundleModalOpen] = useState(false);
+  const [editingComboItemId, setEditingComboItemId] = useState<number | null>(null);
+  const [editingComboItemQuantity, setEditingComboItemQuantity] = useState(1);
+  const [editingComboInitialItems, setEditingComboInitialItems] = useState<CustomComboSelection[]>([]);
+  const [editingComboName, setEditingComboName] = useState('Combo tự chọn của tôi');
+  const [itemImageMap, setItemImageMap] = useState<Record<string, string>>({});
+
+  const toNumber = (value: unknown): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getAppliedDiscountAmount = (discountData: DiscountResponse | null, amount: number): number => {
+    if (!discountData) return 0;
+
+    const actual = toNumber(discountData.actualDiscountAmount);
+    if (actual > 0) return actual;
+
+    const aliasAmount = toNumber((discountData as DiscountResponse).discountAmount);
+    if (aliasAmount > 0) return aliasAmount;
+
+    const discountValue = toNumber(discountData.discountValue);
+    if (discountData.discountType === 'PERCENTAGE') {
+      const percentAmount = Math.round((amount * discountValue) / 100);
+      const maxCap = toNumber(discountData.maxDiscountAmount);
+      return maxCap > 0 ? Math.min(percentAmount, maxCap) : percentAmount;
+    }
+
+    return discountValue;
+  };
 
   // Helper to parse custom combo data
   const parseCustomCombo = (data: string | undefined) => {
@@ -64,12 +95,78 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
     fetchCart();
   }, []);
 
+  useEffect(() => {
+    const enrichItemImages = async () => {
+      if (!cart?.items?.length) return;
+
+      const missingItems = cart.items.filter((item) => {
+        const key = `${item.itemType}-${item.itemId}`;
+        const inlineImage = item.primaryImage || item.image || item.imageUrl;
+        return !inlineImage && !itemImageMap[key];
+      });
+
+      if (missingItems.length === 0) return;
+
+      const results = await Promise.all(
+        missingItems.map(async (item) => {
+          const key = `${item.itemType}-${item.itemId}`;
+          try {
+            if (item.itemType === 'PRODUCT') {
+              const res = await productApi.getById(item.itemId);
+              const p = res.data;
+              const image = p.primaryImage || p.image || p.images?.find((img) => img.isPrimary)?.imageUrl || p.images?.[0]?.imageUrl || '';
+              return { key, image };
+            }
+
+            const res = await bundleApi.getById(item.itemId);
+            return { key, image: res.data?.image || '' };
+          } catch {
+            return { key, image: '' };
+          }
+        })
+      );
+
+      setItemImageMap((prev) => {
+        const next = { ...prev };
+        for (const r of results) {
+          if (r.image) next[r.key] = r.image;
+        }
+        return next;
+      });
+    };
+
+    enrichItemImages();
+  }, [cart?.items, itemImageMap]);
+
+  const getCartItemImage = (item: NonNullable<CartResponse['items']>[number]) => {
+    const inlineImage = item.primaryImage || item.image || item.imageUrl;
+    if (inlineImage) return inlineImage;
+    return itemImageMap[`${item.itemType}-${item.itemId}`] || '';
+  };
+
   const handleUpdateQuantity = async (itemId: number, newQuantity: number) => {
     if (newQuantity < 1) return;
     setUpdatingItem(itemId);
     try {
-      await cartApi.updateQuantity(itemId, newQuantity);
-      await fetchCart();
+      const res = await cartApi.updateQuantity(itemId, newQuantity);
+      setCart((prev) => {
+        if (!prev?.items?.length) return res.data;
+
+        const oldIndex = new Map(prev.items.map((it, idx) => [it.id, idx]));
+        const sortedItems = [...(res.data?.items || [])].sort((a, b) => {
+          const ai = oldIndex.get(a.id);
+          const bi = oldIndex.get(b.id);
+          if (ai === undefined && bi === undefined) return 0;
+          if (ai === undefined) return 1;
+          if (bi === undefined) return -1;
+          return ai - bi;
+        });
+
+        return {
+          ...res.data,
+          items: sortedItems,
+        };
+      });
       onCartUpdate?.();
     } catch (err) {
       console.error('Failed to update quantity:', err);
@@ -116,8 +213,6 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
       if (res.data) {
         setDiscount(res.data);
         setDiscountError('');
-
-        console.log("Số tiền được giảm:", res.data.actualDiscountAmount);
         // Save to localStorage for Checkout
         localStorage.setItem('appliedDiscount', JSON.stringify(res.data));
       } else {
@@ -138,6 +233,48 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
     setDiscount(null);
     setDiscountCode('');
     localStorage.removeItem('appliedDiscount');
+  };
+
+  const openCreateComboModal = () => {
+    setEditingComboItemId(null);
+    setEditingComboItemQuantity(1);
+    setEditingComboInitialItems([]);
+    setEditingComboName('Combo tự chọn của tôi');
+    setIsBundleModalOpen(true);
+  };
+
+  const handleEditCustomCombo = (item: NonNullable<CartResponse['items']>[number]) => {
+    const parsed = parseCustomCombo(item.customComboData);
+    const initialItems: CustomComboSelection[] = (parsed?.items || [])
+      .map((prod: any) => ({
+        productId: Number(prod?.productId),
+        quantity: Math.max(1, Number(prod?.quantity) || 1),
+      }))
+      .filter((prod: CustomComboSelection) => Number.isFinite(prod.productId) && prod.productId > 0);
+
+    if (initialItems.length === 0) {
+      console.warn('Custom combo data is missing productId, cannot prefill editor.');
+      return;
+    }
+
+    setEditingComboItemId(item.id);
+    setEditingComboItemQuantity(item.quantity || 1);
+    setEditingComboInitialItems(initialItems);
+    setEditingComboName(parsed?.name || item.itemName || 'Combo tự chọn của tôi');
+    setIsBundleModalOpen(true);
+  };
+
+  const handleSubmitEditedCombo = async (payload: CustomComboPayload) => {
+    if (!editingComboItemId) return;
+
+    await cartApi.removeItem(editingComboItemId);
+    await cartApi.addItem({
+      itemType: 'BUNDLE',
+      bundleId: 1,
+      quantity: editingComboItemQuantity,
+      isCustomCombo: true,
+      customComboData: JSON.stringify(payload),
+    });
   };
 
   // Not logged in
@@ -166,6 +303,7 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
   const cartItems = cart?.items || [];
   const totalPrice = cart?.totalPrice || 0;
   const totalItems = cart?.totalItems || 0;
+  const appliedDiscountAmount = getAppliedDiscountAmount(discount, totalPrice);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-12">
@@ -189,7 +327,7 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
           Giỏ hàng <span className="text-gray-500 font-sans text-lg font-normal ml-2">({totalItems} sản phẩm)</span>
         </h1>
         <button 
-          onClick={() => setIsBundleModalOpen(true)}
+          onClick={openCreateComboModal}
           className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-bold rounded-xl shadow-lg shadow-yellow-500/30 transition-all transform hover:-translate-y-0.5"
         >
           <span className="material-symbols-outlined">redeem</span>
@@ -206,7 +344,7 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
             <button onClick={() => onNavigate('shop')} className="px-8 py-3 rounded-full bg-primary text-white font-semibold hover:bg-red-600 transition-all">
               Khám phá sản phẩm
             </button>
-            <button onClick={() => setIsBundleModalOpen(true)} className="px-8 py-3 rounded-full bg-yellow-500 text-white font-semibold hover:bg-yellow-600 transition-all flex items-center gap-2">
+            <button onClick={openCreateComboModal} className="px-8 py-3 rounded-full bg-yellow-500 text-white font-semibold hover:bg-yellow-600 transition-all flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px]">redeem</span>
               Tạo Combo Tự Chọn
             </button>
@@ -227,7 +365,16 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
               <div key={item.id} className={`p-6 border-b border-gray-200 dark:border-white/5 flex flex-col md:grid md:grid-cols-12 gap-6 items-center group relative hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors ${removingItem === item.id ? 'opacity-50' : ''}`}>
                 <div className="col-span-6 flex items-start gap-4 w-full">
                   <div className="relative size-24 md:size-28 shrink-0 rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-surface-darker flex items-center justify-center">
-                    <span className="material-symbols-outlined text-3xl text-gray-400">{item.itemType === 'BUNDLE' ? 'inventory_2' : 'shopping_bag'}</span>
+                    {getCartItemImage(item) ? (
+                      <img
+                        src={getCartItemImage(item)}
+                        alt={item.itemName}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="material-symbols-outlined text-3xl text-gray-400">{item.itemType === 'BUNDLE' ? 'inventory_2' : 'shopping_bag'}</span>
+                    )}
                   </div>
                   <div className="flex flex-col h-full justify-between py-1">
                     <div>
@@ -252,6 +399,12 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
                               </div>
                             ))}
                           </div>
+                          <button
+                            onClick={() => handleEditCustomCombo(item)}
+                            className="mt-2 text-[11px] text-primary hover:underline font-semibold"
+                          >
+                            Sửa combo
+                          </button>
                         </div>
                       )}
 
@@ -344,7 +497,7 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
                     Giảm giá
                   </span>
                   <span className="text-green-600 dark:text-green-400 font-bold">
-  -{discount.actualDiscountAmount?.toLocaleString() || discount.discountValue.toLocaleString()}₫
+  -{appliedDiscountAmount.toLocaleString()}₫
 </span>                </div>
               )}
             </div>
@@ -387,7 +540,7 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
                     </div>
 
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-    Tiết kiệm: <span className="font-semibold text-gray-700">-{discount.actualDiscountAmount?.toLocaleString()}₫</span>
+            Tiết kiệm: <span className="font-semibold text-gray-700">-{appliedDiscountAmount.toLocaleString()}₫</span>
                       {/* Chỉ hiện % nếu là loại Percentage, nếu không thì ẩn đi hoặc hiện text khác */}
                       {discount.discountType === 'PERCENTAGE' && ` (áp dụng mức giảm ${discount.discountValue}%)`}
   </span>
@@ -404,7 +557,7 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
                 <span className="text-gray-900 dark:text-white font-bold text-lg">Tổng cộng</span>
                 <div className="text-right">
 <span className="text-3xl font-serif font-bold text-primary ...">
-  {Math.max(0, totalPrice - (discount?.actualDiscountAmount || 0)).toLocaleString()}₫
+  {Math.max(0, totalPrice - appliedDiscountAmount).toLocaleString()}₫
 </span>                  <p className="text-xs text-gray-500 mt-1">(Đã bao gồm VAT)</p>
                 </div>
               </div>
@@ -436,11 +589,18 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
       {/* Custom Bundle Modal Option */}
       <CustomBundleModal 
         isOpen={isBundleModalOpen} 
-        onClose={() => setIsBundleModalOpen(false)} 
+        onClose={() => {
+          setIsBundleModalOpen(false);
+          setEditingComboItemId(null);
+        }} 
         onSuccess={() => {
           fetchCart();
           onCartUpdate?.();
         }}
+        initialSelectedItems={editingComboInitialItems}
+        initialBundleName={editingComboName}
+        submitLabel={editingComboItemId ? 'Lưu combo' : 'Thêm vào giỏ hàng'}
+        onSubmitCustomCombo={editingComboItemId ? handleSubmitEditedCombo : undefined}
       />
     </div>
   );

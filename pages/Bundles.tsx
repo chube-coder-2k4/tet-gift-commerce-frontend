@@ -17,6 +17,8 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
   const [bundles, setBundles] = useState<BundleResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
@@ -29,8 +31,8 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
         const res = await bundleApi.getAll({
           page,
           size: 12,
-          sortBy: 'createdAt',
-          sortDir: 'desc'
+          sortBy,
+          sortDir
         });
         setBundles(res.data?.data || []);
         setTotalPages(res.data?.totalPages || 0);
@@ -42,7 +44,28 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
       }
     };
     fetchBundles();
-  }, [page]);
+  }, [page, sortBy, sortDir]);
+
+  const handleSortChange = (value: string) => {
+    switch (value) {
+      case 'newest':
+        setSortBy('createdAt');
+        setSortDir('desc');
+        break;
+      case 'price-asc':
+        setSortBy('price');
+        setSortDir('asc');
+        break;
+      case 'price-desc':
+        setSortBy('price');
+        setSortDir('desc');
+        break;
+      default:
+        setSortBy('createdAt');
+        setSortDir('desc');
+    }
+    setPage(0);
+  };
 
   const handleAddToCart = async (e: React.MouseEvent, bundleId: number) => {
     e.stopPropagation();
@@ -80,13 +103,27 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
               Khám phá các bộ Combo được tuyển chọn kỹ lưỡng, mang đậm ý nghĩa văn hóa và sự tinh tế dành cho dịp Tết này. ({totalItems} bộ)
             </p>
           </div>
-          <button
-            onClick={() => setIsCustomModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold to-primary hover:from-primary hover:to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all transform hover:-translate-y-0.5 shrink-0"
-          >
-            <span className="material-symbols-outlined text-[22px]">redeem</span>
-            Tạo Combo Tự Chọn
-          </button>
+          <div className="flex w-full md:w-auto items-center gap-3 justify-between md:justify-end">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">Sắp xếp:</span>
+              <select
+                onChange={(e) => handleSortChange(e.target.value)}
+                className="bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2 pl-3 pr-8 text-sm text-gray-900 dark:text-gray-200 focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-0 cursor-pointer"
+                value={sortBy === 'price' ? (sortDir === 'asc' ? 'price-asc' : 'price-desc') : 'newest'}
+              >
+                <option value="newest">Mới nhất</option>
+                <option value="price-asc">Giá: Thấp đến Cao</option>
+                <option value="price-desc">Giá: Cao đến Thấp</option>
+              </select>
+            </div>
+            <button
+              onClick={() => setIsCustomModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold to-primary hover:from-primary hover:to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all transform hover:-translate-y-0.5 shrink-0"
+            >
+              <span className="material-symbols-outlined text-[22px]">redeem</span>
+              Tạo Combo Tự Chọn
+            </button>
+          </div>
         </div>
 
         {/* List Section */}

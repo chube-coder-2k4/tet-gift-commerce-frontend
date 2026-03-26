@@ -10,10 +10,8 @@ export const Logo: React.FC<LogoProps> = ({ onNavigate }) => {
     <div className="flex items-center gap-3 cursor-pointer group" onClick={() => onNavigate('home')}>
       <div className="relative">
         <div className="absolute inset-0 bg-gold/50 dark:bg-primary/50 rounded-lg blur-md group-hover:blur-lg transition-all"></div>
-        <div className="relative size-9 flex items-center justify-center rounded-lg bg-gradient-to-br from-gold via-accent to-gold dark:from-primary dark:via-red-600 dark:to-red-900 shadow-glow group-hover:scale-110 transition-transform">
-          <span className="material-symbols-outlined text-primary dark:text-white text-xl animate-pulse">redeem</span>
-          {/* Sparkle effect */}
-          <div className="absolute -top-1 -right-1 size-2 bg-white dark:bg-accent rounded-full animate-ping"></div>
+        <div className="relative size-10 flex items-center justify-center rounded-lg shadow-glow group-hover:scale-110 transition-transform overflow-hidden">
+          <img src="/logo-mark.svg" alt="TetGifts" className="h-full w-full object-cover" />
         </div>
       </div>
       <div className="relative">

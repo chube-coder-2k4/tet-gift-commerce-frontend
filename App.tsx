@@ -15,6 +15,7 @@ import About from './pages/About';
 import Profile from './pages/Profile';
 import Orders from './pages/Orders';
 import PaymentResult from './pages/PaymentResult';
+import TrackOrder from './pages/TrackOrder';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import { Screen, User } from './types';
 import { authApi } from './services/api';
@@ -42,6 +43,7 @@ const pathToScreen: Record<string, Screen> = {
   '/dashboard': 'admin', // Admin dashboard
   '/payment-result': 'payment-result',
   '/orders': 'orders',
+  '/track-order': 'track-order',
 };
 
 const screenToPath: Record<Screen, string> = {
@@ -61,6 +63,7 @@ const screenToPath: Record<Screen, string> = {
   'admin': '/admin',
   'payment-result': '/payment-result',
   'orders': '/orders',
+  'track-order': '/track-order',
 };
 
 const getScreenFromPath = (path: string): Screen => {
@@ -231,6 +234,8 @@ const App: React.FC = () => {
         return <Orders onNavigate={handleNavigate} />;
       case 'payment-result':
         return <PaymentResult onNavigate={handleNavigate} />;
+      case 'track-order':
+        return <TrackOrder onNavigate={handleNavigate} />;
       case 'admin':
         return <AdminDashboard onNavigate={handleNavigate} />;
       default:
