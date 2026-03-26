@@ -11,8 +11,9 @@ import DiscountManager from './DiscountManager';
 import BlogManager from './BlogManager';
 import DashboardStats from './DashboardStats';
 import SettingManager from './SettingManager';
+import SlideManager from './SlideManager';
 
-type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'bundles' | 'orders' | 'discounts' | 'blogs' | 'settings';
+type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'bundles' | 'orders' | 'discounts' | 'blogs' | 'slides' | 'settings';
 
 interface AdminDashboardProps {
   onNavigate: (screen: Screen) => void;
@@ -28,6 +29,7 @@ const MENU_ITEMS: { key: AdminTab; label: string; icon: string }[] = [
   { key: 'orders', label: 'Đơn hàng', icon: 'receipt_long' },
   { key: 'discounts', label: 'Mã giảm giá', icon: 'confirmation_number' },
   { key: 'blogs', label: 'Blog', icon: 'article' },
+  { key: 'slides', label: 'Slide trang chủ', icon: 'view_carousel' },
   { key: 'settings', label: 'Cài đặt', icon: 'settings' },
 ];
 
@@ -41,6 +43,7 @@ const QUICK_CARD_COLORS: Record<string, { from: string; to: string }> = {
   orders: { from: '#2980B9', to: '#1F618D' },
   discounts: { from: '#E74C3C', to: '#C0392B' },
   blogs: { from: '#8E44AD', to: '#6C3483' },
+  slides: { from: '#FFD700', to: '#DAA520' },
   settings: { from: '#7F8C8D', to: '#34495E' },
 };
 
@@ -58,6 +61,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
       case 'orders': return <OrderManager />;
       case 'discounts': return <DiscountManager />;
       case 'blogs': return <BlogManager />;
+      case 'slides': return <SlideManager />;
       case 'settings': return <SettingManager />;
       default: return <DashboardOverview onTabChange={setActiveTab} />;
     }
@@ -175,6 +179,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) =>
     { key: 'orders', title: 'Đơn hàng', icon: 'receipt_long', desc: 'Quản lý đơn hàng & trạng thái' },
     { key: 'discounts', title: 'Giảm giá', icon: 'confirmation_number', desc: 'Quản lý mã khuyến mãi' },
     { key: 'blogs', title: 'Blog', icon: 'article', desc: 'Quản lý bài viết & chủ đề' },
+    { key: 'slides', title: 'Slides', icon: 'view_carousel', desc: 'Quản lý banner trang chủ' },
     { key: 'settings', title: 'Cài đặt', icon: 'settings', desc: 'Cấu hình hệ thống & nhạc nền' },
   ];
 
