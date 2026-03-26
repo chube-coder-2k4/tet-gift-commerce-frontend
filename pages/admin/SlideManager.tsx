@@ -41,13 +41,13 @@ const SlideManager: React.FC = () => {
     if (slide) {
       setEditingSlide(slide);
       setFormData({
-        image: slide.image,
-        title: slide.title || '',
-        subtitle: slide.subtitle || '',
-        cta: slide.cta || '',
-        link: slide.link || '',
-        slideOrder: slide.slideOrder,
-        isActive: slide.isActive,
+        image: slide.image ?? '',
+        title: slide.title ?? '',
+        subtitle: slide.subtitle ?? '',
+        cta: slide.cta ?? '',
+        link: slide.link ?? '',
+        slideOrder: slide.slideOrder ?? 0,
+        isActive: slide.isActive ?? true,
       });
     } else {
       setEditingSlide(null);
@@ -76,7 +76,18 @@ const SlideManager: React.FC = () => {
     setUploadLoading(true);
     try {
       const res = await uploadApi.uploadImage(file);
-      setFormData({ ...formData, image: res.data.url });
+      const uploaded = res.data as unknown;
+      const uploadedUrl = typeof uploaded === 'string'
+        ? uploaded
+        : typeof uploaded === 'object' && uploaded !== null
+          ? (uploaded as { url?: string; imageUrl?: string }).url || (uploaded as { url?: string; imageUrl?: string }).imageUrl || ''
+          : '';
+
+      if (!uploadedUrl) {
+        throw new Error('Không đọc được URL ảnh từ phản hồi upload.');
+      }
+
+      setFormData(prev => ({ ...prev, image: uploadedUrl }));
     } catch (err) {
       console.error('Upload failed:', err);
       alert('Tải ảnh lên thất bại');
@@ -224,7 +235,7 @@ const SlideManager: React.FC = () => {
                   type="text"
                   placeholder="Hoặc nhập URL ảnh trực tiếp"
                   className="w-full mt-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary"
-                  value={formData.image}
+                  value={formData.image ?? ''}
                   onChange={e => setFormData({ ...formData, image: e.target.value })}
                 />
               </div>
@@ -236,7 +247,7 @@ const SlideManager: React.FC = () => {
                     type="text"
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary"
                     placeholder="Quà Tết 2026..."
-                    value={formData.title}
+                    value={formData.title ?? ''}
                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                   />
                 </div>
@@ -246,7 +257,7 @@ const SlideManager: React.FC = () => {
                     type="text"
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary"
                     placeholder="Mua Ngay / Xem Ngay"
-                    value={formData.cta}
+                    value={formData.cta ?? ''}
                     onChange={e => setFormData({ ...formData, cta: e.target.value })}
                   />
                 </div>
@@ -257,7 +268,7 @@ const SlideManager: React.FC = () => {
                 <textarea
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary min-h-[80px]"
                   placeholder="Mô tả ngắn gọn về ưu đãi hoặc sản phẩm..."
-                  value={formData.subtitle}
+                  value={formData.subtitle ?? ''}
                   onChange={e => setFormData({ ...formData, subtitle: e.target.value })}
                 />
               </div>
@@ -268,7 +279,7 @@ const SlideManager: React.FC = () => {
                   type="text"
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary"
                   placeholder="/shop hoặc https://..."
-                  value={formData.link}
+                  value={formData.link ?? ''}
                   onChange={e => setFormData({ ...formData, link: e.target.value })}
                 />
               </div>
@@ -279,7 +290,7 @@ const SlideManager: React.FC = () => {
                   <input
                     type="number"
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary"
-                    value={formData.slideOrder}
+                    value={formData.slideOrder ?? 0}
                     onChange={e => setFormData({ ...formData, slideOrder: parseInt(e.target.value) || 0 })}
                   />
                 </div>
@@ -287,7 +298,7 @@ const SlideManager: React.FC = () => {
                   <input
                     type="checkbox"
                     id="is-active"
-                    checked={formData.isActive}
+                    checked={Boolean(formData.isActive)}
                     onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
                     className="size-4 text-primary focus:ring-primary border-gray-300 rounded"
                   />
