@@ -11,6 +11,9 @@ import DiscountManager from './DiscountManager';
 import BlogManager from './BlogManager';
 import DashboardStats from './DashboardStats';
 import SettingManager from './SettingManager';
+import RefundManager from './RefundManager';
+
+type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'bundles' | 'orders' | 'refunds' | 'discounts' | 'blogs' | 'settings';
 import SlideManager from './SlideManager';
 
 type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'bundles' | 'orders' | 'discounts' | 'blogs' | 'slides' | 'settings';
@@ -27,6 +30,7 @@ const MENU_ITEMS: { key: AdminTab; label: string; icon: string }[] = [
   { key: 'products', label: 'Sản phẩm', icon: 'inventory_2' },
   { key: 'bundles', label: 'Combo/Bundle', icon: 'redeem' },
   { key: 'orders', label: 'Đơn hàng', icon: 'receipt_long' },
+  { key: 'refunds', label: 'Hoàn tiền', icon: 'currency_exchange' },
   { key: 'discounts', label: 'Mã giảm giá', icon: 'confirmation_number' },
   { key: 'blogs', label: 'Blog', icon: 'article' },
   { key: 'slides', label: 'Slide trang chủ', icon: 'view_carousel' },
@@ -41,6 +45,7 @@ const QUICK_CARD_COLORS: Record<string, { from: string; to: string }> = {
   products: { from: '#F5A623', to: '#E8961D' },
   bundles: { from: '#D4230A', to: '#F5A623' },
   orders: { from: '#2980B9', to: '#1F618D' },
+  refunds: { from: '#F39C12', to: '#D68910' },
   discounts: { from: '#E74C3C', to: '#C0392B' },
   blogs: { from: '#8E44AD', to: '#6C3483' },
   slides: { from: '#FFD700', to: '#DAA520' },
@@ -59,6 +64,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
       case 'products': return <ProductManager />;
       case 'bundles': return <BundleManager />;
       case 'orders': return <OrderManager />;
+      case 'refunds': return <RefundManager />;
       case 'discounts': return <DiscountManager />;
       case 'blogs': return <BlogManager />;
       case 'slides': return <SlideManager />;
@@ -177,6 +183,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) =>
     { key: 'products', title: 'Sản phẩm', icon: 'inventory_2', desc: 'Quản lý kho sản phẩm' },
     { key: 'bundles', title: 'Combo', icon: 'redeem', desc: 'Quản lý combo quà Tết' },
     { key: 'orders', title: 'Đơn hàng', icon: 'receipt_long', desc: 'Quản lý đơn hàng & trạng thái' },
+    { key: 'refunds', title: 'Hoàn tiền', icon: 'currency_exchange', desc: 'Xử lý yêu cầu hoàn tiền' },
     { key: 'discounts', title: 'Giảm giá', icon: 'confirmation_number', desc: 'Quản lý mã khuyến mãi' },
     { key: 'blogs', title: 'Blog', icon: 'article', desc: 'Quản lý bài viết & chủ đề' },
     { key: 'slides', title: 'Slides', icon: 'view_carousel', desc: 'Quản lý banner trang chủ' },

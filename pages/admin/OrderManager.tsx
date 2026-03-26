@@ -16,9 +16,11 @@ const STATUS_MAP: Record<OrderStatus, { label: string; color: string }> = {
   SHIPPED: { label: 'Đang giao', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' },
   COMPLETED: { label: 'Hoàn thành', color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
   CANCELLED: { label: 'Đã hủy', color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+  CANCELLED_PENDING_REFUND: { label: 'Chờ hoàn tiền', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' },
+  CANCELLED_REFUNDED: { label: 'Đã hoàn tiền', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400' },
 };
 
-const ALL_STATUSES: OrderStatus[] = ['CREATED', 'WAITING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED'];
+const ALL_STATUSES: OrderStatus[] = ['CREATED', 'WAITING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED', 'CANCELLED_PENDING_REFUND', 'CANCELLED_REFUNDED'];
 
 const OrderManager: React.FC = () => {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
