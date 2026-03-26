@@ -18,37 +18,68 @@ const MusicPlayer: React.FC = () => {
         console.error('Failed to fetch system music:', err);
       }
     };
+
     fetchMusic();
+
+    // Listen for custom event from SettingManager
+    const handleUpdate = () => {
+      fetchMusic();
+    };
+
+    window.addEventListener('system-music-updated', handleUpdate);
+    return () => {
+      window.removeEventListener('system-music-updated', handleUpdate);
+    };
   }, []);
 
   useEffect(() => {
-    const audio = new Audio(musicUrl);
-    audio.loop = true;
-    audio.volume = 1.0;
-    audio.crossOrigin = "anonymous";
-    audioRef.current = audio;
+    // If audio object doesn't exist, create it
+    if (!audioRef.current) {
+      const audio = new Audio(musicUrl);
+      audio.loop = true;
+      audio.volume = 1.0;
+      audio.crossOrigin = "anonymous";
+      audioRef.current = audio;
+    } else {
+      // If it exists, just update src
+      audioRef.current.src = musicUrl;
+      // If it was playing, play the new src automatically
+      if (isPlaying) {
+        audioRef.current.play().catch(err => console.error('Auto-play failed after URL change:', err));
+      }
+    }
 
     return () => {
-      audio.pause();
-      audioRef.current = null;
+      // No cleanup needed here if we persist the object
+      // except when the component unmounts - we handle that in a separate useEffect or keep it simple
     };
   }, [musicUrl]);
+
+  // Handle cleanup on unmount separately
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   const toggleMusic = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!audioRef.current) return;
 
     // Boost volume using Web Audio API if not already set up
-    if (!gainNodeRef.current && isPlaying === false) {
+    if (!gainNodeRef.current) {
       try {
         const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
         const audioCtx = new AudioContextClass();
         const source = audioCtx.createMediaElementSource(audioRef.current);
         const gainNode = audioCtx.createGain();
-        
+
         // Boost factor: 1.5 (can go higher but might distort)
-        gainNode.gain.value = 1.5; 
-        
+        gainNode.gain.value = 1.5;
+
         source.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         gainNodeRef.current = gainNode;

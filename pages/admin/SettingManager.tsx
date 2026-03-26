@@ -39,6 +39,12 @@ const SettingManager: React.FC = () => {
     try {
       await settingApi.updateSetting(key, value);
       setMsg({ type: 'success', text: 'Cập nhật thành công!' });
+      
+      // Dispatch custom event to notify MusicPlayer
+      if (key === 'SYSTEM_MUSIC_URL') {
+        window.dispatchEvent(new CustomEvent('system-music-updated'));
+      }
+      
       setTimeout(() => setMsg(null), 3000);
     } catch (err: any) {
       setMsg({ type: 'error', text: err?.message || 'Cập nhật thất bại.' });
