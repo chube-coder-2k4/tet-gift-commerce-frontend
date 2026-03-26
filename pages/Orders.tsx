@@ -6,6 +6,8 @@ import { paymentApi, PaymentResponse } from '../services/paymentApi';
 import { useConfirmDialog } from '../components/ConfirmDialog';
 import { InvoiceButton } from '../components/InvoiceButton';
 import Pagination from '../components/Pagination';
+import { OrderTimeline } from '../components/OrderTimeline';
+import { CopyTextButton } from '../components/CopyTextButton';
 
 interface OrdersProps {
   onNavigate: (screen: Screen) => void;
@@ -42,6 +44,7 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<Record<number, PaymentResponse>>({});
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [repayingId, setRepayingId] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'ALL'>('ALL');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -111,6 +114,30 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
       setTimeout(() => setError(''), 5000);
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleRetryVnpay = async (orderId: number) => {
+    setRepayingId(orderId);
+    setError('');
+    try {
+      // Reuse create payment endpoint to request a fresh VNPay checkout URL for an existing order.
+      const res = await paymentApi.create({ orderId, method: 'VN_PAY' });
+      const nextPayment = res.data;
+
+      setPaymentInfo(prev => ({ ...prev, [orderId]: nextPayment }));
+
+      if (nextPayment?.paymentUrl) {
+        window.location.href = nextPayment.paymentUrl;
+        return;
+      }
+
+      setError('Không nhận được link thanh toán VNPay. Vui lòng thử lại sau.');
+    } catch (err: any) {
+      setError(err?.message || 'Không thể tạo lại phiên thanh toán VNPay.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setRepayingId(null);
     }
   };
 
@@ -281,6 +308,14 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                               {formatDate(order.createdAt)} · {order.items.length} sản phẩm
                             </p>
+                            {order.orderCode && (
+                              <div className="mt-1 flex items-center gap-2">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Mã tra cứu: <span className="font-semibold text-primary tracking-wide">{order.orderCode}</span>
+                                </p>
+                                <CopyTextButton text={order.orderCode} className="py-0 px-1.5" />
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -298,6 +333,9 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                     {/* Expanded Detail */}
                     {isExpanded && (
                       <div className="border-t border-gray-100 dark:border-white/5">
+                        <div className="p-5 pb-0">
+                          <OrderTimeline status={order.status} />
+                        </div>
                         {/* Items */}
                         <div className="p-5">
                           <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
@@ -525,15 +563,17 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                                   {cancellingId === order.id ? 'Đang hủy...' : 'Hủy đơn'}
                                 </button>
                               )}
-                              {order.status === 'WAITING_PAYMENT' && payment?.method === 'VN_PAY' && payment?.paymentUrl && (
-                                <a
-                                  href={payment.paymentUrl}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="px-5 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-red-700 transition-colors flex items-center gap-2 shadow-lg shadow-primary/20"
+                              {order.status === 'WAITING_PAYMENT' && payment?.method === 'VN_PAY' && payment?.status !== 'SUCCESS' && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleRetryVnpay(order.id); }}
+                                  disabled={repayingId === order.id}
+                                  className="px-5 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-red-700 transition-colors flex items-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-60"
                                 >
-                                  <span className="material-symbols-outlined text-lg">payments</span>
-                                  Thanh toán ngay
-                                </a>
+                                  <span className="material-symbols-outlined text-lg">
+                                    {repayingId === order.id ? 'progress_activity' : 'payments'}
+                                  </span>
+                                  {repayingId === order.id ? 'Đang tạo link...' : 'Thanh toán lại'}
+                                </button>
                               )}
                             </div>
                           </div>

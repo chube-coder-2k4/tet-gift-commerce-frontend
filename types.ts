@@ -76,7 +76,7 @@ export interface PageResponse<T> {
 }
 
 // ===== Navigation =====
-export type Screen = 'home' | 'shop' | 'product-detail' | 'bundles' | 'bundle-detail' | 'cart' | 'checkout' | 'login' | 'register' | 'blog' | 'blog-detail' | 'about' | 'profile' | 'payment-result' | 'orders' | 'admin';
+export type Screen = 'home' | 'shop' | 'product-detail' | 'bundles' | 'bundle-detail' | 'cart' | 'checkout' | 'login' | 'register' | 'blog' | 'blog-detail' | 'about' | 'profile' | 'payment-result' | 'orders' | 'track-order' | 'admin';
 
 // ===== User & Address =====
 export interface User {

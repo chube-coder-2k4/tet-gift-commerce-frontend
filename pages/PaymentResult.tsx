@@ -3,6 +3,7 @@ import { Screen } from '../types';
 import { paymentApi, PaymentResponse } from '../services/paymentApi';
 import { orderApi, OrderResponse } from '../services/orderApi';
 import { InvoiceButton } from '../components/InvoiceButton';
+import { CopyTextButton } from '../components/CopyTextButton';
 
 interface PaymentResultProps {
   onNavigate: (screen: Screen) => void;
@@ -177,6 +178,15 @@ const PaymentResult: React.FC<PaymentResultProps> = ({ onNavigate }) => {
                   <span className="text-sm text-gray-500 dark:text-gray-400">Mã đơn hàng</span>
                   <span className="text-sm font-bold text-primary">#{order.id}</span>
                 </div>
+                {order.orderCode && (
+                  <div className="flex justify-between items-center py-2.5 border-b border-gray-100 dark:border-white/5">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Mã tra cứu</span>
+                    <span className="inline-flex items-center gap-2 text-sm font-bold text-primary tracking-wide">
+                      {order.orderCode}
+                      <CopyTextButton text={order.orderCode} className="py-0 px-1.5" />
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center py-2.5 border-b border-gray-100 dark:border-white/5">
                   <span className="text-sm text-gray-500 dark:text-gray-400">Số lượng</span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">{order.items.length} sản phẩm</span>

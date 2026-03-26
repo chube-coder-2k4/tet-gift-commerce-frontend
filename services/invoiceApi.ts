@@ -48,12 +48,22 @@ export const invoiceApi = {
       throw new Error('Không thể tải hóa đơn');
     }
 
-    // Convert response to blob and open in new tab
+    // Convert response to blob and force browser download without opening cross-origin frames.
     const blob = await response.blob();
+    const contentDisposition = response.headers.get('content-disposition') || '';
+    const filenameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+    const fileName = decodeURIComponent(filenameMatch?.[1] || filenameMatch?.[2] || `invoice-${orderId}.pdf`);
+
     const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    // Clean up the URL after a short delay
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    // Clean up object URL shortly after click
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
   // Get the direct PDF URL (for opening in Cloudinary)
