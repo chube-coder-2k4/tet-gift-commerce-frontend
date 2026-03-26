@@ -7,6 +7,7 @@ import { Screen } from '../types';
 import { Firewall } from '@/components/Firewall';
 import { authApi } from '../services/api';
 import BannerCarousel, { BannerSlide } from '../components/BannerCarousel';
+import { slideApi, HomeSlideResponse } from '../services/slideApi';
 
 interface HomeProps {
   onNavigate: (screen: Screen) => void;
@@ -32,6 +33,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
   const [isLoadingBundles, setIsLoadingBundles] = useState(true);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const [addingBundleToCart, setAddingBundleToCart] = useState<number | null>(null);
+  const [slides, setSlides] = useState<HomeSlideResponse[]>([]);
+  const [isLoadingSlides, setIsLoadingSlides] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,6 +68,21 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
       }
     };
     fetchBundles();
+  }, []);
+
+  useEffect(() => {
+    const fetchSlides = async () => {
+      setIsLoadingSlides(true);
+      try {
+        const res = await slideApi.getActiveSlides();
+        setSlides(res.data || []);
+      } catch (err) {
+        console.error('Failed to fetch slides:', err);
+      } finally {
+        setIsLoadingSlides(false);
+      }
+    };
+    fetchSlides();
   }, []);
 
   const handleAddBundleToCart = async (e: React.MouseEvent, bundleId: number) => {
@@ -107,7 +125,23 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
       {/* Banner Carousel */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pt-6">
         <BannerCarousel
-          slides={[
+          slides={slides.length > 0 ? slides.map(s => ({
+            image: s.image,
+            title: s.title,
+            subtitle: s.subtitle,
+            cta: s.cta,
+            onClick: () => {
+              if (s.link) {
+                if (s.link.startsWith('http')) {
+                  window.open(s.link, '_blank');
+                } else {
+                  // Handle internal navigation if it starts with /
+                  const screen = s.link.substring(1) as any;
+                  onNavigate(screen || 'shop');
+                }
+              }
+            }
+          })) : [
             {
               image: '/banners/banner1.png',
               title: 'Quà Tết Cao Cấp 2026',

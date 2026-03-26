@@ -227,7 +227,17 @@ const Cart: React.FC<CartProps> = ({ onNavigate, onCartUpdate, onBundleClick }) 
               <div key={item.id} className={`p-6 border-b border-gray-200 dark:border-white/5 flex flex-col md:grid md:grid-cols-12 gap-6 items-center group relative hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors ${removingItem === item.id ? 'opacity-50' : ''}`}>
                 <div className="col-span-6 flex items-start gap-4 w-full">
                   <div className="relative size-24 md:size-28 shrink-0 rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-surface-darker flex items-center justify-center">
-                    <span className="material-symbols-outlined text-3xl text-gray-400">{item.itemType === 'BUNDLE' ? 'inventory_2' : 'shopping_bag'}</span>
+                    {item.itemImage ? (
+                      <img 
+                        src={item.itemImage} 
+                        alt={item.itemName} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                      />
+                    ) : (
+                      <span className="material-symbols-outlined text-3xl text-gray-400">
+                        {item.itemType === 'BUNDLE' ? 'inventory_2' : 'shopping_bag'}
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col h-full justify-between py-1">
                     <div>
