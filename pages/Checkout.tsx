@@ -7,6 +7,7 @@ import { paymentApi, PaymentMethod } from '../services/paymentApi';
 import { discountApi, DiscountResponse } from '../services/discountApi';
 import { authApi } from '../services/api';
 import { InvoiceButton } from '../components/InvoiceButton';
+import { CopyTextButton } from '../components/CopyTextButton';
 
 interface CheckoutProps {
   onNavigate: (screen: Screen) => void;
@@ -158,7 +159,10 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate, onCartUpdate, onOrderCr
             {createdOrder.orderCode && (
               <div className="mb-4 pb-3 border-b border-gray-200 dark:border-white/10">
                 <p className="text-xs text-gray-500 dark:text-gray-400">Mã tra cứu đơn hàng</p>
-                <p className="text-base font-bold text-primary tracking-wide">{createdOrder.orderCode}</p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <p className="text-base font-bold text-primary tracking-wide">{createdOrder.orderCode}</p>
+                  <CopyTextButton text={createdOrder.orderCode} />
+                </div>
               </div>
             )}
             {createdOrder.items.map(item => (

@@ -4,6 +4,7 @@ import { useConfirmDialog } from '../../components/ConfirmDialog';
 import { InvoiceButton } from '../../components/InvoiceButton';
 import Pagination from '../../components/Pagination';
 import { OrderTimeline } from '../../components/OrderTimeline';
+import { CopyTextButton } from '../../components/CopyTextButton';
 
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
@@ -137,9 +138,12 @@ const OrderManager: React.FC = () => {
                     {order.customerName && <><span className="font-medium text-gray-700 dark:text-gray-300">{order.customerName}</span> · </>}{order.items?.length || 0} sản phẩm
                   </p>
                   {order.orderCode && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Mã đơn: <span className="font-semibold text-primary tracking-wide">{order.orderCode}</span>
-                    </p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Mã đơn: <span className="font-semibold text-primary tracking-wide">{order.orderCode}</span>
+                      </p>
+                      <CopyTextButton text={order.orderCode} className="py-0 px-1.5" />
+                    </div>
                   )}
                 </div>
                 <div className="text-right">
@@ -161,6 +165,7 @@ const OrderManager: React.FC = () => {
                       <div>
                         <span className="text-gray-500 dark:text-gray-400">Order code: </span>
                         <span className="font-semibold text-primary tracking-wide">{order.orderCode || '-'}</span>
+                        {order.orderCode && <CopyTextButton text={order.orderCode} className="ml-2" />}
                       </div>
                     </div>
                   </div>

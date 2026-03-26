@@ -7,6 +7,9 @@ export interface CartItem {
   itemType: 'PRODUCT' | 'BUNDLE';
   itemId: number;
   itemName: string;
+  imageUrl?: string;
+  image?: string;
+  primaryImage?: string;
   itemPrice: number;
   quantity: number;
   subtotal: number;

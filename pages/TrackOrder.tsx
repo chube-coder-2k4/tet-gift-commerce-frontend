@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Screen } from '../types';
 import { orderApi, OrderResponse, OrderStatus } from '../services/orderApi';
+import { CopyTextButton } from '../components/CopyTextButton';
 
 interface TrackOrderProps {
   onNavigate: (screen: Screen) => void;
@@ -87,7 +88,7 @@ const TrackOrder: React.FC<TrackOrderProps> = ({ onNavigate }) => {
           Quay lại trang chủ
         </button>
 
-        <div className="bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/10 p-6 md:p-8 shadow-sm">
+        <div className="bg-white dark:bg-card-dark rounded-3xl border border-gray-200/90 dark:border-white/10 p-6 md:p-8 shadow-sm">
           <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">Tra cứu đơn hàng</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2 mb-6">
             Nhập mã đơn hàng để xem trạng thái đơn và thông tin giao nhận.
@@ -117,11 +118,14 @@ const TrackOrder: React.FC<TrackOrderProps> = ({ onNavigate }) => {
         </div>
 
         {order && statusCfg && (
-          <div className="mt-6 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/10 p-6 md:p-8 shadow-sm">
+          <div className="mt-6 bg-white dark:bg-card-dark rounded-3xl border border-gray-200/90 dark:border-white/10 p-6 md:p-8 shadow-sm">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Mã đơn hàng</p>
-                <p className="text-xl font-black text-primary tracking-wide">{order.orderCode || '-'}</p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <p className="text-xl font-black text-primary tracking-wide">{order.orderCode || '-'}</p>
+                  {order.orderCode && <CopyTextButton text={order.orderCode} />}
+                </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Đặt lúc: {formatDate(order.createdAt)}</p>
               </div>
               <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold border ${statusCfg.bg} ${statusCfg.color}`}>
@@ -174,15 +178,15 @@ const TrackOrder: React.FC<TrackOrderProps> = ({ onNavigate }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-xl bg-gray-50 dark:bg-surface-dark p-4">
+              <div className="rounded-2xl bg-gray-50 dark:bg-surface-dark p-4 border border-gray-200/80 dark:border-white/10">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Người nhận</p>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{order.receiverName || '-'}</p>
               </div>
-              <div className="rounded-xl bg-gray-50 dark:bg-surface-dark p-4">
+              <div className="rounded-2xl bg-gray-50 dark:bg-surface-dark p-4 border border-gray-200/80 dark:border-white/10">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Số điện thoại</p>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{order.receiverPhone || '-'}</p>
               </div>
-              <div className="rounded-xl bg-gray-50 dark:bg-surface-dark p-4 md:col-span-2">
+              <div className="rounded-2xl bg-gray-50 dark:bg-surface-dark p-4 md:col-span-2 border border-gray-200/80 dark:border-white/10">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Địa chỉ giao hàng</p>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{order.shippingAddress || '-'}</p>
               </div>
@@ -192,7 +196,7 @@ const TrackOrder: React.FC<TrackOrderProps> = ({ onNavigate }) => {
               <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Sản phẩm</p>
               <div className="space-y-2">
                 {order.items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between rounded-xl bg-gray-50 dark:bg-surface-dark p-3">
+                  <div key={item.id} className="flex items-center justify-between rounded-2xl bg-gray-50 dark:bg-surface-dark p-3 border border-gray-200/80 dark:border-white/10">
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.itemName}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{item.quantity} x {item.priceSnapshot.toLocaleString()}₫</p>

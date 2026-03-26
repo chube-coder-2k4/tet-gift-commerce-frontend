@@ -33,15 +33,19 @@ const getProgressIndex = (status: TimelineStatus): number => {
 
 export const OrderTimeline: React.FC<OrderTimelineProps> = ({ status, className = '' }) => {
   const progressIndex = getProgressIndex(status);
+  const currentStepLabel = progressIndex >= 0 ? STEPS[progressIndex].label : 'Đơn đã hủy';
 
   return (
-    <div className={`rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/80 dark:bg-surface-dark/60 p-4 ${className}`}>
+    <div className={`rounded-2xl border border-gray-300 dark:border-white/20 bg-white/90 dark:bg-surface-dark/70 p-4 ${className}`}>
+      <p className="mb-3 text-sm font-bold text-gray-700 dark:text-gray-200">
+        Tiến trình hiện tại: <span className="text-primary font-bold">{currentStepLabel}</span>
+      </p>
       <div className="overflow-x-auto">
         <div className="min-w-[680px] px-1">
           <div className="relative flex items-start justify-between">
-            <div className="absolute top-5 left-0 right-0 h-[2px] bg-gray-200 dark:bg-white/10" />
+            <div className="absolute top-5 left-0 right-0 h-[4px] bg-gray-300 dark:bg-white/20" />
             <div
-              className={`absolute top-5 left-0 h-[2px] transition-all duration-500 ${status === 'CANCELLED' ? 'bg-red-500' : 'bg-primary'}`}
+              className={`absolute top-5 left-0 h-[4px] transition-all duration-500 ${status === 'CANCELLED' ? 'bg-red-600' : 'bg-primary'}`}
               style={{ width: `${Math.max(0, (progressIndex / (STEPS.length - 1)) * 100)}%` }}
             />
 
@@ -57,13 +61,13 @@ export const OrderTimeline: React.FC<OrderTimelineProps> = ({ status, className 
                       isCancelled
                         ? 'border-gray-300 dark:border-white/20 bg-white dark:bg-surface-dark text-gray-400 dark:text-gray-500'
                         : done
-                        ? 'border-primary bg-primary text-white'
-                        : 'border-gray-300 dark:border-white/20 bg-white dark:bg-surface-dark text-gray-400 dark:text-gray-500'
+                        ? `border-primary bg-primary text-white ${active ? 'ring-4 ring-primary/30 scale-110 shadow-lg shadow-primary/25' : ''}`
+                        : 'border-gray-400 dark:border-white/25 bg-white dark:bg-surface-dark text-gray-500 dark:text-gray-400'
                     }`}
                   >
                     <span className="material-symbols-outlined text-lg">{step.icon}</span>
                   </div>
-                  <p className={`text-[11px] font-bold ${active ? 'text-primary' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <p className={`text-sm ${active ? 'font-black text-primary' : done ? 'font-bold text-gray-800 dark:text-gray-100' : 'font-semibold text-gray-500 dark:text-gray-400'}`}>
                     {step.label}
                   </p>
                 </div>
