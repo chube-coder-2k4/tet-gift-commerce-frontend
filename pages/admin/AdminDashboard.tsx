@@ -11,13 +11,11 @@ import DiscountManager from './DiscountManager';
 import BlogManager from './BlogManager';
 import DashboardStats from './DashboardStats';
 import InventoryManager from './InventoryManager';
-
-type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'inventory'| 'bundles' | 'orders' | 'discounts' | 'blogs';
 import SettingManager from './SettingManager';
 import RefundManager from './RefundManager';
 import SlideManager from './SlideManager';
 
-type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'bundles' | 'orders' | 'refunds' | 'discounts' | 'blogs' | 'slides' | 'settings';
+type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'inventory' | 'bundles' | 'orders' | 'refunds' | 'discounts' | 'blogs' | 'slides' | 'settings';
 
 interface AdminDashboardProps {
   onNavigate: (screen: Screen) => void;

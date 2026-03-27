@@ -203,7 +203,9 @@ const InventoryManager: React.FC = () => {
                                 >
                                     <option value={0}>-- Chọn sản phẩm --</option>
                                     {products.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name} (ID: #{p.id} - Tồn: {p.stock})</option>
+                                        <option key={p.id} value={p.id}>
+                                            {`${p.name} | Mã hàng: ${p.id} | Tồn kho: ${p.stock}`}
+                                        </option>
                                     ))}
                                 </select>
                             </div>

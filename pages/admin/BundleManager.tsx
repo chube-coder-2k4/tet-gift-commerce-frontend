@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { adminBundleApi, adminProductApi, BundleResponse, BundleRequest, BundleProductRequest, ProductResponse, PageResponse } from '../../services/adminApi';
 import { useConfirmDialog } from '../../components/ConfirmDialog';
 import Pagination from '../../components/Pagination';
@@ -18,6 +18,7 @@ const BundleManager: React.FC = () => {
   const [formDescription, setFormDescription] = useState('');
   const [formPrice, setFormPrice] = useState(0);
   const [formIsCustom, setFormIsCustom] = useState(false);
+  const [suggestDiscountPercent, setSuggestDiscountPercent] = useState(10);
   const [bundleProducts, setBundleProducts] = useState<BundleProductRequest[]>([{ productId: 0, quantity: 1 }]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -52,6 +53,7 @@ const BundleManager: React.FC = () => {
 
   const resetForm = () => {
     setFormName(''); setFormDescription(''); setFormPrice(0); setFormIsCustom(false);
+    setSuggestDiscountPercent(10);
     setBundleProducts([{ productId: 0, quantity: 1 }]);
     setImageFile(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -153,6 +155,36 @@ const BundleManager: React.FC = () => {
 
   const getProductName = (id: number) => products.find(p => p.id === id)?.name || `Sản phẩm`;
 
+  const selectedProductRows = useMemo(() => {
+    return bundleProducts
+      .filter((bp) => bp.productId > 0 && bp.quantity > 0)
+      .map((bp) => {
+        const product = products.find((p) => p.id === bp.productId);
+        const unitPrice = product?.price || 0;
+        return {
+          productId: bp.productId,
+          name: product?.name || `Sản phẩm #${bp.productId}`,
+          quantity: bp.quantity,
+          unitPrice,
+          subtotal: unitPrice * bp.quantity,
+        };
+      });
+  }, [bundleProducts, products]);
+
+  const selectedProductsTotal = useMemo(
+    () => selectedProductRows.reduce((sum, row) => sum + row.subtotal, 0),
+    [selectedProductRows]
+  );
+
+  const priceDelta = formPrice - selectedProductsTotal;
+
+  const applySuggestedPrice = (discountPercent: number) => {
+    const safePercent = Math.min(100, Math.max(0, discountPercent));
+    setSuggestDiscountPercent(safePercent);
+    const suggested = Math.round(selectedProductsTotal * (100 - safePercent) / 100);
+    setFormPrice(suggested);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -188,6 +220,47 @@ const BundleManager: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Giá combo (VNĐ)</label>
                   <input type="number" value={formPrice} onChange={e => setFormPrice(+e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                  {selectedProductRows.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => applySuggestedPrice(0)}
+                          className="px-2.5 py-1 rounded-lg border border-gray-300 dark:border-white/15 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:border-primary hover:text-primary"
+                        >
+                          Bằng tổng SP
+                        </button>
+                        {[5, 10, 15].map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => applySuggestedPrice(p)}
+                            className="px-2.5 py-1 rounded-lg border border-gray-300 dark:border-white/15 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:border-primary hover:text-primary"
+                          >
+                            Giảm {p}%
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">Giảm tùy chỉnh (%)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={suggestDiscountPercent}
+                          onChange={(e) => setSuggestDiscountPercent(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                          className="w-16 px-2 py-1 border border-gray-300 dark:border-white/10 rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white outline-none focus:border-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => applySuggestedPrice(suggestDiscountPercent)}
+                          className="px-2.5 py-1 rounded-md bg-primary text-white font-semibold hover:bg-red-700"
+                        >
+                          Áp dụng
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-end pb-1">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -238,13 +311,53 @@ const BundleManager: React.FC = () => {
                   <div key={i} className="flex gap-2 mb-2">
                     <select value={bp.productId} onChange={e => updateBP(i, 'productId', +e.target.value)} className="flex-1 px-3 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-sm text-gray-900 dark:text-white focus:border-primary outline-none">
                       <option value={0}>-- Chọn SP --</option>
-                      {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {`${p.name} | ${formatCurrency(p.price)} | Tồn: ${p.stock}`}
+                        </option>
+                      ))}
                     </select>
                     <input type="number" min={1} value={bp.quantity} onChange={e => updateBP(i, 'quantity', +e.target.value)} className="w-20 px-3 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-sm text-center text-gray-900 dark:text-white focus:border-primary outline-none" />
                     {bundleProducts.length > 1 && <button onClick={() => removeBP(i)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"><span className="material-symbols-outlined text-lg">close</span></button>}
                   </div>
                 ))}
                 <button onClick={addBP} className="text-sm text-primary font-medium hover:underline">+ Thêm sản phẩm</button>
+
+                {selectedProductRows.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-amber-200 dark:border-amber-800/30 bg-amber-50/70 dark:bg-amber-900/10 p-3">
+                    <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-2">Tổng hợp giá sản phẩm</p>
+                    <div className="space-y-1.5">
+                      {selectedProductRows.map((row) => (
+                        <div key={`${row.productId}-${row.name}`} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-700 dark:text-gray-300 truncate pr-3">
+                            {row.name} x{row.quantity} ({formatCurrency(row.unitPrice)})
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-white whitespace-nowrap">{formatCurrency(row.subtotal)}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-2 pt-2 border-t border-amber-200/70 dark:border-amber-800/30 flex items-center justify-between text-sm">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Tổng giá SP trong combo</span>
+                      <span className="font-bold text-amber-700 dark:text-amber-400">{formatCurrency(selectedProductsTotal)}</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-sm">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Giá combo đã nhập</span>
+                      <span className="font-bold text-primary">{formatCurrency(formPrice)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                      Chênh lệch: <span className={`font-bold ${priceDelta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {priceDelta >= 0 ? '+' : ''}{formatCurrency(priceDelta)}
+                      </span>
+                    </div>
+                    {priceDelta < 0 && (
+                      <div className="mt-2 rounded-lg border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-900/20 px-2.5 py-2 text-xs text-red-700 dark:text-red-400 flex items-start gap-1.5">
+                        <span className="material-symbols-outlined text-sm">warning</span>
+                        Giá combo đang thấp hơn tổng giá các sản phẩm thành phần. Hãy kiểm tra lại để tránh đặt giá quá thấp.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">
