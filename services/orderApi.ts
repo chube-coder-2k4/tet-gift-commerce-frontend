@@ -23,6 +23,7 @@ export interface OrderItem {
 
 export interface OrderResponse {
   id: number;
+  orderCode?: string;
   status: OrderStatus;
   totalAmount: number;
   subtotalBeforeDiscount?: number;
@@ -39,8 +40,18 @@ export interface OrderResponse {
   vatTaxCode?: string;
   vatPhone?: string;
   vatAddress?: string;
+  refundBankName?: string;
+  refundBankAccount?: string;
+  refundAccountHolder?: string;
+  refundConfirmedAt?: string;
   items: OrderItem[];
   createdAt: string;
+}
+
+export interface CancelRefundRequest {
+  bankName: string;
+  bankAccount: string;
+  accountHolder: string;
 }
 
 export type OrderStatus =
@@ -50,7 +61,9 @@ export type OrderStatus =
   | 'PROCESSING'
   | 'SHIPPED'
   | 'COMPLETED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'CANCELLED_PENDING_REFUND'
+  | 'CANCELLED_REFUNDED';
 
 export interface PageResponse<T> {
   pageNo: number;
@@ -80,10 +93,23 @@ export const orderApi = {
     return fetchWithAuth<OrderResponse>(`/orders/${id}`);
   },
 
+  // GET /orders/track/{orderCode} — Tra cứu đơn hàng công khai theo mã
+  trackByCode: async (orderCode: string): Promise<ApiResponse<OrderResponse>> => {
+    return fetchWithAuth<OrderResponse>(`/orders/track/${encodeURIComponent(orderCode)}`);
+  },
+
   // PUT /orders/{id}/cancel — Hủy đơn hàng
   cancel: async (id: number): Promise<ApiResponse<OrderResponse>> => {
     return fetchWithAuth<OrderResponse>(`/orders/${id}/cancel`, {
       method: 'PUT',
+    });
+  },
+
+  // PUT /orders/{id}/cancel-refund — Hủy đơn + yêu cầu hoàn tiền
+  cancelWithRefund: async (id: number, request: CancelRefundRequest): Promise<ApiResponse<OrderResponse>> => {
+    return fetchWithAuth<OrderResponse>(`/orders/${id}/cancel-refund`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
     });
   },
 };

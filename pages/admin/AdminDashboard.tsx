@@ -13,6 +13,11 @@ import DashboardStats from './DashboardStats';
 import InventoryManager from './InventoryManager';
 
 type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'inventory'| 'bundles' | 'orders' | 'discounts' | 'blogs';
+import SettingManager from './SettingManager';
+import RefundManager from './RefundManager';
+import SlideManager from './SlideManager';
+
+type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'bundles' | 'orders' | 'refunds' | 'discounts' | 'blogs' | 'slides' | 'settings';
 
 interface AdminDashboardProps {
   onNavigate: (screen: Screen) => void;
@@ -27,8 +32,11 @@ const MENU_ITEMS: { key: AdminTab; label: string; icon: string }[] = [
   { key: 'inventory', label: 'Kho hàng', icon: 'shelves' }, // Icon kệ hàng (shelves) hoặc inventory
   { key: 'bundles', label: 'Combo/Bundle', icon: 'redeem' },
   { key: 'orders', label: 'Đơn hàng', icon: 'receipt_long' },
+  { key: 'refunds', label: 'Hoàn tiền', icon: 'currency_exchange' },
   { key: 'discounts', label: 'Mã giảm giá', icon: 'confirmation_number' },
   { key: 'blogs', label: 'Blog', icon: 'article' },
+  { key: 'slides', label: 'Slide trang chủ', icon: 'view_carousel' },
+  { key: 'settings', label: 'Cài đặt', icon: 'settings' },
 ];
 
 // Quick action card color mappings for Tết theme
@@ -40,8 +48,11 @@ const QUICK_CARD_COLORS: Record<string, { from: string; to: string }> = {
   inventory: { from: '#3498DB', to: '#2980B9' },
   bundles: { from: '#D4230A', to: '#F5A623' },
   orders: { from: '#2980B9', to: '#1F618D' },
+  refunds: { from: '#F39C12', to: '#D68910' },
   discounts: { from: '#E74C3C', to: '#C0392B' },
   blogs: { from: '#8E44AD', to: '#6C3483' },
+  slides: { from: '#FFD700', to: '#DAA520' },
+  settings: { from: '#7F8C8D', to: '#34495E' },
 };
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
@@ -57,8 +68,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
       case 'inventory': return <InventoryManager />;
       case 'bundles': return <BundleManager />;
       case 'orders': return <OrderManager />;
+      case 'refunds': return <RefundManager />;
       case 'discounts': return <DiscountManager />;
       case 'blogs': return <BlogManager />;
+      case 'slides': return <SlideManager />;
+      case 'settings': return <SettingManager />;
       default: return <DashboardOverview onTabChange={setActiveTab} />;
     }
   };
@@ -174,8 +188,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) =>
     { key: 'inventory', title: 'Kho hàng', icon: 'shelves', desc: 'Theo dõi lô hàng & hạn dùng' }, // Thêm card này
     { key: 'bundles', title: 'Combo', icon: 'redeem', desc: 'Quản lý combo quà Tết' },
     { key: 'orders', title: 'Đơn hàng', icon: 'receipt_long', desc: 'Quản lý đơn hàng & trạng thái' },
+    { key: 'refunds', title: 'Hoàn tiền', icon: 'currency_exchange', desc: 'Xử lý yêu cầu hoàn tiền' },
     { key: 'discounts', title: 'Giảm giá', icon: 'confirmation_number', desc: 'Quản lý mã khuyến mãi' },
     { key: 'blogs', title: 'Blog', icon: 'article', desc: 'Quản lý bài viết & chủ đề' },
+    { key: 'slides', title: 'Slides', icon: 'view_carousel', desc: 'Quản lý banner trang chủ' },
+    { key: 'settings', title: 'Cài đặt', icon: 'settings', desc: 'Cấu hình hệ thống & nhạc nền' },
   ];
 
   return (

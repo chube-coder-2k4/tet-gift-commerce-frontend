@@ -3,6 +3,7 @@ import { bundleApi, BundleResponse } from '../services/bundleApi';
 import { cartApi } from '../services/cartApi';
 import { Screen } from '../types';
 import { authApi } from '../services/api';
+import ImageGallerySlider from '../components/ImageGallerySlider';
 
 interface BundleDetailProps {
   onNavigate: (screen: Screen) => void;
@@ -182,45 +183,13 @@ const BundleDetail: React.FC<BundleDetailProps> = ({ onNavigate, bundleId, onCar
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-16">
-        {/* Image */}
-        <div className="lg:col-span-7 flex flex-col gap-4">
-          <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark border border-gray-200 dark:border-[#3a3330]/60 group shadow-sm dark:shadow-lg">
-            {currentImage ? (
-              <img alt={bundle.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={currentImage} />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 to-yellow-500/5">
-                <span className="material-symbols-outlined text-8xl text-primary/30">redeem</span>
-                <p className="text-gray-400 mt-3 text-sm">Combo Quà Tết</p>
-              </div>
-            )}
-            <div className="absolute top-4 left-4 flex gap-2">
-              <span className="bg-gradient-to-r from-primary to-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-full tracking-wider uppercase flex items-center gap-1 shadow-md">
-                <span className="material-symbols-outlined text-[14px]">redeem</span>
-                Combo
-              </span>
-              {bundle.custom && (
-                <span className="bg-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-full tracking-wider uppercase shadow-md">
-                  Tự chọn
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Thumbnails */}
-          {allImages.length > 1 && (
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-              {allImages.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImageIdx(i)}
-                  className={`aspect-square rounded-xl border overflow-hidden transition-all ${i === selectedImageIdx ? 'border-primary ring-2 ring-primary/30 scale-95' : 'border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30'}`}
-                  title={img.label}
-                >
-                  <img alt={img.label} className="w-full h-full object-cover" src={img.url} />
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Gallery */}
+        <div className="lg:col-span-7">
+          <ImageGallerySlider 
+            images={allImages.map((img, i) => ({ id: i, url: img.url, label: img.label }))}
+            initialIndex={selectedImageIdx}
+            onIndexChange={setSelectedImageIdx}
+          />
         </div>
 
         {/* Info */}

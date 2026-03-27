@@ -5,6 +5,7 @@ import { reviewApi, ReviewResponse } from '../services/reviewApi';
 import { Screen } from '../types';
 import { authApi } from '../services/api';
 import Pagination from '../components/Pagination';
+import ImageGallerySlider from '../components/ImageGallerySlider';
 
 interface ProductDetailProps {
   onNavigate: (screen: Screen) => void;
@@ -178,33 +179,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onNavigate, productId, on
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-20">
         {/* Gallery */}
-        <div className="lg:col-span-7 flex flex-col gap-4">
-          <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark border border-gray-200 dark:border-[#3a3330]/60 group shadow-sm dark:shadow-lg">
-            {currentImage ? (
-              <img alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={currentImage} />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <span className="material-symbols-outlined text-8xl">image</span>
-              </div>
-            )}
-            <div className="absolute top-4 left-4 flex gap-2">
-              {!inStock && <span className="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full tracking-wider uppercase shadow-glow">Hết hàng</span>}
-              {inStock && product.stock <= 10 && <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full tracking-wider uppercase">Còn {product.stock}</span>}
-            </div>
-          </div>
-          {product.images && product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-3">
-              {product.images.map((img, i) => (
-                <button
-                  key={img.id}
-                  onClick={() => setSelectedImageIdx(i)}
-                  className={`aspect-square rounded-xl border overflow-hidden transition-colors ${i === selectedImageIdx ? 'border-primary ring-2 ring-primary/30' : 'border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30'}`}
-                >
-                  <img alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover" src={img.imageUrl} />
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="lg:col-span-7">
+          <ImageGallerySlider 
+            images={product.images && product.images.length > 0 
+              ? product.images.map(img => ({ id: img.id, url: img.imageUrl, label: product.name }))
+              : [{ url: product.image || '', label: product.name }]
+            }
+            initialIndex={selectedImageIdx}
+            onIndexChange={setSelectedImageIdx}
+          />
         </div>
 
         {/* Info */}

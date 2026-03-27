@@ -3,6 +3,8 @@ import { adminOrderApi, adminPaymentApi, OrderResponse, OrderStatus, PaymentResp
 import { useConfirmDialog } from '../../components/ConfirmDialog';
 import { InvoiceButton } from '../../components/InvoiceButton';
 import Pagination from '../../components/Pagination';
+import { OrderTimeline } from '../../components/OrderTimeline';
+import { CopyTextButton } from '../../components/CopyTextButton';
 
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
@@ -14,9 +16,11 @@ const STATUS_MAP: Record<OrderStatus, { label: string; color: string }> = {
   SHIPPED: { label: 'Đang giao', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' },
   COMPLETED: { label: 'Hoàn thành', color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
   CANCELLED: { label: 'Đã hủy', color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+  CANCELLED_PENDING_REFUND: { label: 'Chờ hoàn tiền', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' },
+  CANCELLED_REFUNDED: { label: 'Đã hoàn tiền', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400' },
 };
 
-const ALL_STATUSES: OrderStatus[] = ['CREATED', 'WAITING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED'];
+const ALL_STATUSES: OrderStatus[] = ['CREATED', 'WAITING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED', 'CANCELLED_PENDING_REFUND', 'CANCELLED_REFUNDED'];
 
 const OrderManager: React.FC = () => {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -135,6 +139,14 @@ const OrderManager: React.FC = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {order.customerName && <><span className="font-medium text-gray-700 dark:text-gray-300">{order.customerName}</span> · </>}{order.items?.length || 0} sản phẩm
                   </p>
+                  {order.orderCode && (
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Mã đơn: <span className="font-semibold text-primary tracking-wide">{order.orderCode}</span>
+                      </p>
+                      <CopyTextButton text={order.orderCode} className="py-0 px-1.5" />
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-primary">{formatCurrency(order.totalAmount)}</p>
@@ -145,6 +157,23 @@ const OrderManager: React.FC = () => {
               {/* Expanded Detail */}
               {isExpanded && (
                 <div className="px-5 pb-5 border-t border-gray-100 dark:border-white/5 pt-4 space-y-4">
+                  <div className="p-3 bg-gray-50 dark:bg-surface-darker rounded-xl border border-gray-200 dark:border-white/10">
+                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Thông tin đơn</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Order ID: </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">#{order.id}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Order code: </span>
+                        <span className="font-semibold text-primary tracking-wide">{order.orderCode || '-'}</span>
+                        {order.orderCode && <CopyTextButton text={order.orderCode} className="ml-2" />}
+                      </div>
+                    </div>
+                  </div>
+
+                  <OrderTimeline status={order.status} />
+
                   {/* Customer Info */}
                   {(order.customerName || order.customerEmail) && (
                     <div className="p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/30">

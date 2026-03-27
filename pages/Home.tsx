@@ -7,6 +7,9 @@ import { Screen } from '../types';
 import { Firewall } from '@/components/Firewall';
 import { authApi } from '../services/api';
 import BannerCarousel, { BannerSlide } from '../components/BannerCarousel';
+import { slideApi, HomeSlideResponse } from '../services/slideApi';
+import ItemCarousel, { ItemCarouselRef } from '../components/ItemCarousel';
+import { useRef } from 'react';
 
 interface HomeProps {
   onNavigate: (screen: Screen) => void;
@@ -32,6 +35,11 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
   const [isLoadingBundles, setIsLoadingBundles] = useState(true);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const [addingBundleToCart, setAddingBundleToCart] = useState<number | null>(null);
+  const [slides, setSlides] = useState<HomeSlideResponse[]>([]);
+  const [isLoadingSlides, setIsLoadingSlides] = useState(true);
+
+  const productCarouselRef = useRef<ItemCarouselRef>(null);
+  const bundleCarouselRef = useRef<ItemCarouselRef>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,6 +73,21 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
       }
     };
     fetchBundles();
+  }, []);
+
+  useEffect(() => {
+    const fetchSlides = async () => {
+      setIsLoadingSlides(true);
+      try {
+        const res = await slideApi.getActiveSlides();
+        setSlides(res.data || []);
+      } catch (err) {
+        console.error('Failed to fetch slides:', err);
+      } finally {
+        setIsLoadingSlides(false);
+      }
+    };
+    fetchSlides();
   }, []);
 
   const handleAddBundleToCart = async (e: React.MouseEvent, bundleId: number) => {
@@ -107,7 +130,23 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
       {/* Banner Carousel */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pt-6">
         <BannerCarousel
-          slides={[
+          slides={slides.length > 0 ? slides.map(s => ({
+            image: s.image,
+            title: s.title,
+            subtitle: s.subtitle,
+            cta: s.cta,
+            onClick: () => {
+              if (s.link) {
+                if (s.link.startsWith('http')) {
+                  window.open(s.link, '_blank');
+                } else {
+                  // Handle internal navigation if it starts with /
+                  const screen = s.link.substring(1) as any;
+                  onNavigate(screen || 'shop');
+                }
+              }
+            }
+          })) : [
             {
               image: '/banners/banner1.png',
               title: 'Quà Tết Cao Cấp 2026',
@@ -222,26 +261,32 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
               <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">Xuân Giáp Thìn <span className="italic font-light text-gray-500">2026</span></h2>
             </div>
             <div className="flex gap-3">
-              <button className="size-10 rounded-full border border-primary/30 dark:border-white/10 flex items-center justify-center hover:bg-primary/10 dark:hover:bg-white/5 text-gray-900 dark:text-white transition-colors">
+              <button
+                onClick={() => productCarouselRef.current?.scrollPrev()}
+                className="size-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-red-700 transition-colors shadow-md"
+              >
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
-              <button className="size-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-red-700 transition-colors shadow-md">
+              <button
+                onClick={() => productCarouselRef.current?.scrollNext()}
+                className="size-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-red-700 transition-colors shadow-md"
+              >
                 <span className="material-symbols-outlined">chevron_right</span>
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <ItemCarousel ref={productCarouselRef} gap={32}>
             {isLoadingProducts ? (
-              <div className="col-span-full flex justify-center py-12">
+              <div className="flex justify-center py-12 w-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : products.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-gray-500">Chưa có sản phẩm</div>
+              <div className="text-center py-12 text-gray-500 w-full">Chưa có sản phẩm</div>
             ) : (
-              products.slice(0, 4).map((product) => {
+              products.map((product) => {
                 const imgUrl = getPrimaryImage(product);
                 return (
-                  <div key={product.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-primary/20 dark:border-[#3a3330]/60 hover:border-primary dark:hover:border-[#b8860b]/40 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 transition-all duration-300 cursor-pointer" onClick={() => onProductClick(product.id)}>
+                  <div key={product.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-primary/20 dark:border-[#3a3330]/60 hover:border-primary dark:hover:border-[#b8860b]/40 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 transition-all duration-300 cursor-pointer h-full" onClick={() => onProductClick(product.id)}>
                     <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
                       {imgUrl ? (
                         <img alt={product.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={imgUrl} />
@@ -278,7 +323,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
                 );
               })
             )}
-          </div>
+          </ItemCarousel>
         </div>
       </div>
 
@@ -290,20 +335,38 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
             <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">Combo Quà Tết <span className="italic font-light text-gray-500">Đặc Sắc</span></h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-lg">Những bộ combo quà Tết được tuyển chọn kỹ lưỡng — tiện lợi, sang trọng, ý nghĩa.</p>
           </div>
-          <a onClick={() => onNavigate('bundles')} className="text-sm font-medium text-gray-600 dark:text-white/70 hover:text-primary transition-colors flex items-center gap-1 group cursor-pointer shrink-0">
-            Xem tất cả <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
-          </a>
+          <div className="flex items-center gap-6 shrink-0">
+            <div className="flex gap-3">
+              <button
+                onClick={() => bundleCarouselRef.current?.scrollPrev()}
+                className="size-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-red-700 transition-colors shadow-md"
+                aria-label="Previous combo"
+              >
+                <span className="material-symbols-outlined">chevron_left</span>
+              </button>
+              <button
+                onClick={() => bundleCarouselRef.current?.scrollNext()}
+                className="size-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-red-700 transition-colors shadow-md"
+                aria-label="Next combo"
+              >
+                <span className="material-symbols-outlined">chevron_right</span>
+              </button>
+            </div>
+            <a onClick={() => onNavigate('bundles')} className="text-sm font-medium text-gray-600 dark:text-white/70 hover:text-primary transition-colors flex items-center gap-1 group cursor-pointer shrink-0">
+              Xem tất cả <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
+            </a>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <ItemCarousel ref={bundleCarouselRef} gap={32}>
           {isLoadingBundles ? (
-            <div className="col-span-full flex justify-center py-12">
+            <div className="flex justify-center py-12 w-full">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : bundles.length === 0 ? (
-            <div className="col-span-full text-center py-12 text-gray-500">Chưa có combo nào</div>
+            <div className="text-center py-12 text-gray-500 w-full">Chưa có combo nào</div>
           ) : (
-            bundles.slice(0, 4).map((bundle) => (
-              <div key={bundle.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-primary/20 dark:border-[#3a3330]/60 hover:border-primary dark:hover:border-[#b8860b]/40 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 transition-all duration-300 cursor-pointer" onClick={() => onBundleClick?.(bundle.id)}>
+            bundles.map((bundle) => (
+              <div key={bundle.id} className="group bg-white dark:bg-gradient-to-br dark:from-card-dark dark:to-surface-dark rounded-xl p-4 border border-primary/20 dark:border-[#3a3330]/60 hover:border-primary dark:hover:border-[#b8860b]/40 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-[#8b2332]/10 transition-all duration-300 cursor-pointer h-full" onClick={() => onBundleClick?.(bundle.id)}>
                 <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100 dark:bg-background-dark">
                   {bundle.image ? (
                     <img alt={bundle.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" src={bundle.image} />
@@ -332,14 +395,14 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
                 <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-2">{bundle.description || `Bao gồm ${bundle.products.length} sản phẩm`}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-primary font-bold text-lg">{bundle.price.toLocaleString()}₫</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gold dark:bg-white text-primary dark:text-background-dark hover:bg-accent dark:hover:bg-gray-200">
                     {bundle.products.length} sản phẩm
                   </span>
                 </div>
               </div>
             ))
           )}
-        </div>
+        </ItemCarousel>
       </div>
 
       {/* Special Offer Banner */}
