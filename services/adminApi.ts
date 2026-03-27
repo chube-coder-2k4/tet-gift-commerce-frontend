@@ -543,17 +543,19 @@ export const adminPaymentApi = {
 };
 
 // ===== Refund (Admin) =====
+export type RefundFilterStatus = 'ALL' | 'PENDING' | 'REFUNDED';
+
 export const adminRefundApi = {
-  getAll: async (page = 0, size = 10): Promise<ApiResponse<PageResponse<OrderResponse>>> =>
-    fetchWithAuth<PageResponse<OrderResponse>>(`/refunds?page=${page}&size=${size}`),
+  getAll: async (filterStatus: RefundFilterStatus = 'ALL', page = 0, size = 10): Promise<ApiResponse<PageResponse<OrderResponse>>> =>
+    fetchWithAuth<PageResponse<OrderResponse>>(`/refunds?filterStatus=${filterStatus}&page=${page}&size=${size}`),
 
   confirm: async (id: number): Promise<ApiResponse<OrderResponse>> =>
     fetchWithAuth<OrderResponse>(`/refunds/${id}/confirm`, { method: 'PUT' }),
 
-  exportReport: async (startDate: string, endDate: string, format: 'xlsx' | 'csv' = 'xlsx'): Promise<void> => {
+  exportReport: async (filterStatus: RefundFilterStatus, startDate: string, endDate: string, format: 'xlsx' | 'csv' = 'xlsx'): Promise<void> => {
     const accessToken = tokenStorage.getAccessToken();
     const response = await fetch(
-      `${API_BASE_URL}/refunds/export?startDate=${startDate}&endDate=${endDate}&format=${format}`,
+      `${API_BASE_URL}/refunds/export?filterStatus=${filterStatus}&startDate=${startDate}&endDate=${endDate}&format=${format}`,
       {
         headers: {
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
@@ -568,7 +570,7 @@ export const adminRefundApi = {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `refund_orders_${startDate}_${endDate}.${format}`;
+    a.download = `refund_orders_${filterStatus}_${startDate}_${endDate}.${format}`;
     a.click();
     window.URL.revokeObjectURL(url);
   },

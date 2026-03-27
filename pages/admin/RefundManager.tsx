@@ -20,6 +20,7 @@ const RefundManager: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'REFUNDED'>('ALL');
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -33,7 +34,7 @@ const RefundManager: React.FC = () => {
   const fetchRefunds = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminRefundApi.getAll(page, 10);
+      const res = await adminRefundApi.getAll(filterStatus, page, 10);
       const data = res.data as PageResponse<OrderResponse>;
       setOrders(data.data || []);
       setTotalPages(data.totalPages);
@@ -43,9 +44,10 @@ const RefundManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, filterStatus]);
 
   useEffect(() => { fetchRefunds(); }, [fetchRefunds]);
+  useEffect(() => { setPage(0); }, [filterStatus]);
 
   const { confirm } = useConfirmDialog();
 
@@ -80,8 +82,8 @@ const RefundManager: React.FC = () => {
     }
     setExporting(true);
     try {
-      await adminRefundApi.exportReport(exportStartDate, exportEndDate, exportFormat);
-      setMsg({ type: 'success', text: 'Xuất báo cáo thành công!' });
+      await adminRefundApi.exportReport(filterStatus, exportStartDate, exportEndDate, exportFormat);
+      setMsg({ type: 'success', text: `Xuất báo cáo (${filterStatus === 'ALL' ? 'Tất cả' : filterStatus === 'PENDING' ? 'Chờ xử lý' : 'Đã hoàn'}) thành công!` });
     } catch (err: any) {
       setMsg({ type: 'error', text: err?.message || 'Xuất báo cáo thất bại' });
     } finally {
@@ -99,7 +101,18 @@ const RefundManager: React.FC = () => {
             <span className="material-symbols-outlined text-orange-500">currency_exchange</span>
             Yêu cầu hoàn tiền
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{totalItems} yêu cầu đang chờ xử lý</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{totalItems} {filterStatus === 'PENDING' ? 'yêu cầu đang chờ xử lý' : filterStatus === 'REFUNDED' ? 'yêu cầu đã hoàn tiền' : 'yêu cầu'}</p>
+        </div>
+        <div className="flex bg-gray-100 dark:bg-surface-dark p-1 rounded-xl shadow-inner border border-gray-200 dark:border-white/5 w-full sm:w-auto">
+          <button onClick={() => setFilterStatus('ALL')} className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-all ${filterStatus === 'ALL' ? 'bg-white dark:bg-white/10 text-primary shadow-sm dark:shadow-none' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>Tất cả</button>
+          <button onClick={() => setFilterStatus('PENDING')} className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${filterStatus === 'PENDING' ? 'bg-white dark:bg-white/10 text-orange-600 dark:text-orange-400 shadow-sm dark:shadow-none' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+            <span className="size-1.5 rounded-full bg-orange-500"></span>
+            Chờ xử lý
+          </button>
+          <button onClick={() => setFilterStatus('REFUNDED')} className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${filterStatus === 'REFUNDED' ? 'bg-white dark:bg-white/10 text-teal-600 dark:text-teal-400 shadow-sm dark:shadow-none' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+            <span className="size-1.5 rounded-full bg-teal-500"></span>
+            Đã hoàn
+          </button>
         </div>
       </div>
 
