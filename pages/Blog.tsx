@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { blogApi, blogTopicApi, BlogPostResponse, BlogTopic } from '../services/blogApi';
 import { Screen } from '../types';
 import Pagination from '../components/Pagination';
+import DOMPurify from 'dompurify';
 
 interface BlogProps {
   onNavigate: (screen: Screen) => void;
@@ -16,6 +17,12 @@ const Blog: React.FC<BlogProps> = ({ onNavigate, onBlogPostClick }) => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [featuredPost, setFeaturedPost] = useState<BlogPostResponse | null>(null);
+
+    const stripHtml = (html?: string) => {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || "";
+  };
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -68,8 +75,8 @@ const Blog: React.FC<BlogProps> = ({ onNavigate, onBlogPostClick }) => {
     } catch { return dateStr; }
   };
 
-  const getExcerpt = (content: string, maxLen = 120) => {
-    const text = content.replace(/<[^>]+>/g, '');
+ const getExcerpt = (content: string, maxLen = 120) => {
+    const text = stripHtml(content).trim();
     return text.length > maxLen ? text.substring(0, maxLen) + '...' : text;
   };
 

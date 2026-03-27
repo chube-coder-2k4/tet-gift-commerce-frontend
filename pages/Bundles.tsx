@@ -24,6 +24,12 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
 
+    const stripHtml = (html?: string) => {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || "";
+  };
+
   useEffect(() => {
     const fetchBundles = async () => {
       setIsLoading(true);
@@ -175,9 +181,7 @@ const Bundles: React.FC<BundlesProps> = ({ onNavigate, onCartUpdate, onBundleCli
                     <h3 className="text-gray-900 dark:text-white font-bold text-xl mb-2 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
                       {bundle.name}
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 line-clamp-2 leading-relaxed flex-1">
-                      {bundle.description || `Bao gồm ${bundle.products.length} sản phẩm`}
-                    </p>
+                   <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-2" title={stripHtml(bundle.description)}>{stripHtml(bundle.description) || `Bao gồm ${bundle.products.length} sản phẩm`}</p>
                     <div className="flex border-t border-gray-100 dark:border-white/10 pt-4 items-center justify-between mt-auto">
                       <span className="text-primary font-black text-2xl">{bundle.price.toLocaleString()}₫</span>
                       <span className="text-xs font-bold px-3 py-1 rounded-full bg-gold dark:bg-white text-primary dark:text-background-dark hover:bg-accent dark:hover:bg-gray-200 border">

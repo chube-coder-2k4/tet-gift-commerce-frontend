@@ -99,17 +99,17 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
 
   // Client-side filter (search + category + price range)
   const filteredProducts = products.filter(product => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategories.length === 0 || 
+    const matchesCategory = selectedCategories.length === 0 ||
       selectedCategories.includes(product.categoryId);
     const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
     return matchesSearch && matchesCategory && matchesPrice;
   });
 
   const handleCategoryToggle = (categoryId: number) => {
-    setSelectedCategories(prev => 
+    setSelectedCategories(prev =>
       prev.includes(categoryId)
         ? prev.filter(id => id !== categoryId)
         : [...prev, categoryId]
@@ -330,11 +330,11 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
 
   const floatingStyle = floatingPosition
     ? {
-        left: `${floatingPosition.x}px`,
-        top: `${floatingPosition.y}px`,
-        right: 'auto',
-        bottom: 'auto',
-      }
+      left: `${floatingPosition.x}px`,
+      top: `${floatingPosition.y}px`,
+      right: 'auto',
+      bottom: 'auto',
+    }
     : undefined;
 
   const handleClearFilters = () => {
@@ -352,19 +352,25 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
     });
   };
 
+  const stripHtml = (html?: string) => {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || "";
+  };
+
   const showInitialLoading = isLoading && products.length === 0;
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 lg:py-12">
       {/* Back Button */}
-      <button 
+      <button
         onClick={() => onNavigate('home')}
         className="inline-flex items-center gap-2 px-4 py-2 mb-4 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors group"
       >
         <span className="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
         <span className="font-medium">Quay lại</span>
       </button>
-      
+
       <nav className="flex mb-8 text-sm text-text-light-secondary dark:text-gray-400">
         <a onClick={() => onNavigate('home')} className="hover:text-primary transition-colors cursor-pointer">Trang chủ</a>
         <span className="mx-2">/</span>
@@ -381,21 +387,21 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
               <h4 className="text-sm font-bold text-accent uppercase tracking-wider mb-4">Loại sản phẩm</h4>
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={selectedCategories.length === 0}
                     onChange={() => setSelectedCategories([])}
-                    className="rounded border-gray-300 dark:border-white/20 bg-transparent text-primary focus:ring-primary h-4 w-4" 
+                    className="rounded border-gray-300 dark:border-white/20 bg-transparent text-primary focus:ring-primary h-4 w-4"
                   />
                   <span className="text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors text-sm">Tất cả</span>
                 </label>
                 {categories.map((cat) => (
                   <label key={cat.id} className="flex items-center gap-3 cursor-pointer group">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={selectedCategories.includes(cat.id)}
                       onChange={() => handleCategoryToggle(cat.id)}
-                      className="rounded border-gray-300 dark:border-white/20 bg-transparent text-primary focus:ring-primary h-4 w-4" 
+                      className="rounded border-gray-300 dark:border-white/20 bg-transparent text-primary focus:ring-primary h-4 w-4"
                     />
                     <span className="text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors text-sm">{cat.name}</span>
                   </label>
@@ -450,9 +456,9 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
                 <div className="relative h-6 flex items-center">
                   {/* Track Background */}
                   <div className="absolute w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full"></div>
-                  
+
                   {/* Active Track */}
-                  <div 
+                  <div
                     className="absolute h-1.5 bg-gradient-to-r from-primary to-accent rounded-full"
                     style={{
                       left: `${(priceRange[0] / 10000000) * 100}%`,
@@ -496,7 +502,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
             </div>
           </div>
         </aside>
-        
+
         <div className="flex-1">
           <div ref={productListTopRef} />
           <div className="mb-8">
@@ -504,19 +510,19 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
             <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-gradient-to-r dark:from-surface-dark dark:to-card-dark p-4 rounded-xl border border-gray-200 dark:border-[#3a3330]/60 shadow-sm dark:shadow-lg">
               <div className="relative w-full md:w-96 group">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors">search</span>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-1 focus:ring-primary dark:focus:ring-[#b8860b]/40 transition-all" 
-                  placeholder="Tìm kiếm sản phẩm..." 
+                  className="w-full bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-1 focus:ring-primary dark:focus:ring-[#b8860b]/40 transition-all"
+                  placeholder="Tìm kiếm sản phẩm..."
                 />
               </div>
               <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
                 <span className="text-sm text-gray-500 dark:text-gray-400">{totalItems} sản phẩm</span>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">Sắp xếp:</span>
-                  <select 
+                  <select
                     onChange={(e) => handleSortChange(e.target.value)}
                     className="bg-gray-50 dark:bg-background-dark/60 dark:backdrop-blur-sm border border-gray-300 dark:border-[#3a3330]/60 rounded-lg py-2 pl-3 pr-8 text-sm text-gray-900 dark:text-gray-200 focus:border-primary dark:focus:border-[#b8860b]/60 focus:ring-0 cursor-pointer dark:shadow-inner"
                   >
@@ -576,7 +582,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
                       )}
                       {product.stock > 0 && (
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <button 
+                          <button
                             onClick={(e) => handleAddToCart(e, product.id)}
                             disabled={addingToCart === product.id}
                             className="size-10 bg-white text-background-dark rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-glow disabled:opacity-50"
@@ -595,7 +601,13 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
                       <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">Kéo thả sản phẩm vào góc phải để tạo combo</p>
                       <p className="text-xs text-accent font-medium uppercase tracking-wide mb-1">{product.categoryName}</p>
                       <h3 className="text-gray-900 dark:text-white font-medium text-lg mb-1 group-hover:text-primary transition-colors truncate">{product.name}</h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs mb-3 line-clamp-2">{product.description}</p>
+                      {/* <p className="text-gray-500 dark:text-gray-400 text-xs mb-3 line-clamp-2">{product.description}</p> */}
+                      <p
+                        className="text-gray-500 dark:text-gray-400 text-xs mb-3 line-clamp-2"
+                        title={stripHtml(product.description)}
+                      >
+                        {stripHtml(product.description)}
+                      </p>
                       <div className="flex items-baseline gap-3 border-t border-gray-100 dark:border-white/5 pt-3">
                         <span className="text-primary font-bold text-lg">{product.price.toLocaleString()}₫</span>
                         {product.stock > 0 && product.stock <= 10 && (
@@ -627,11 +639,10 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, onProductClick, onCartUpdate })
         onDragLeave={() => setDraggingOverDropZone(false)}
         onDrop={handleDropToCombo}
         style={floatingStyle}
-        className={`fixed bottom-24 right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border shadow-2xl backdrop-blur-sm transition-all duration-200 ${
-          draggingOverDropZone
-            ? 'border-primary bg-white ring-4 ring-primary/20 dark:bg-card-dark scale-[1.01]'
-            : 'border-gray-200 bg-white/95 dark:border-white/10 dark:bg-card-dark/95'
-        } ${comboPanelOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+        className={`fixed bottom-24 right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border shadow-2xl backdrop-blur-sm transition-all duration-200 ${draggingOverDropZone
+          ? 'border-primary bg-white ring-4 ring-primary/20 dark:bg-card-dark scale-[1.01]'
+          : 'border-gray-200 bg-white/95 dark:border-white/10 dark:bg-card-dark/95'
+          } ${comboPanelOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}
       >
         <div className="p-4 border-b border-gray-100 dark:border-white/10 flex items-start justify-between gap-3">
           <div>

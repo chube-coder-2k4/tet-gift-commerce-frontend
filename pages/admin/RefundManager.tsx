@@ -25,6 +25,10 @@ const RefundManager: React.FC = () => {
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
+  const [searchInput, setSearchInput] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
   // Export state
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
@@ -34,7 +38,7 @@ const RefundManager: React.FC = () => {
   const fetchRefunds = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminRefundApi.getAll(filterStatus, page, 10);
+      const res = await adminRefundApi.getAll(keyword, statusFilter, page, 10);
       const data = res.data as PageResponse<OrderResponse>;
       setOrders(data.data || []);
       setTotalPages(data.totalPages);
@@ -44,10 +48,21 @@ const RefundManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, filterStatus]);
+  }, [page, keyword, statusFilter]);
 
   useEffect(() => { fetchRefunds(); }, [fetchRefunds]);
-  useEffect(() => { setPage(0); }, [filterStatus]);
+
+  // --- HANDLER SEARCH ---
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setKeyword(searchInput);
+    setPage(0);
+  };
+
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value);
+    setPage(0);
+  };
 
   const { confirm } = useConfirmDialog();
 
@@ -80,10 +95,16 @@ const RefundManager: React.FC = () => {
       setTimeout(() => setMsg(null), 3000);
       return;
     }
+
     setExporting(true);
     try {
-      await adminRefundApi.exportReport(filterStatus, exportStartDate, exportEndDate, exportFormat);
-      setMsg({ type: 'success', text: `Xuất báo cáo (${filterStatus === 'ALL' ? 'Tất cả' : filterStatus === 'PENDING' ? 'Chờ xử lý' : 'Đã hoàn'}) thành công!` });
+      await adminRefundApi.exportReport(statusFilter, exportStartDate, exportEndDate, exportFormat);
+      let statusText = 'Tất cả';
+      if (statusFilter === 'CANCELLED_PENDING_REFUND') statusText = 'Chờ xử lý';
+      if (statusFilter === 'CANCELLED_REFUNDED') statusText = 'Đã hoàn';
+
+      setMsg({ type: 'success', text: `Xuất báo cáo (${statusText}) thành công!` });
+
     } catch (err: any) {
       setMsg({ type: 'error', text: err?.message || 'Xuất báo cáo thất bại' });
     } finally {
@@ -95,26 +116,43 @@ const RefundManager: React.FC = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <span className="material-symbols-outlined text-orange-500">currency_exchange</span>
             Yêu cầu hoàn tiền
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{totalItems} {filterStatus === 'PENDING' ? 'yêu cầu đang chờ xử lý' : filterStatus === 'REFUNDED' ? 'yêu cầu đã hoàn tiền' : 'yêu cầu'}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Tìm thấy {totalItems} đơn hàng {statusFilter === 'CANCELLED_PENDING_REFUND' ? 'đang chờ xử lý' : statusFilter === 'CANCELLED_REFUNDED' ? 'đã hoàn' : ''}
+          </p>
         </div>
-        <div className="flex bg-gray-100 dark:bg-surface-dark p-1 rounded-xl shadow-inner border border-gray-200 dark:border-white/5 w-full sm:w-auto">
-          <button onClick={() => setFilterStatus('ALL')} className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-all ${filterStatus === 'ALL' ? 'bg-white dark:bg-white/10 text-primary shadow-sm dark:shadow-none' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>Tất cả</button>
-          <button onClick={() => setFilterStatus('PENDING')} className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${filterStatus === 'PENDING' ? 'bg-white dark:bg-white/10 text-orange-600 dark:text-orange-400 shadow-sm dark:shadow-none' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
-            <span className="size-1.5 rounded-full bg-orange-500"></span>
-            Chờ xử lý
-          </button>
-          <button onClick={() => setFilterStatus('REFUNDED')} className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${filterStatus === 'REFUNDED' ? 'bg-white dark:bg-white/10 text-teal-600 dark:text-teal-400 shadow-sm dark:shadow-none' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
-            <span className="size-1.5 rounded-full bg-teal-500"></span>
-            Đã hoàn
-          </button>
+
+        {/* --- SEARCH AND FILTER --- */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <form onSubmit={handleSearch} className="relative flex-1 sm:w-64">
+            <input
+              type="text"
+              placeholder="Tìm tên khách, người nhận..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-sm text-gray-900 dark:text-white focus:border-primary outline-none"
+            />
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
+          </form>
+
+          <select
+            value={statusFilter}
+            onChange={handleStatusChange}
+            className="px-4 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-sm text-gray-900 dark:text-white focus:border-primary outline-none min-w-[160px]"
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="CANCELLED_PENDING_REFUND">Chờ hoàn tiền</option>
+            <option value="CANCELLED_REFUNDED">Đã hoàn tiền</option>
+          </select>
         </div>
       </div>
+
+      
 
       {/* Export Section */}
       <div className="mb-6 p-5 bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm">

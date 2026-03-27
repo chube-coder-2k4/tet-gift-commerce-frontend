@@ -6,6 +6,7 @@ import { Screen } from '../types';
 import { authApi } from '../services/api';
 import Pagination from '../components/Pagination';
 import ImageGallerySlider from '../components/ImageGallerySlider';
+import DOMPurify from 'dompurify';
 
 interface ProductDetailProps {
   onNavigate: (screen: Screen) => void;
@@ -180,8 +181,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onNavigate, productId, on
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-20">
         {/* Gallery */}
         <div className="lg:col-span-7">
-          <ImageGallerySlider 
-            images={product.images && product.images.length > 0 
+          <ImageGallerySlider
+            images={product.images && product.images.length > 0
               ? product.images.map(img => ({ id: img.id, url: img.imageUrl, label: product.name }))
               : [{ url: product.image || '', label: product.name }]
             }
@@ -213,15 +214,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onNavigate, productId, on
             </div>
           )}
 
-          <div className="prose prose-sm text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-            <p>{product.description}</p>
-          </div>
+          <div
+            className="prose prose-sm dark:prose-invert text-gray-600 dark:text-gray-300 mb-8 leading-relaxed line-clamp-4"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description || '') }}
+          />
 
           {/* Cart Success/Error Message */}
           {cartMessage && (
             <div className={`mb-4 p-3 rounded-xl text-sm font-medium flex items-center gap-2 ${cartMessage.includes('thất bại')
-                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
-                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
+              ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
+              : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
               }`}>
               <span className="material-symbols-outlined text-lg">{cartMessage.includes('thất bại') ? 'error' : 'check_circle'}</span>
               {cartMessage}
@@ -323,9 +325,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onNavigate, productId, on
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Chi tiết sản phẩm</h3>
 
             <div className="prose prose-sm dark:prose-invert max-w-none">
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
-                {product.description}
-              </p>
+              <div
+                className="prose prose-sm dark:prose-invert text-gray-600 dark:text-gray-300 mb-8 leading-relaxed line-clamp-4"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description || '') }}
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                 <div className="p-4 bg-gray-50 dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5">
@@ -400,8 +403,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onNavigate, productId, on
 
                   {reviewMessage && (
                     <div className={`mb-4 p-3 rounded-xl text-sm font-medium flex items-center gap-2 ${reviewMessage.includes('thành công')
-                        ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
-                        : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
+                      ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
+                      : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
                       }`}>
                       <span className="material-symbols-outlined text-lg">{reviewMessage.includes('thành công') ? 'check_circle' : 'error'}</span>
                       {reviewMessage}

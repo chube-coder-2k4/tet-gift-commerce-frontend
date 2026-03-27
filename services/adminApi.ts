@@ -546,31 +546,51 @@ export const adminPaymentApi = {
 export type RefundFilterStatus = 'ALL' | 'PENDING' | 'REFUNDED';
 
 export const adminRefundApi = {
-  getAll: async (filterStatus: RefundFilterStatus = 'ALL', page = 0, size = 10): Promise<ApiResponse<PageResponse<OrderResponse>>> =>
-    fetchWithAuth<PageResponse<OrderResponse>>(`/refunds?filterStatus=${filterStatus}&page=${page}&size=${size}`),
+  // getAll: async (filterStatus: RefundFilterStatus = 'ALL', page = 0, size = 10): Promise<ApiResponse<PageResponse<OrderResponse>>> =>
+  //   fetchWithAuth<PageResponse<OrderResponse>>(`/refunds?filterStatus=${filterStatus}&page=${page}&size=${size}`),
+
+  // confirm: async (id: number): Promise<ApiResponse<OrderResponse>> =>
+  //   fetchWithAuth<OrderResponse>(`/refunds/${id}/confirm`, { method: 'PUT' }),
+  getAll: async (keyword = '', status = '', page = 0, size = 10): Promise<ApiResponse<PageResponse<OrderResponse>>> => {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+      ...(keyword ? { keyword } : {}),
+      ...(status ? { status } : {})
+    });
+    return fetchWithAuth<PageResponse<OrderResponse>>(`/refunds?${queryParams.toString()}`);
+  },
 
   confirm: async (id: number): Promise<ApiResponse<OrderResponse>> =>
     fetchWithAuth<OrderResponse>(`/refunds/${id}/confirm`, { method: 'PUT' }),
 
   exportReport: async (filterStatus: RefundFilterStatus, startDate: string, endDate: string, format: 'xlsx' | 'csv' = 'xlsx'): Promise<void> => {
     const accessToken = tokenStorage.getAccessToken();
+    
+    const statusParam = (filterStatus === 'ALL' || !filterStatus) ? '' : filterStatus;
+
     const response = await fetch(
-      `${API_BASE_URL}/refunds/export?filterStatus=${filterStatus}&startDate=${startDate}&endDate=${endDate}&format=${format}`,
+      `${API_BASE_URL}/refunds/export?startDate=${startDate}&endDate=${endDate}&status=${statusParam}&format=${format}`,
       {
         headers: {
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
       }
     );
+
     if (!response.ok) {
       const err = await response.json().catch(() => ({ message: 'Export failed' }));
       throw new Error(err.message || 'Export failed');
     }
+
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `refund_orders_${filterStatus}_${startDate}_${endDate}.${format}`;
+    
+    const fileNameStatus = statusParam ? statusParam : 'ALL';
+    a.download = `refund_orders_${fileNameStatus}_${startDate}_${endDate}.${format}`;
+    
     a.click();
     window.URL.revokeObjectURL(url);
   },

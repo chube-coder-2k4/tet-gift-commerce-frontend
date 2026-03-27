@@ -10,6 +10,7 @@ import BannerCarousel, { BannerSlide } from '../components/BannerCarousel';
 import { slideApi, HomeSlideResponse } from '../services/slideApi';
 import ItemCarousel, { ItemCarouselRef } from '../components/ItemCarousel';
 import { useRef } from 'react';
+import DOMPurify from 'dompurify';
 
 interface HomeProps {
   onNavigate: (screen: Screen) => void;
@@ -122,6 +123,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
     } finally {
       setAddingToCart(null);
     }
+  };
+
+  const stripHtml = (html?: string) => {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || "";
   };
   return (
     <div className="flex-1 flex flex-col items-center w-full">
@@ -258,7 +265,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
               <span className="text-primary font-bold text-xs uppercase tracking-[0.2em] mb-3 block">New Collection</span>
-              <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">Xuân Giáp Thìn <span className="italic font-light text-gray-500">2026</span></h2>
+              <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">
+                Xuân Giáp Thìn{" "}
+                <span className="italic font-light text-accent dark:text-[#daa520]">
+                  2026
+                </span>
+              </h2>
             </div>
             <div className="flex gap-3">
               <button
@@ -314,7 +326,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
                       <span className="text-xs text-primary/70 dark:text-primary/50 font-medium">{product.categoryName}</span>
                     </div>
                     <h3 className="text-gray-900 dark:text-white font-medium text-lg mb-1 group-hover:text-primary transition-colors truncate">{product.name}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-1">{product.description}</p>
+                    <p
+                      className="text-gray-500 dark:text-gray-400 text-sm mb-4 leading-relaxed line-clamp-2"
+                      title={stripHtml(product.description)}
+                    >
+                      {stripHtml(product.description)}
+                    </p>
                     <div className="flex items-baseline gap-3">
                       <span className="text-primary font-bold text-lg">{product.price.toLocaleString()}₫</span>
                       {product.stock === 0 && <span className="text-red-400 text-xs font-medium">Hết hàng</span>}
@@ -332,7 +349,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div>
             <span className="text-primary font-bold text-xs uppercase tracking-[0.2em] mb-3 block">Best Combos</span>
-            <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">Combo Quà Tết <span className="italic font-light text-gray-500">Đặc Sắc</span></h2>
+            <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">
+              Combo Quà Tết{" "}
+              <span className="italic font-light text-accent dark:text-[#daa520]">
+                Đặc Sắc
+              </span>
+            </h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-lg">Những bộ combo quà Tết được tuyển chọn kỹ lưỡng — tiện lợi, sang trọng, ý nghĩa.</p>
           </div>
           <div className="flex items-center gap-6 shrink-0">
@@ -392,7 +414,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
                   </div>
                 </div>
                 <h3 className="text-gray-900 dark:text-white font-medium text-lg mb-1 group-hover:text-primary transition-colors truncate">{bundle.name}</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-2">{bundle.description || `Bao gồm ${bundle.products.length} sản phẩm`}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-2" title={stripHtml(bundle.description)}>{stripHtml(bundle.description) || `Bao gồm ${bundle.products.length} sản phẩm`}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-primary font-bold text-lg">{bundle.price.toLocaleString()}₫</span>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gold dark:bg-white text-primary dark:text-background-dark hover:bg-accent dark:hover:bg-gray-200">
