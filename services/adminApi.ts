@@ -17,6 +17,7 @@ export interface PaginationParams {
   size?: number;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+    // [key: string]: any; // For any additional filters
 }
 
 function buildQuery(params?: PaginationParams): string {
@@ -26,6 +27,11 @@ function buildQuery(params?: PaginationParams): string {
   if (params.size !== undefined) sp.set('size', params.size.toString());
   if (params.sortBy) sp.set('sortBy', params.sortBy);
   if (params.sortDir) sp.set('sortDir', params.sortDir);
+  // Object.keys(params).forEach(key => {
+  //   if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+  //     sp.set(key, params[key].toString());
+  //   }
+  // });
   const q = sp.toString();
   return q ? `?${q}` : '';
 }
@@ -120,6 +126,9 @@ export interface ProductRequest {
   categoryId: number;
   manufactureDate?: string;
   expDate?: string;
+  importQuantity: number;
+  batchCode: string;
+  importPrice: number;
   images?: ProductImageRequest[];
 }
 
@@ -146,6 +155,21 @@ export interface ProductResponse {
   expDate?: string;
   images: ProductImageResponse[];
 }
+
+
+export const adminInventoryApi = {
+  // Lấy danh sách tất cả các lô hàng (có phân trang)
+  getAllBatches: async (params?: PaginationParams): Promise<ApiResponse<PageResponse<InventoryBatchResponse>>> =>
+      fetchWithAuth<PageResponse<InventoryBatchResponse>>(`/products/batches${buildQuery(params)}`),
+
+  // Lấy danh sách các lô hàng của một sản phẩm cụ thể
+  getBatchesByProduct: async (productId: number): Promise<ApiResponse<InventoryBatchResponse[]>> =>
+      fetchWithAuth<InventoryBatchResponse[]>(`/products/${productId}/batches`),
+
+  // // Nếu bạn muốn cập nhật trạng thái hoặc xóa lô hàng lẻ (tùy chọn)
+  // deleteBatch: async (batchId: number): Promise<ApiResponse<string>> =>
+  //     fetchWithAuth<string>(`/products/batches/${batchId}`, { method: 'DELETE' }),
+};
 
 export const adminProductApi = {
   getAll: async (params?: PaginationParams): Promise<ApiResponse<PageResponse<ProductResponse>>> =>
@@ -331,6 +355,21 @@ export interface OrderResponse {
   vatPhone?: string;
   vatAddress?: string;
   items: OrderItem[];
+  createdAt: string;
+}
+
+
+// ===== Inventory / Batches (Admin) =====
+export interface InventoryBatchResponse {
+  id: number;
+  batchCode: string;
+  productId: number;
+  productName: string;
+  importQuantity: number;
+  currentQuantity: number;
+  importPrice: number;
+  manufactureDate: string;
+  expiryDate: string;
   createdAt: string;
 }
 
