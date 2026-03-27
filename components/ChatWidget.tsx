@@ -20,77 +20,81 @@ interface ChatWidgetProps {
 
 const SESSION_KEY = 'chatbot_session_id';
 
+function cleanAiText(text: string) {
+  if (!text) return '';
+  return text
+    // Fix missing space after bullet point (*Kẹo -> * Kẹo)
+    .replace(/(^|\n)\*([^\s*])/g, '$1* $2')
+    // Fix stuck words before numbers (dưới50.000 -> dưới 50.000)
+    .replace(/([\p{L}])(\d)/gu, '$1 $2')
+    // Fix stuck punctuation (.Chào -> . Chào)
+    .replace(/([.!?])([\p{L}])/gu, '$1 $2')
+    // Fix missing space after colon (Giá:16.500 -> Giá: 16.500)
+    .replace(/:(?!\/|\s)([\p{L}\d])/gu, ': $1')
+    // Format markdown bullet points (*) to • for better visual
+    .replace(/(^|\n)\*\s/g, '$1• ');
+}
+
 // Simple markdown: **bold** and \n to <br>, plus product links
 function renderMarkdown(
-  text: string,
+  rawText: string,
   suggestions?: ChatSuggestion[],
   onProductClick?: (id: number) => void
 ) {
+  const text = cleanAiText(rawText);
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   
-  const processedParts = parts.map((part, i) => {
+  return parts.map((part, i) => {
+    let isBold = false;
+    let content = part;
+
     if (part.startsWith('**') && part.endsWith('**')) {
-      const innerText = part.slice(2, -2);
-      const matchedSuggestion = suggestions?.find(
-        s => s.name.toLowerCase() === innerText.toLowerCase()
-      );
-      if (matchedSuggestion && onProductClick) {
-        return (
-          <button
-            key={i}
-            onClick={(e) => { e.stopPropagation(); onProductClick(matchedSuggestion.id); }}
-            className="inline-flex items-center gap-0.5 font-bold text-primary dark:text-[#daa520] hover:underline cursor-pointer transition-colors"
-            title={`Xem ${matchedSuggestion.name}`}
-          >
-            {innerText}
-            <span className="material-symbols-outlined text-[12px] align-middle">open_in_new</span>
-          </button>
-        );
-      }
-      return <strong key={i}>{innerText}</strong>;
+      isBold = true;
+      content = part.slice(2, -2);
     }
 
     if (suggestions && suggestions.length > 0 && onProductClick) {
-      const names = suggestions.map(s => s.name).sort((a, b) => b.length - a.length);
-      const escapedNames = names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-      const regex = new RegExp(`(${escapedNames.join('|')})`, 'gi');
-      const segments = part.split(regex);
-      
-      return segments.map((seg, j) => {
-        const matchedSug = suggestions.find(
-          s => s.name.toLowerCase() === seg.toLowerCase()
-        );
-        if (matchedSug) {
-          return (
-            <button
-              key={`${i}-${j}`}
-              onClick={(e) => { e.stopPropagation(); onProductClick(matchedSug.id); }}
-              className="inline-flex items-center gap-0.5 font-bold text-primary dark:text-[#daa520] hover:underline cursor-pointer transition-colors"
-              title={`Xem ${matchedSug.name}`}
-            >
-              {seg}
-              <span className="material-symbols-outlined text-[12px] align-middle">open_in_new</span>
-            </button>
+      const names = suggestions.map(s => s.name).filter(Boolean).sort((a, b) => b.length - a.length);
+      if (names.length > 0) {
+        const escapedNames = names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const regex = new RegExp(`(${escapedNames.join('|')})`, 'gi');
+        const segments = content.split(regex);
+        
+        const renderedSegments = segments.map((seg, j) => {
+          const matchedSug = suggestions.find(
+            s => s.name.toLowerCase() === seg.toLowerCase()
           );
-        }
-        return seg.split('\n').map((line, k, arr) => (
-          <React.Fragment key={`${i}-${j}-${k}`}>
-            {line}
-            {k < arr.length - 1 && <br />}
-          </React.Fragment>
-        ));
-      });
+          if (matchedSug) {
+            return (
+              <button
+                key={`${i}-${j}`}
+                onClick={(e) => { e.stopPropagation(); onProductClick(matchedSug.id); }}
+                className={`inline-flex items-center gap-0.5 font-bold text-primary dark:text-[#daa520] hover:underline cursor-pointer transition-colors ${isBold ? 'underline' : ''}`}
+                title={`Xem chi tiết ${matchedSug.name}`}
+              >
+                {seg}
+                <span className="material-symbols-outlined text-[12px] align-middle">open_in_new</span>
+              </button>
+            );
+          }
+          return seg.split('\n').map((line, k, arr) => (
+            <React.Fragment key={`${i}-${j}-${k}`}>
+              {isBold ? <strong className="font-bold">{line}</strong> : line}
+              {k < arr.length - 1 && <br />}
+            </React.Fragment>
+          ));
+        });
+        return <React.Fragment key={i}>{renderedSegments}</React.Fragment>;
+      }
     }
 
-    return part.split('\n').map((line, j, arr) => (
+    return content.split('\n').map((line, j, arr) => (
       <React.Fragment key={`${i}-${j}`}>
-        {line}
+        {isBold ? <strong className="font-bold">{line}</strong> : line}
         {j < arr.length - 1 && <br />}
       </React.Fragment>
     ));
   });
-
-  return processedParts;
 }
 
 function formatPrice(price: string | number) {
@@ -233,43 +237,66 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
 
     setIsLoading(true);
 
+    const botMsgId = Date.now() + 1;
+    setMessages(prev => [...prev, {
+      id: botMsgId,
+      sender: 'bot',
+      text: '',
+      timestamp: new Date(),
+    }]);
+
+    let streamText = '';
+    let streamSuggestions: ChatSuggestion[] | undefined = undefined;
+    let streamError = false;
+
     try {
-      const res = await chatbotApi.chat({
+      await chatbotApi.chatStream({
         message: messageText,
         sessionId: sessionId || undefined,
+      }, {
+        onSession: (newSessionId) => {
+          if (newSessionId !== sessionId) {
+            setSessionId(newSessionId);
+            localStorage.setItem(SESSION_KEY, newSessionId);
+          }
+        },
+        onToken: (token) => {
+          setIsLoading(false); // Stop typing indicator
+          streamText += token;
+          setMessages(prev => prev.map(m =>
+            m.id === botMsgId ? { ...m, text: streamText } : m
+          ));
+        },
+        onSuggestions: (suggs) => {
+          if (suggs && suggs.length > 0) {
+            streamSuggestions = suggs;
+            setMessages(prev => prev.map(m =>
+              m.id === botMsgId ? { ...m, suggestions: streamSuggestions } : m
+            ));
+          }
+        },
+        onDone: () => {
+          setIsLoading(false);
+          // Auto extract if no suggestions were provided via SSE
+          if (!streamSuggestions || streamSuggestions.length === 0) {
+            const autoSuggestions = extractSuggestionsFromText(streamText, catalogRef.current);
+            if (autoSuggestions.length > 0) {
+              setMessages(prev => prev.map(m =>
+                m.id === botMsgId ? { ...m, suggestions: autoSuggestions } : m
+              ));
+            }
+          }
+        },
+        onError: (message) => {
+          streamError = true;
+          throw new Error(message || 'Lỗi kết nối phân tích');
+        }
       });
 
-      if (res.data) {
-        // Store sessionId
-        if (res.data.sessionId && res.data.sessionId !== sessionId) {
-          setSessionId(res.data.sessionId);
-          localStorage.setItem(SESSION_KEY, res.data.sessionId);
-        }
-
-        // Auto-extract suggestions from text if backend didn't provide any
-        let suggestions = res.data.suggestions?.length > 0 ? res.data.suggestions : undefined;
-        if (!suggestions || suggestions.length === 0) {
-          const autoSuggestions = extractSuggestionsFromText(res.data.message, catalogRef.current);
-          if (autoSuggestions.length > 0) {
-            suggestions = autoSuggestions;
-          }
-        }
-
-        // Check if it's a fallback/error response (success: false)
-        const isFallback = res.data.success === false;
-
-        const botMsg: Message = {
-          id: Date.now() + 1,
-          sender: 'bot',
-          text: res.data.message,
-          timestamp: new Date(res.data.timestamp),
-          suggestions,
-          isError: isFallback,
-          retryPayload: isFallback ? messageText : undefined,
-        };
-        setMessages(prev => [...prev, botMsg]);
+      if (streamText === '' && !streamError) {
+        throw new Error('Hệ thống AI không thể phản hồi lúc này.');
       }
-    } catch (err) {
+    } catch (err: any) {
       let errorText = 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.';
       let showRetry = true;
 
@@ -277,18 +304,18 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onProductClick }) => {
         errorText = err.message;
         setRateLimitMsg(err.message);
         showRetry = false;
-      } else if (err instanceof Error) {
+      } else if (err.message) {
         errorText = err.message;
       }
 
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        sender: 'bot',
-        text: errorText,
-        timestamp: new Date(),
-        isError: showRetry,
-        retryPayload: showRetry ? messageText : undefined,
-      }]);
+      setMessages(prev => prev.map(m => 
+        m.id === botMsgId ? {
+          ...m,
+          text: streamText ? streamText + '\n\n**[Lỗi: ' + errorText + ']**' : errorText,
+          isError: showRetry,
+          retryPayload: showRetry ? messageText : undefined,
+        } : m
+      ));
     } finally {
       setIsLoading(false);
     }

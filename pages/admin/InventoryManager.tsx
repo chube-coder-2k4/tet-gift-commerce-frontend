@@ -155,7 +155,7 @@ const InventoryManager: React.FC = () => {
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary">search</span>
                         <input
                             type="number"
-                            placeholder="Tìm theo Product ID..."
+                            placeholder="Tìm theo mã sản phẩm..."
                             className="pl-10 pr-10 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-card-dark outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64 transition-all"
                             value={searchId}
                             onChange={(e) => setSearchId(e.target.value)}
@@ -204,7 +204,7 @@ const InventoryManager: React.FC = () => {
                                     <option value={0}>-- Chọn sản phẩm --</option>
                                     {products.map(p => (
                                         <option key={p.id} value={p.id}>
-                                            {`${p.name} | Mã hàng: ${p.id} | Tồn kho: ${p.stock}`}
+                                            {`${p.name} | Mã hàng: SP${String(p.id).padStart(4, '0')} | Tồn kho: ${p.stock}`}
                                         </option>
                                     ))}
                                 </select>
@@ -307,7 +307,7 @@ const InventoryManager: React.FC = () => {
                                     <td className="px-5 py-4">
                                         <div className="flex flex-col">
                                             <span className="font-semibold text-sm text-gray-900 dark:text-white">{batch.productName}</span>
-                                            <span className="text-[10px] text-gray-400">Product ID: #{batch.productId}</span>
+                                            <span className="text-[10px] text-gray-500 mt-1">Mã hàng: <span className="font-medium text-primary">SP{String(batch.productId).padStart(4, '0')}</span></span>
                                         </div>
                                     </td>
                                     <td className="px-5 py-4">

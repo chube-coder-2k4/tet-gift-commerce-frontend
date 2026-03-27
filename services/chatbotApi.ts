@@ -120,11 +120,13 @@ export const chatbotApi = {
         const lines = buffer.split('\n');
         buffer = '';
 
+        // Clean up SSE parsing logic correctly
+        // We know the last item in split() is an incomplete line UNLESS the original string ended with \n (then it's empty string)
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
 
-          // If it's incomplete (last item without newline), keep in buffer
-          if (i === lines.length - 1 && !buffer.endsWith('\n') && line !== '') {
+          if (i === lines.length - 1) {
+            // Last element is either the incomplete chunk or '' if it properly ended with \n
             buffer = line;
             continue;
           }
