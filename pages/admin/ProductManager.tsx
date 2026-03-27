@@ -445,8 +445,8 @@ const ProductManager: React.FC = () => {
       manufactureDate: p.manufactureDate || undefined,
       expDate: p.expDate || undefined,
       batchCode: 'UPDATE_INFO', // Giá trị giả khi edit vì BE yêu cầu @NotBlank
-      importQuantity: 0,
-      importPrice: 0
+      importQuantity: 1,
+      importPrice: 1000
     });
     imagePreviews.forEach(url => URL.revokeObjectURL(url));
     setImageFiles([]);
