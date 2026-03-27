@@ -4,6 +4,7 @@ import { cartApi } from '../services/cartApi';
 import { Screen } from '../types';
 import { authApi } from '../services/api';
 import ImageGallerySlider from '../components/ImageGallerySlider';
+import DOMPurify from 'dompurify';
 
 interface BundleDetailProps {
   onNavigate: (screen: Screen) => void;
@@ -219,9 +220,10 @@ const BundleDetail: React.FC<BundleDetailProps> = ({ onNavigate, bundleId, onCar
           )}
 
           {bundle.description && (
-            <div className="prose prose-sm text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-              <p>{bundle.description}</p>
-            </div>
+            <div
+                className="prose prose-sm dark:prose-invert text-gray-600 dark:text-gray-300 mb-8 leading-relaxed line-clamp-4"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(bundle.description || '') }}
+              />
           )}
 
           {/* Cart Messages */}
