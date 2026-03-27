@@ -144,6 +144,9 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
       setRefundError(err?.message || 'Hủy đơn hàng thất bại');
     } finally {
       setRefundSubmitting(false);
+    }
+  };
+
   const handleRetryVnpay = async (orderId: number) => {
     setRepayingId(orderId);
     setError('');
@@ -635,11 +638,6 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                                   Hủy đơn hàng
                                 </button>
                               )}
-                              {order.status === 'WAITING_PAYMENT' && payment?.method === 'VN_PAY' && payment?.paymentUrl && (
-                                <a
-                                  href={payment.paymentUrl}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="px-5 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-red-700 transition-colors flex items-center gap-2 shadow-lg shadow-primary/20"
                               {order.status === 'WAITING_PAYMENT' && payment?.method === 'VN_PAY' && payment?.status !== 'SUCCESS' && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleRetryVnpay(order.id); }}

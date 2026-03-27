@@ -24,10 +24,12 @@ export const InvoiceButton: React.FC<InvoiceButtonProps> = ({
 
   // Only show for orders with successful payment
   const validStatuses = ['PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED'];
-  if (!validStatuses.includes(orderStatus)) return null;
+  const shouldShowInvoiceButton = validStatuses.includes(orderStatus);
 
   // Preload existing invoice so "Tải PDF" can show immediately when available.
   useEffect(() => {
+    if (!shouldShowInvoiceButton) return;
+
     let isMounted = true;
 
     const preloadInvoice = async () => {
@@ -46,7 +48,9 @@ export const InvoiceButton: React.FC<InvoiceButtonProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [orderId]);
+  }, [orderId, shouldShowInvoiceButton]);
+
+  if (!shouldShowInvoiceButton) return null;
 
   const handleViewInvoice = async () => {
     setLoading(true);
