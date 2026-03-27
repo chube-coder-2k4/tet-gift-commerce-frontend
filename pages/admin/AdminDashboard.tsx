@@ -10,6 +10,9 @@ import OrderManager from './OrderManager';
 import DiscountManager from './DiscountManager';
 import BlogManager from './BlogManager';
 import DashboardStats from './DashboardStats';
+import InventoryManager from './InventoryManager';
+
+type AdminTab = 'dashboard' | 'users' | 'roles' | 'categories' | 'products' | 'inventory'| 'bundles' | 'orders' | 'discounts' | 'blogs';
 import SettingManager from './SettingManager';
 import RefundManager from './RefundManager';
 import SlideManager from './SlideManager';
@@ -26,6 +29,7 @@ const MENU_ITEMS: { key: AdminTab; label: string; icon: string }[] = [
   { key: 'roles', label: 'Vai trò', icon: 'admin_panel_settings' },
   { key: 'categories', label: 'Danh mục', icon: 'category' },
   { key: 'products', label: 'Sản phẩm', icon: 'inventory_2' },
+  { key: 'inventory', label: 'Kho hàng', icon: 'shelves' }, // Icon kệ hàng (shelves) hoặc inventory
   { key: 'bundles', label: 'Combo/Bundle', icon: 'redeem' },
   { key: 'orders', label: 'Đơn hàng', icon: 'receipt_long' },
   { key: 'refunds', label: 'Hoàn tiền', icon: 'currency_exchange' },
@@ -41,6 +45,7 @@ const QUICK_CARD_COLORS: Record<string, { from: string; to: string }> = {
   roles: { from: '#9B59B6', to: '#7D3C98' },
   categories: { from: '#27AE60', to: '#1E8449' },
   products: { from: '#F5A623', to: '#E8961D' },
+  inventory: { from: '#3498DB', to: '#2980B9' },
   bundles: { from: '#D4230A', to: '#F5A623' },
   orders: { from: '#2980B9', to: '#1F618D' },
   refunds: { from: '#F39C12', to: '#D68910' },
@@ -60,6 +65,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
       case 'roles': return <RoleManager />;
       case 'categories': return <CategoryManager />;
       case 'products': return <ProductManager />;
+      case 'inventory': return <InventoryManager />;
       case 'bundles': return <BundleManager />;
       case 'orders': return <OrderManager />;
       case 'refunds': return <RefundManager />;
@@ -179,6 +185,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onTabChange }) =>
     { key: 'roles', title: 'Vai trò', icon: 'admin_panel_settings', desc: 'Quản lý phân quyền' },
     { key: 'categories', title: 'Danh mục', icon: 'category', desc: 'Quản lý danh mục sản phẩm' },
     { key: 'products', title: 'Sản phẩm', icon: 'inventory_2', desc: 'Quản lý kho sản phẩm' },
+    { key: 'inventory', title: 'Kho hàng', icon: 'shelves', desc: 'Theo dõi lô hàng & hạn dùng' }, // Thêm card này
     { key: 'bundles', title: 'Combo', icon: 'redeem', desc: 'Quản lý combo quà Tết' },
     { key: 'orders', title: 'Đơn hàng', icon: 'receipt_long', desc: 'Quản lý đơn hàng & trạng thái' },
     { key: 'refunds', title: 'Hoàn tiền', icon: 'currency_exchange', desc: 'Xử lý yêu cầu hoàn tiền' },
