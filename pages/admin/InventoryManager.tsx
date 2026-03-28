@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminInventoryApi, adminProductApi, PageResponse, ProductResponse } from '../../services/adminApi';
 import Pagination from '../../components/Pagination';
+import CurrencyInput from '@/components/CurrencyInput';
 
 interface InventoryBatchResponse {
     id: number;
@@ -221,11 +222,11 @@ const InventoryManager: React.FC = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Giá nhập *</label>
-                                    <input
-                                        type="number"
-                                        className="w-full px-4 py-2 border rounded-xl dark:bg-surface-dark outline-none focus:border-primary"
+                                    <CurrencyInput
+                                        placeholder="0"
+                                        className="w-full px-4 py-2 border rounded-xl dark:bg-surface-dark outline-none focus:border-primary font-bold text-primary"
                                         value={batchForm.importPrice}
-                                        onChange={e => setBatchForm({...batchForm, importPrice: +e.target.value})}
+                                        onChange={(val) => setBatchForm({...batchForm, importPrice: val})}
                                     />
                                 </div>
                             </div>

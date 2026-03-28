@@ -441,6 +441,7 @@ import Pagination from '../../components/Pagination';
 
 // --- TINYMCE: Import component Editor ---
 import { Editor } from '@tinymce/tinymce-react';
+import CurrencyInput from '@/components/CurrencyInput';
 
 const formatCurrency = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
@@ -484,7 +485,7 @@ const BundleManager: React.FC = () => {
       const res = await adminProductApi.getAll({ page: 0, size: 200 });
       const data = res.data as PageResponse<ProductResponse>;
       setProducts(data.data || []);
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => { fetchBundles(); }, [fetchBundles]);
@@ -537,12 +538,12 @@ const BundleManager: React.FC = () => {
 
     setSaving(true);
     // Xử lý description nếu TinyMCE trả về rỗng
-    const finalDescription = (formDescription.trim() === '' || formDescription === '<p><br data-mce-bogus="1"></p>') 
-      ? undefined 
+    const finalDescription = (formDescription.trim() === '' || formDescription === '<p><br data-mce-bogus="1"></p>')
+      ? undefined
       : formDescription;
 
     const payload: BundleRequest = { name: formName, description: finalDescription, price: formPrice, custom: formIsCustom, products: validProducts };
-    
+
     try {
       if (editing) {
         if (imageFile) {
@@ -658,7 +659,7 @@ const BundleManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tên combo *</label>
                 <input value={formName} onChange={e => setFormName(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
               </div>
-              
+
               {/* --- TINYMCE: Thay thế textarea bằng Editor --- */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mô tả chi tiết</label>
@@ -687,7 +688,13 @@ const BundleManager: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 mt-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Giá combo (VNĐ)</label>
-                  <input type="number" value={formPrice} onChange={e => setFormPrice(+e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                  {/* <input type="number" value={formPrice} onChange={e => setFormPrice(+e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none" /> */}
+                  <CurrencyInput
+                    placeholder="0"
+                    className="w-full px-4 py-2 border rounded-xl dark:bg-surface-dark outline-none focus:border-primary font-bold text-primary"
+                    value={formPrice}
+                    onChange={(val) => setFormPrice(val)}
+                  />
                   {selectedProductRows.length > 0 && (
                     <div className="mt-2 space-y-2">
                       <div className="flex flex-wrap gap-2">
@@ -868,9 +875,9 @@ const BundleManager: React.FC = () => {
                         <p className="font-semibold text-sm text-gray-900 dark:text-white">{b.name}</p>
                         {/* --- Nếu bạn muốn bỏ HTML trong danh sách Bundle, hãy dùng đoạn code này thay vì b.description trực tiếp: --- */}
                         {b.description && (
-                          <p 
+                          <p
                             className="text-xs text-gray-500 truncate max-w-[200px]"
-                            dangerouslySetInnerHTML={{ __html: b.description.replace(/<[^>]+>/g, '') }} 
+                            dangerouslySetInnerHTML={{ __html: b.description.replace(/<[^>]+>/g, '') }}
                           />
                         )}
                       </div>
