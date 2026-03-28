@@ -171,7 +171,7 @@ export const adminInventoryApi = {
   //     fetchWithAuth<string>(`/products/batches/${batchId}`, { method: 'DELETE' }),
 
   disposeBatch: async (batchId: number): Promise<ApiResponse<string>> =>
-      fetchWithAuth<string>(`/products/batches/${batchId}/dispose`, { method: 'PUT' }),
+      fetchWithAuth<string>(`/products/${batchId}/dispose`, { method: 'PUT' }),
 };
 
 export const adminProductApi = {
