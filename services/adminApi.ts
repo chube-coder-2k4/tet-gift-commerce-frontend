@@ -169,6 +169,9 @@ export const adminInventoryApi = {
   // // Nếu bạn muốn cập nhật trạng thái hoặc xóa lô hàng lẻ (tùy chọn)
   // deleteBatch: async (batchId: number): Promise<ApiResponse<string>> =>
   //     fetchWithAuth<string>(`/products/batches/${batchId}`, { method: 'DELETE' }),
+
+  disposeBatch: async (batchId: number): Promise<ApiResponse<string>> =>
+      fetchWithAuth<string>(`/products/batches/${batchId}/dispose`, { method: 'PUT' }),
 };
 
 export const adminProductApi = {
@@ -595,6 +598,8 @@ export const adminRefundApi = {
     window.URL.revokeObjectURL(url);
   },
 };
+
+
 
 // ===== Statistics (Admin) =====
 export interface TopCustomerResponse {
