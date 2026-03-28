@@ -225,7 +225,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onProductClick, onCartUpdate, o
       {/* Featured Categories */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16">
         <div className="flex items-center justify-between mb-10">
-          <h2 className="text-3xl font-serif text-gray-900 dark:text-white">Danh Mục <span className="italic text-gray-500 dark:text-gray-400">Nổi Bật</span></h2>
+          <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white">
+                Danh Mục{" "}
+                <span className="italic font-light text-accent dark:text-[#daa520]">
+                  Nổi Bật
+                </span>
+              </h2>
           <a onClick={() => onNavigate('shop')} className="text-sm font-medium text-gray-600 dark:text-white/70 hover:text-primary transition-colors flex items-center gap-1 group cursor-pointer">
             Xem tất cả <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
           </a>
